@@ -8,7 +8,7 @@ management experience that is simple yet full of missing
 functions classical interfaces do not have, such as sector
 copier, memory dump and more.
 
-## The story behind the project
+## The Story Behind It
 When I got my first Atari 600XL back in 1984 (after spending
 time each afternoon at my friend's place programming his
 Atari 400), I taught myself Assembly and have started
@@ -51,8 +51,8 @@ Here's a list of provided commands:
 - Load / Save Binary File
 - Compare Files
 
-The default drive can be selected using the New Drive command drive is specified, either in the full filename or a specific
-selection (as in Duplicate Disk command)
+The default drive can be selected using the New Drive command and all subsequent commands defualt to it unless another
+drive is specified, either in the full filename or a specific selection (as in Duplicate Disk command)
 
 ## File Structure
 The project contains several files, eachone focuses on
@@ -61,7 +61,75 @@ different parts and with extensiblity in mind.
 Here is a rundown of the contained files and their purpose:
 
 - EDOS.M65 - The main application codebase
-- EDOSVARS.M65 - Main application variables and string constants
-- UTILS.M65 - A set of general purpose utilities that can be used in other projects
-- MACROS.M65 - A set of general purpose Mac/65 macros to simplify development
+- EDOSVARS.M65 - Main application variables and string
+constants
+- UTILS.M65 - A set of general purpose utilities that can be
+used in other projects
+- MACROS.M65 - A set of general purpose Mac/65 macros to
+simplify development
 - SYSTEM.M65 - System wide constants and defaults
+
+## UTILS.M65 Functions List
+- DSPBIN - Display a 80 byte binary address on screen, nicely
+formatted
+- DRAW - Draw a horizontal line via special char
+- RSTSCTCNT - Resets a 4 digit sector counter
+- BNK2DEC - Convert # memory banks to display text
+- INCSCTCNT - Increment a decimal sector counter by one
+- DTCDNS - Detect inserted disk density
+- RESETFIO - Resets FSIOV address location
+- READFIO - Load fast IO code from Speedy into memory
+- RDSCT - Reads one sector
+- WRTSCT - Writes one sector
+- INCCNTR - Incremets FILPOS counter
+- INCPTR - Increment INDPTR page zero pointer
+- DOSIO - Perform SIO operation
+- CALLSIO - Calls the actual SIOV function, uses fast SIO
+- FXSCSZ - Fix SIO sector size based on density and sector
+number
+- INP2ADDR - Convert INP1 to Hex address
+- DOCIO - Perform CIO operation
+- DISKERR - Handles error condition and display message
+- GETCHR - Gets one character from user
+- MUL16 - 16 bit multiplication
+- GETTEXT - Gets a line of text fromte user
+- PRNTLN - Prints one line on screen
+- PRNTNL - Goes down one line
+- BIN2DEC - 2 byte hex 2 ASCII decimal FF->"255"
+- BIN2HEX - 1 byte binary to hex conversion A0->"A0"
+- DTXMEM - Detect number of extended memory banks
+- HEX2BIN - 1 byte ASCII hex to hex number conversion
+"A0"->A0
+- DEC2HEX - 4 digits decimal to HEX conversion "1234"->04C2
+
+
+## MACROS.M65 Macros List
+- @COPYMEM - Copies one memory buffer to another
+- @WRD2STK - Pushes a word on the stack
+- @PTR2STK - Pushes a pinter on the stack
+- @CACHECURPOS - Caches the cursor position on the stack
+- @HIDECURSOR - Hides the cursor
+- @SHOWCURSOR - Shows the cursor
+- @COLGRN - Background screen color to green
+- @COLRED - Background screen color to red
+- @COLDEF - Background screen color to black
+- @MKBOLD - Makes a char bold
+- @MKASCII - Makes a digit an ASCII one
+- @GETRETADR - Get a stored return address to jump from the stack
+- @SETRETADR - Caches address to return on the stack
+- @SIOSNDOFF - Turns off SIO sounds
+- @SIOSNDON - Turns on SIO sounds
+- @HIDECHR - Do not display special characters
+- @SHWCHR - Display special characters
+- @RSTCURPOS - Restor cursor position
+- @POINT2TXT - Points zero page pointer to buffer
+- @FILLMEM - Fills memory with a character
+- @INPRM - Set memory location for text input
+- @MUL16PRM - Set MUL16 input paramters
+- @DRAW - Draw function helper
+- @PRNTLN - PRNTLN function helper
+- @SETSCT - Sets sector numbe for operation
+- @DOSIO - DOSIO function helper
+- @DOCIO - DOCIO function helper
+- @CLOSEIO - Closes all open IO channels
+- SETRTNA - Caches the address to return from functions that have no RTS
