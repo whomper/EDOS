@@ -8,6 +8,21 @@ management experience that is simple yet full of missing
 functions classical interfaces do not have, such as sector
 copier, memory dump and more.
 
+As EDOS can work with many DOS solutions, it provides a
+consistent interface for those who work with multiple DOS
+solutions. Care was given to not rely on specific DOS APIs
+and functionalty and most functions have been coded to the
+core CIO or SIO building blocks.
+
+Disk operations could be destructive at times, deleting
+precious files or whole disks. EDOS tries to make that easier
+via visual and colorful queues for read versus write
+operations so that the user can avoid unwanted deletions.
+
+EDOS is also offered in an Open Source fasion and all source
+code is free to review and leverage, providing recognition is
+properly mentioned.
+
 ## The Story Behind It
 When I got my first Atari 600XL back in 1984 (after spending
 time each afternoon at my friend's place programming his
@@ -30,7 +45,7 @@ I've added many functions that are  missing from similar
 solutions and am also actively using it in my day to day
 Atari activities.
 
-## Main Conepts and Commands
+## Main Concepts and Commands
 As with any DOS menu program, the obvious set of funtions are
 provided and a few essentials have been added as well. This
 reduces the need to call for external utilities.
@@ -132,4 +147,4 @@ number
 - @DOSIO - DOSIO function helper
 - @DOCIO - DOCIO function helper
 - @CLOSEIO - Closes all open IO channels
-- SETRTNA - Caches the address to return from functions that have no RTS
+- @SETRTNA - Caches the address to return from functions that have no RTS
