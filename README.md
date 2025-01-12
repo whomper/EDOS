@@ -46,28 +46,88 @@ solutions and am also actively using it in my day to day
 Atari activities.
 
 ## Main Concepts and Commands
-As with any DOS menu program, the obvious set of funtions are
-provided and a few essentials have been added as well. This
-reduces the need to call for external utilities.
+As with any DOS menu program, the obvious set of functions are provided and a
+few essentials have been added as well. This reduces the need to call for
+external utilities.
 
-A top line status bar provides additonal information, such as
-connected drives, default drive number, whether it is high
-speed enabled and the total available extendd memory.
+A top line status bar provides additional information, such as connected
+drives, default drive number, whether it is high speed enabled and the total
+available extended memory.
 
-Here's a list of provided commands:
-- Show Directory
-- Goto Cartridge / Memory address
-- Copy Files
-- Duplcaite Disk
-- Erase Files
-- Initiatize Disk
-- View File / Sector / Memory
-- Protect / Unprotects Files
-- Load / Save Binary File
-- Compare Files
+Here's a list of provided commands with short explanation:
+### Show Directory
+Displays a two column directory list with files count and free space.
+Clicking on keys 1-8 performs the same function irrespective of selected
+drive.
 
-The default drive can be selected using the New Drive command and all subsequent commands defualt to it unless another
-drive is specified, either in the full filename or a specific selection (as in Duplicate Disk command)
+### Go to Cartridge
+Enters a cartridge if one is present.
+
+### Go to Address
+Enter a 4 digit hex address to jump.
+
+### Copy Files
+Copies one of more files between 2 disks. File name uses standard DOS
+convention and can have source drive number a well (either D#: or #:). Target
+drive number, or Y for same, needs to be selected.
+The copy operation works for all files, alternating the background color for
+Read (Green) or Write (Red) operations.
+This operation uses extended memory in order to copy large files.
+
+### Duplicate Disk
+Duplicates a full disk between two drives using available extended memory. A
+sector copy operation will be used and if the drive has Fast SIO
+capabilities, its Fast IO code will be read and used. This ensures the fasted
+sector copy operation irrespective of underlying DOS.
+Source drive is selected and read. Once read operation is complete, the user
+will be asked to input target disk number (or Y for same). The background
+color will change to Red indicating a destructive operation.
+Once the target disk is inserted, it will be determined if a format operation
+is needed by assessing source/target density compatibility and whether there
+target disk is formatted at all.
+
+### Erase Files
+Performs files erase using standard DOS file naming conventions. Signals
+destructive operation by changing background color to Red.
+
+### Initialize Disk
+Formats a disk for Single, Enhanced or Double density.
+
+### View File / Sector / Memory
+A generic 80 byte viewer for files, sectors and memory addresses.
+
+The use is asked for the following info:
+- File - File name and starting position
+- Sector - Sector number in decimal
+- Memory - Memory address in Hex
+
+Once 80 bytes are displayed on screen, there are provisions to navigate
+forward or backwards (only for Sector and Memory).
+
+### Protect / Unprotect Files
+Performs files protect and unprotect using standard DOS file naming
+conventions
+
+### Load / Save Binary File
+Loads or saves a binary file. Load will automatically executed loaded program
+if possible.
+Save will save a memory range and will add a run address vector.
+
+### Compare Files
+Compares two files to figure out if they are identical or not. File names
+uses standard DOS file naming conventions.
+
+### General
+The default drive can be selected using the New Drive command and all
+subsequent commands default to it unless another drive is specified, either
+in the full file name or a specific selection (as in Duplicate Disk command)
+
+A generic file naming function is available for all cases where the use needs
+to input a file name.
+D#:filename.ext, #:filename,ext, filename.ext, file*.* or any wildcard
+combination can be used.
+Prefixing with the drive number can support operations outside of the
+selected drive.
 
 ## File Structure
 The project contains several files, eachone focuses on
