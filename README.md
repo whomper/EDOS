@@ -3,7 +3,7 @@ E-DOS is a refreshed Disk Utility Package (DUP) that sits on
 top of a regular DOS, such as MyDOS or SpartaDOS to provide a
 menu based disk operations in a friendly user interface.
  
-I have created this softare to provide me withthe best disk
+I have created this software to provide me with the best disk
 management experience that is simple yet full of missing
 functions classical interfaces do not have, such as sector
 copier, memory dump and more.
