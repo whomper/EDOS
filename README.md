@@ -64,7 +64,7 @@ drive.
 Enters a cartridge if one is present.
 
 ### Go to Address
-Enter a 4 digit hex address to jump.
+Enter a 4 digit hex address to jump to.
 
 ### Copy Files
 Copies one of more files between 2 disks. File name uses standard DOS
@@ -83,7 +83,7 @@ Source drive is selected and read. Once read operation is complete, the user
 will be asked to input target disk number (or Y for same). The background
 color will change to Red indicating a destructive operation.
 Once the target disk is inserted, it will be determined if a format operation
-is needed by assessing source/target density compatibility and whether there
+is needed by assessing source/target density compatibility and whether the
 target disk is formatted at all.
 
 ### Erase Files
@@ -96,21 +96,21 @@ Formats a disk for Single, Enhanced or Double density.
 ### View File / Sector / Memory
 A generic 80 byte viewer for files, sectors and memory addresses.
 
-The use is asked for the following info:
-- File - File name and starting position
+The user is asked for the following info:
+- File - File name and starting position in hex
 - Sector - Sector number in decimal
 - Memory - Memory address in Hex
 
 Once 80 bytes are displayed on screen, there are provisions to navigate
-forward or backwards (only for Sector and Memory).
+forward or backwards (only for Sector and Memory) or to abort.
 
 ### Protect / Unprotect Files
 Performs files protect and unprotect using standard DOS file naming
 conventions
 
 ### Load / Save Binary File
-Loads or saves a binary file. Load will automatically executed loaded program
-if possible.
+Loads or saves a binary file. Load will present the option whether to execute
+the loaded program.
 Save will save a memory range and will add a run address vector.
 
 ### Compare Files
