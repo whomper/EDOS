@@ -11,89 +11,88 @@
 0110 PRVPOS *= *+1   ;PREV DISK POS
 0120 ACVMEM .BYTE 0  ;ACTIVE MEM PAGE
 0130 REFDRV .BYTE 1  ;REFRESH DRVS?
-0140 INIT .BYTE 0    ;FIRST RUN?
-0150 DRVHS *= *+1    ;SPEEDY DRIVE?
-0160 EXTMEM *= *+1   ;# MEM PAGES
-0170 DECIML *= *+3   ;3 CHR DECIMAL
-0180 TMPDSK *= *+1   ;TMP DSK NUM
-0190 SNGL .BYTE $28,1,0,$12,0,0,0,$80,$FF
-0200 ENHA .BYTE $28,1,0,$1A,0,0,0,$80,$FF
-0210 DBLE .BYTE $28,1,0,$12,0,4,0,$FF,$FF
-0220 VTOC .BYTE 2,$F2,3,$F2,3,0,0,0,0,0,$0F,EOL
-0230 DISK .BYTE "D1:*.*",EOL ;DEF DISK
-0240 EDOS .BYTE "EDOS.COM",EOL
-0250 ARGS .BYTE "*.*",DEL ;DEF ARGS
-0260 KYBD .BYTE "K:",EOL ;KEYBOARD
-0270 DELL .BYTE DLN,CUP,CUP,DEL
-0280 DLLN .BYTE DLN,DEL
-0290 TTL1 .BYTE CLS,DEL
-0300 TTL2 .BYTE "",EOL
-0310 STAT .BYTE " D:               XMEM:           ",EOL
-0320 MNU1 .BYTE "1-8 Dir D1-D8      Write EDOS",EOL
-0330     .BYTE "Files on Disk      Protect Files",EOL
-0340     .BYTE "Yo Cartridge       Unprotect Files",EOL
-0350     .BYTE "Copy Files         Rename Files",EOL
-0360     .BYTE "Duplicate Disk     Save Binary",EOL,DEL
-0370 MNU2 .BYTE "Erase Files        Load Binary",EOL
-0380     .BYTE "Initialize Disk    Ho To Address",EOL
-0390     .BYTE "View File          New Drive",EOL
-0400     .BYTE "Analyze Sector     Byte Compare",EOL
-0410     .BYTE "Memory Status      Quit to DOS",EOL,DEL
-0420 FSPC .BYTE "File Spec: ",DEL
-0430 NUMF .BYTE "Number of files:    ",EOL
-0440 RENO .BYTE "Old File: ",DEL
-0450 RENN .BYTE "New File: ",DEL
-0460 BCMF .BYTE "File 1: ",DEL
-0470 BCMS .BYTE "File 2: ",DEL
-0480 DRVN .BYTE "Drive #: ",DEL
-0490 FMTD .BYTE "1-Single, 2-Enhance, 3-Double: ",DEL
-0500 FRMT .BYTE "Formatting D , ",DEL
-0510 GOTA .BYTE "Address: ",DEL
-0520 FLST .BYTE "Start: ",DEL
-0530 FLED .BYTE "  End: ",DEL
-0540 FLRN .BYTE "  Run: ",DEL
-0550 SCNM .BYTE "Sector: ",DEL
-0560 ARYS .BYTE "Are You Sure? ",DEL
-0570 INSS .BYTE "Read source [Y]? ",DEL
-0580 INST .BYTE "Target drive # [1-8,Y-same]: ",DEL
-0590 WFTR .BYTE "Insert Target [Y] ",DEL
-0600 ANYK .BYTE DLN,"Select Item ( for menu): ",DEL
-0610 NOTB .BYTE "Not a binary file!",EOL
-0620 REOF .BYTE "Reached end of file",EOL
-0630 VIMR .BYTE "View more [Y/N]? ",DEL
-0640 VINP .BYTE "View next/previous [+/-/N]? ",DEL
-0650 BDIF .BYTE "Files are ",EOL
-0660 BSAM .BYTE "Files are ",EOL
-0670 RUNP .BYTE "Run Program [Y/N]? ",DEL
-0680 UPDT .BYTE "            Updating...             ",DEL
-0690 NOMM .BYTE "Not enough memory!",EOL
-0700 DSNG .BYTE "Single ",DEL
-0710 DENH .BYTE "Enhance",DEL
-0720 DDBL .BYTE "Double ",DEL
-0730 SECT .BYTE "Sector:     ",EOL
-0740 DUPE .BYTE "    ",DEL
-0750 DUPS .BYTE ":       :        :     :       ",DEL
-0760 MODR .BYTE "Read  ",DEL
-0770 MODW .BYTE "Write ",DEL
-0780 MODF .BYTE "Format",DEL
-0790 DRSP .BYTE "HIGH",DEL
-0800 DRGN .BYTE "NORM",DEL
-0810 MEMS .BYTE "Low:     High:    ",EOL
-0820 COMF .BYTE DLN," FILES ON DISK",EOL
-0830 COMT .BYTE DLN,"TO CARTRIDGE ",EOL
-0840 COMC .BYTE DLN,"COPY FILES ",EOL
-0850 COMD .BYTE DLN,"DUPLICATE DISK ",EOL
-0860 COME .BYTE DLN,"ERASE FILES ",EOL
-0870 COMI .BYTE DLN,"INITIALIZE DISK",EOL
-0880 COMP .BYTE DLN,"PROTECT FILES ",EOL
-0890 COMU .BYTE DLN,"UNPROTECT FILES ",EOL
-0900 COMR .BYTE DLN,"RENAME FILE ",EOL
-0910 COMS .BYTE DLN,"SAVE BINARY ",EOL
-0920 COML .BYTE DLN,"LOAD BINARY",EOL
-0930 COMN .BYTE DLN,"NEW DISK ",EOL
-0940 COMG .BYTE DLN,"GOTO ADDRESS",EOL
-0950 COMV .BYTE DLN,"VIEW FILE ",EOL
-0960 COMA .BYTE DLN,"ANALYZE SECTOR",EOL
-0970 COMM .BYTE DLN,"MEMORY STATUS",EOL
-0980 COMB .BYTE DLN,"BYTE COMPARE",EOL
-0990 COMW .BYTE DLN,"WRITE EDOS ",EOL
+0140 DRVHS *= *+1    ;SPEEDY DRIVE?
+0150 EXTMEM *= *+1   ;# MEM PAGES
+0160 DECIML *= *+3   ;3 CHR DECIMAL
+0170 TMPDSK *= *+1   ;TMP DSK NUM
+0180 SNGL .BYTE $28,1,0,$12,0,0,0,$80,$FF
+0190 ENHA .BYTE $28,1,0,$1A,0,0,0,$80,$FF
+0200 DBLE .BYTE $28,1,0,$12,0,4,0,$FF,$FF
+0210 VTOC .BYTE 2,$F2,3,$F2,3,0,0,0,0,0,$0F,EOL
+0220 DISK .BYTE "D1:*.*",EOL ;DEF DISK
+0230 EDOS .BYTE "EDOS.COM",EOL
+0240 ARGS .BYTE "*.*",DEL ;DEF ARGS
+0250 KYBD .BYTE "K:",EOL ;KEYBOARD
+0260 DELL .BYTE DLN,CUP,CUP,DEL
+0270 DLLN .BYTE DLN,DEL
+0280 TTL1 .BYTE CLS,DEL
+0290 TTL2 .BYTE "",EOL
+0300 STAT .BYTE " D:               XMEM:           ",EOL
+0310 MNU1 .BYTE " Dir D1-D8      rite EDOS",EOL
+0320     .BYTE "iles on Disk      rotect Files",EOL
+0330     .BYTE "o Cartridge       nprotect Files",EOL
+0340     .BYTE "opy Files         ename Files",EOL
+0350     .BYTE "uplicate Disk     ave Binary",EOL,DEL
+0360 MNU2 .BYTE "rase Files        oad Binary",EOL
+0370     .BYTE "nitialize Disk    o To Address",EOL
+0380     .BYTE "iew File          ew Drive",EOL
+0390     .BYTE "nalyze Sector     yte Compare",EOL
+0400     .BYTE "emory Status      uit to DOS",EOL,DEL
+0410 FSPC .BYTE "File Spec: ",DEL
+0420 NUMF .BYTE "Number of files:    ",EOL
+0430 RENO .BYTE "Old File: ",DEL
+0440 RENN .BYTE "New File: ",DEL
+0450 BCMF .BYTE "File 1: ",DEL
+0460 BCMS .BYTE "File 2: ",DEL
+0470 DRVN .BYTE "Drive #: ",DEL
+0480 FMTD .BYTE "1-Single, 2-Enhance, 3-Double: ",DEL
+0490 FRMT .BYTE "Formatting D , ",DEL
+0500 GOTA .BYTE "Address: ",DEL
+0510 FLST .BYTE "Start: ",DEL
+0520 FLED .BYTE "  End: ",DEL
+0530 FLRN .BYTE "  Run: ",DEL
+0540 SCNM .BYTE "Sector: ",DEL
+0550 ARYS .BYTE "Are You Sure? ",DEL
+0560 INSS .BYTE "Read source [Y]? ",DEL
+0570 INST .BYTE "Target drive # [1-8,Y-same]: ",DEL
+0580 WFTR .BYTE "Insert Target [Y] ",DEL
+0590 ANYK .BYTE DLN,"Select Item ( for menu): ",DEL
+0600 NOTB .BYTE "Not a binary file!",EOL
+0610 REOF .BYTE "Reached end of file",EOL
+0620 VIMR .BYTE "View more [Y/N]? ",DEL
+0630 VINP .BYTE "View next/previous [+/-/N]? ",DEL
+0640 BDIF .BYTE "Files are ",EOL
+0650 BSAM .BYTE "Files are ",EOL
+0660 RUNP .BYTE "Run Program [Y/N]? ",DEL
+0670 UPDT .BYTE "            Updating...             ",DEL
+0680 NOMM .BYTE "Not enough memory!",EOL
+0690 DSNG .BYTE "Single ",DEL
+0700 DENH .BYTE "Enhance",DEL
+0710 DDBL .BYTE "Double ",DEL
+0720 SECT .BYTE "Sector:     ",EOL
+0730 DUPE .BYTE "    ",DEL
+0740 DUPS .BYTE ":       :        :     :       ",DEL
+0750 MODR .BYTE "Read  ",DEL
+0760 MODW .BYTE "Write ",DEL
+0770 MODF .BYTE "Format",DEL
+0780 DRSP .BYTE "HIGH",DEL
+0790 DRGN .BYTE "NORM",DEL
+0800 MEMS .BYTE "Low:     High:    ",EOL
+0810 COMF .BYTE DLN,"",EOL
+0820 COMT .BYTE DLN,"",EOL
+0830 COMC .BYTE DLN,"",EOL
+0840 COMD .BYTE DLN,"",EOL
+0850 COME .BYTE DLN,"",EOL
+0860 COMI .BYTE DLN,"",EOL
+0870 COMP .BYTE DLN,"",EOL
+0880 COMU .BYTE DLN,"",EOL
+0890 COMR .BYTE DLN,"",EOL
+0900 COMS .BYTE DLN,"",EOL
+0910 COML .BYTE DLN,"",EOL
+0920 COMN .BYTE DLN,"",EOL
+0930 COMG .BYTE DLN,"",EOL
+0940 COMV .BYTE DLN,"",EOL
+0950 COMA .BYTE DLN,"",EOL
+0960 COMM .BYTE DLN,"",EOL
+0970 COMB .BYTE DLN,"",EOL
+0980 COMW .BYTE DLN,"",EOL
