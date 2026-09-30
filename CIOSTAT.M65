@@ -1,0 +1,69 @@
+10 ;
+20 ; CIO STATUS
+30 ;
+40 CS.128 .BYTE "Key Abort",EOL
+50 CS.129 .BYTE "IOCB already open",EOL
+60 CS.130 .BYTE "Non-Existent Device",EOL
+70 CS.131 .BYTE "Opened for write only",EOL
+80 CS.132 .BYTE "Invalid command",EOL
+90 CS.133 .BYTE "Device/File not open",EOL
+0100 CS.134 .BYTE "Invalid IOCB number",EOL
+0110 CS.135 .BYTE "Opened for read only",EOL
+0120 CS.136 .BYTE "End of file",EOL
+0130 CS.137 .BYTE "Truncated record",EOL
+0140 CS.138 .BYTE "Device timeout",EOL
+0150 CS.139 .BYTE "Device NAK",EOL
+0160 CS.140 .BYTE "Input framing",EOL
+0170 CS.141 .BYTE "Cursor out of range",EOL
+0180 CS.142 .BYTE "Data frame overrun",EOL
+0190 CS.143 .BYTE "Data frame checksum",EOL
+0200 CS.144 .BYTE "Device done",EOL
+0210 CS.145 .BYTE "Bad screen mode",EOL
+0220 CS.146 .BYTE "Function not supported",EOL
+0230 CS.147 .BYTE "Insufficient memory",EOL
+0240 CS.160 .BYTE "Disk drive number",EOL
+0250 CS.161 .BYTE "Too many open files",EOL
+0260 CS.162 .BYTE "Disk full",EOL
+0270 CS.163 .BYTE "Fatal disk I/O",EOL
+0280 CS.164 .BYTE "File numbe mismatch",EOL
+0290 CS.165 .BYTE "File name",EOL
+0300 CS.166 .BYTE "Point data length",EOL
+0310 CS.167 .BYTE "File locked",EOL
+0320 CS.168 .BYTE "Invalid command for disk",EOL
+0330 CS.169 .BYTE "Directory full",EOL
+0340 CS.170 .BYTE "File not found",EOL
+0350 CS.171 .BYTE "Point invalid",EOL
+0360 CIO_CODE
+0370     .BYTE 128, <CS.128, >CS.128
+0380     .BYTE 129, <CS.129, >CS.129
+0390     .BYTE 130, <CS.130, >CS.130
+0400     .BYTE 131, <CS.131, >CS.131
+0410     .BYTE 132, <CS.132, >CS.132
+0420     .BYTE 133, <CS.133, >CS.133
+0430     .BYTE 134, <CS.134, >CS.134
+0440     .BYTE 135, <CS.135, >CS.135
+0450     .BYTE 136, <CS.136, >CS.136
+0460     .BYTE 137, <CS.137, >CS.137
+0470     .BYTE 138, <CS.138, >CS.138
+0480     .BYTE 139, <CS.139, >CS.139
+0490     .BYTE 140, <CS.140, >CS.140
+0500     .BYTE 141, <CS.141, >CS.141
+0510     .BYTE 142, <CS.142, >CS.142
+0520     .BYTE 143, <CS.143, >CS.143
+0530     .BYTE 144, <CS.144, >CS.144
+0540     .BYTE 145, <CS.145, >CS.145
+0550     .BYTE 146, <CS.146, >CS.146
+0560     .BYTE 147, <CS.147, >CS.147
+0570     .BYTE 160, <CS.160, >CS.160
+0580     .BYTE 161, <CS.161, >CS.161
+0590     .BYTE 162, <CS.162, >CS.162
+0600     .BYTE 163, <CS.163, >CS.163
+0610     .BYTE 164, <CS.164, >CS.164
+0620     .BYTE 165, <CS.165, >CS.165
+0630     .BYTE 166, <CS.166, >CS.166
+0640     .BYTE 167, <CS.167, >CS.167
+0650     .BYTE 168, <CS.168, >CS.168
+0660     .BYTE 169, <CS.169, >CS.169
+0670     .BYTE 170, <CS.170, >CS.170
+0680     .BYTE 171, <CS.171, >CS.171
+0690     .BYTE $FF,0,0
