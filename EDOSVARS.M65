@@ -1,13 +1,13 @@
 10 ;
-20 ; E-DOS  BY EREZ YAARY
+20 ; E-DOS 2.5 BY EREZ YAARY
 30 ;
-40 ; 
+40 ; VARIABLES
 50 ;
 60 COUNT *=  *+1     ;FILES COUNT
 70 FILEND *= *+2     ;FILE END
 80 FILLEN *= *+2     ;FILE LEN
 90 DRIVES *= *+1     ;CONNECTED DRVS
-0100 BITWISE *= *+1  ;FOCUSE DRIVE
+0100 BITWISE *= *+1  ;FOCUS DRIVE
 0110 PRVPOS *= *+1   ;PREV DISK POS
 0120 ACVMEM .BYTE 0  ;ACTIVE MEM PAGE
 0130 REFDRV .BYTE 1  ;REFRESH DRVS?
@@ -26,20 +26,20 @@
 0260 DELL .BYTE DLN,CUP,CUP,DEL
 0270 DLLN .BYTE DLN,DEL
 0280 TTL1 .BYTE CLS,DEL
-0290 TTL2 .BYTE "",EOL
-0300 STAT .BYTE " D:               XMEM:           ",EOL
-0310 MNU1 .BYTE " Dir D1-D8      rite EDOS",EOL
-0320     .BYTE "iles on Disk      rotect Files",EOL
-0330     .BYTE "o Cartridge       nprotect Files",EOL
-0340     .BYTE "opy Files         ename Files",EOL
-0350     .BYTE "uplicate Disk     ave Binary",EOL,DEL
-0360 MNU2 .BYTE "rase Files        oad Binary",EOL
-0370     .BYTE "nitialize Disk    o To Address",EOL
-0380     .BYTE "iew File          ew Drive",EOL
-0390     .BYTE "nalyze Sector     yte Compare",EOL
-0400     .BYTE "emory Status      uit to DOS",EOL,DEL
+0290 TTL2 .BYTE "",EOL
+0300 STAT .BYTE " D:                 XMEM:      ",EOL
+0310 MNU1 .BYTE " Dir D1-D8      ","rite EDOS",EOL
+0320     .BYTE "iles on Disk      ","rotect Files",EOL
+0330     .BYTE "o Cartridge       ","nprotect Files",EOL
+0340     .BYTE "opy Files         ","ename Files",EOL
+0350     .BYTE "uplicate Disk     ","ave Binary",EOL,DEL
+0360 MNU2 .BYTE "rase Files        ","oad Binary",EOL
+0370     .BYTE "nitialize Disk    ","o To Address",EOL
+0380     .BYTE "iew File          ","ew Drive",EOL
+0390     .BYTE "nalyze Sector     ","yte Compare",EOL
+0400     .BYTE "emory Status      ","uit to DOS",EOL,DEL
 0410 FSPC .BYTE "File Spec: ",DEL
-0420 NUMF .BYTE "Number of files:    ",EOL
+0420 NUMF .BYTE "Number of files: ",EOL
 0430 RENO .BYTE "Old File: ",DEL
 0440 RENN .BYTE "New File: ",DEL
 0450 BCMF .BYTE "File 1: ",DEL
@@ -49,8 +49,8 @@
 0490 FRMT .BYTE "Formatting D , ",DEL
 0500 GOTA .BYTE "Address: ",DEL
 0510 FLST .BYTE "Start: ",DEL
-0520 FLED .BYTE "  End: ",DEL
-0530 FLRN .BYTE "  Run: ",DEL
+0520 FLED .BYTE " End: ",DEL
+0530 FLRN .BYTE " Run: ",DEL
 0540 SCNM .BYTE "Sector: ",DEL
 0550 ARYS .BYTE "Are You Sure? ",DEL
 0560 INSS .BYTE "Read source [Y]? ",DEL
@@ -61,23 +61,23 @@
 0610 REOF .BYTE "Reached end of file",EOL
 0620 VIMR .BYTE "View more [Y/N]? ",DEL
 0630 VINP .BYTE "View next/previous [+/-/N]? ",DEL
-0640 BDIF .BYTE "Files are ",EOL
-0650 BSAM .BYTE "Files are ",EOL
+0640 BDIF .BYTE "Files are different",EOL
+0650 BSAM .BYTE "Files are the same",EOL
 0660 RUNP .BYTE "Run Program [Y/N]? ",DEL
-0670 UPDT .BYTE "            Updating...             ",DEL
+0670 UPDT .BYTE " Updating... ",DEL
 0680 NOMM .BYTE "Not enough memory!",EOL
 0690 DSNG .BYTE "Single ",DEL
 0700 DENH .BYTE "Enhance",DEL
 0710 DDBL .BYTE "Double ",DEL
-0720 SECT .BYTE "Sector:     ",EOL
+0720 SECT .BYTE "Sector: ",EOL
 0730 DUPE .BYTE "    ",DEL
-0740 DUPS .BYTE ":       :        :     :       ",DEL
-0750 MODR .BYTE "Read  ",DEL
+0740 DUPS .BYTE ":       :        :     :     ",DEL
+0750 MODR .BYTE "Read ",DEL
 0760 MODW .BYTE "Write ",DEL
 0770 MODF .BYTE "Format",DEL
 0780 DRSP .BYTE "HIGH",DEL
 0790 DRGN .BYTE "NORM",DEL
-0800 MEMS .BYTE "Low:     High:    ",EOL
+0800 MEMS .BYTE ":      :     ",DEL
 0810 COMF .BYTE DLN,"",EOL
 0820 COMT .BYTE DLN,"",EOL
 0830 COMC .BYTE DLN,"",EOL
