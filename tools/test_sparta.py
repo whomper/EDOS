@@ -83,12 +83,31 @@ class TestBuiltDisks(unittest.TestCase):
             self.assertEqual(d.w(d.read(1), 0x28), d.w(dos, 1), f"{name}: boot file pointer")
             self.assertEqual(content(d, 'X32G.DOS'), content(sparta.Disk(ORIGINAL), 'X32G.DOS'))
 
-    def test_original_files_carried_over(self):
+    def test_other_files_carried_over(self):
+        import make_disks
         old, new = sparta.Disk(ORIGINAL), sparta.Disk(os.path.join(BUILD, 'EDOS.ATR'))
         for i, e in old.entries():
             n = old.name(e)
-            if old.live(e) and n not in ('EDOS.COM', 'STARTUP.BAT', 'EDOS.DOC'):
+            if old.live(e) and n != 'EDOS.COM' and n not in make_disks.DAMAGED \
+                    and n not in make_disks.SOURCES and not n.endswith('.BAK'):
                 self.assertEqual(content(new, n), content(old, n), n)
+
+    def test_sources_on_disk_assemble_to_edos_com(self):
+        import make_disks
+        import mac65tok
+        import subprocess
+        d = sparta.Disk(os.path.join(BUILD, 'EDOS.ATR'))
+        with tempfile.TemporaryDirectory() as tmp:
+            for n in make_disks.SOURCES:
+                with open(os.path.join(ROOT, n), encoding='utf-8') as f:
+                    self.assertEqual(content(d, n), mac65tok.tokenize(f.read()), n)
+                with open(os.path.join(tmp, n), 'w', encoding='utf-8') as f:
+                    f.write(mac65tok.detokenize(content(d, n)))
+            out = os.path.join(tmp, 'EDOS.COM')
+            subprocess.run([sys.executable, '-I', os.path.join(ROOT, 'tools', 'mac65.py'),
+                            os.path.join(tmp, 'EDOS.M65'), '-o', out], check=True,
+                           capture_output=True)
+            self.assertEqual(sparta._read(out), sparta._read(os.path.join(BUILD, 'EDOS.COM')))
 
 
 if __name__ == '__main__':

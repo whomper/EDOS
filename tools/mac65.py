@@ -5,7 +5,7 @@ Assembles the line-numbered text form of MAC/65 sources (as kept in this
 repository) into an Atari DOS binary load file. It covers the subset of
 MAC/65 that EDOS uses:
 
-  * line numbers, labels in column 1, ';' comments
+  * line numbers, labels in column 1, ';' comments (and '*' in column 1)
   * all NMOS 6502 opcodes and addressing modes, 'A' accumulator form
   * label = expr, *= expr, label *= *+n (reserve), .BYTE, .WORD, .OPT
   * .INCLUDE #D:FILE (resolved next to the including file)
@@ -298,8 +298,10 @@ class Assembler:
         body = strip_comment(text).rstrip()
         if not body.strip():
             return
+        if body.startswith('*'):                 # column-1 '*' is a comment in MAC/65
+            return
         label = None
-        if not body[0].isspace() and not body.startswith('*='):
+        if not body[0].isspace():
             parts = body.split(None, 1)
             label = parts[0].upper()
             rest = parts[1] if len(parts) > 1 else ''

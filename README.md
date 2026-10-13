@@ -238,14 +238,17 @@ and a fake disk drive:
 every push and keeps `build/` as a downloadable artifact.
 
 Disk images (built by `tools/build.sh`):
-- `build/EDOS.ATR` - clean SpartaDOS rebuild of `EDOS.atr`: same boot code,
-  DOS and files, the new EDOS.COM. `STARTUP.BAT` and `EDOS.DOC` are left
-  out: on the 2025 image their sectors are shared with other files.
+- `build/EDOS.ATR` - the EDOS disk: SpartaDOS 3.2, EDOS.COM and the current
+  sources in MAC/65 tokenized form (`LOAD #D:EDOS.M65` in MAC/65), plus the
+  utilities. The repository's `EDOS.atr` is a copy of it; refresh it with
+  `cp build/EDOS.ATR EDOS.atr` after source changes.
 - `build/EDOSTEST.ATR` - bootable SpartaDOS test disk with EDOS.COM, the
   test files used by the automated tests, RUNME.COM and `TESTPLAN.TXT`
   (31 manual checks for the real Atari; `TYPE TESTPLAN.TXT`).
 
-Other tools: `tools/sparta.py` lists, extracts, adds, deletes and checks
+Other tools: `tools/mac65tok.py` converts between these text sources and
+MAC/65's tokenized SAVE format (checked byte for byte against files saved
+by MAC/65); `tools/sparta.py` lists, extracts, adds, deletes and checks
 (fsck) files on SpartaDOS images; `tools/atr.py` does the same for DOS
 2/MyDOS images; `tools/mac65.py --help` for assembler options.
 
