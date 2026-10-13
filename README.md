@@ -208,3 +208,27 @@ number
 - @DOCIO - DOCIO function helper
 - @CLOSEIO - Closes all open IO channels
 - @SETRTNA - Caches the address to return from functions that have no RTS
+
+## Building
+The sources can be assembled on a PC as well as with MAC/65 on the Atari.
+`tools/` holds a Python cross assembler that understands the MAC/65 syntax
+used here. Fed the February 2025 sources, it reproduces the MAC/65-built
+EDOS.COM from that time byte for byte.
+
+    pip install py65        # only needed for the unit tests
+    tools/build.sh
+
+This writes to `build/`:
+- `EDOS.COM` - the program, `EDOS.LST` - listing, `EDOS.SYM` - symbols
+- `EDOS-D2.ATR` - DOS 2/MyDOS disk image holding EDOS.COM
+- `EDOS-BOOT.ATR` - bootable disk, when a DOS 2.5 or MyDOS master is placed
+  at `tools/dos/DOS.ATR` (see `tools/dos/README.md`)
+
+`tools/test_edos.py` runs real EDOS routines on an emulated 6502 (py65) with
+256K of banked memory and stand-ins for CIO/SIO, e.g. a full read/write disk
+duplicate in all three densities. GitHub Actions runs the build and tests on
+every push and keeps `build/` as a downloadable artifact.
+
+Other tools: `tools/atr.py` lists, extracts and adds files on DOS 2/MyDOS
+ATR images; `tools/mac65.py --help` for assembler options.
+
