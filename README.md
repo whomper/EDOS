@@ -224,11 +224,31 @@ This writes to `build/`:
 - `EDOS-BOOT.ATR` - bootable disk, when a DOS 2.5 or MyDOS master is placed
   at `tools/dos/DOS.ATR` (see `tools/dos/README.md`)
 
-`tools/test_edos.py` runs real EDOS routines on an emulated 6502 (py65) with
-256K of banked memory and stand-ins for CIO/SIO, e.g. a full read/write disk
-duplicate in all three densities. GitHub Actions runs the build and tests on
+Tests run the real EDOS machine code on an emulated 6502 (py65) with 256K of
+banked memory, a fake DOS (files on D1:/D2:), scripted keys and typed lines,
+and a fake disk drive:
+- `tools/test_commands.py` - every menu command, menu key dispatch, start,
+  RESET and the exits (Quit, Cartridge, Go To), checking files written,
+  memory loaded, sectors copied, screen text and where control goes
+- `tools/test_edos.py` - routine-level tests (conversions, error text,
+  disk copy loop in all densities, fast SIO loading, memory layout)
+- `tools/difftest.py OLD NEW` - runs 29 command scenarios on two builds and
+  reports any change in screen output, CIO/SIO calls, files or memory;
+  used to prove refactors and size reductions change nothing GitHub Actions runs the build and tests on
 every push and keeps `build/` as a downloadable artifact.
 
-Other tools: `tools/atr.py` lists, extracts and adds files on DOS 2/MyDOS
-ATR images; `tools/mac65.py --help` for assembler options.
+Disk images (built by `tools/build.sh`):
+- `build/EDOS.ATR` - the EDOS disk: SpartaDOS 3.2, EDOS.COM and the current
+  sources in MAC/65 tokenized form (`LOAD #D:EDOS.M65` in MAC/65), plus the
+  utilities. The repository's `EDOS.atr` is a copy of it; refresh it with
+  `cp build/EDOS.ATR EDOS.atr` after source changes.
+- `build/EDOSTEST.ATR` - bootable SpartaDOS test disk with EDOS.COM, the
+  test files used by the automated tests, RUNME.COM and `TESTPLAN.TXT`
+  (31 manual checks for the real Atari; `TYPE TESTPLAN.TXT`).
+
+Other tools: `tools/mac65tok.py` converts between these text sources and
+MAC/65's tokenized SAVE format (checked byte for byte against files saved
+by MAC/65); `tools/sparta.py` lists, extracts, adds, deletes and checks
+(fsck) files on SpartaDOS images; `tools/atr.py` does the same for DOS
+2/MyDOS images; `tools/mac65.py --help` for assembler options.
 
