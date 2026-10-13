@@ -1,0 +1,206 @@
+#!/usr/bin/env python3
+"""Unit tests that run real EDOS machine code (build/EDOS.COM) under py65.
+
+Run tools/build.sh first (it runs these tests too), or:
+    python3 tools/test_edos.py -v
+"""
+import os
+import sys
+import unittest
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from sim import Sim, PORTB  # noqa: E402
+
+EOL = 0x9B
+SIO_RD, SIO_WT, SIO_SL = 0x52, 0x57, 0x68
+ICCOM, ICBAL, ICBLL = 0x342, 0x344, 0x348
+
+
+def pattern(sector, i):
+    return (sector * 7 + i * 13 + (sector >> 8)) & 0xFF
+
+
+class FakeDisk:
+    """SIO stand-in: sectors filled with a per-sector pattern on read,
+    captured on write. 128-byte sectors 1-3, `size` bytes after."""
+
+    def __init__(self, size):
+        self.size = size
+        self.written = {}
+
+    def __call__(self, sim):
+        st = sim.sio_log[-1]
+        if st['cmd'] == SIO_SL:
+            return 0x8B                      # no fast-SIO drive
+        n = st['size']
+        expect = 128 if st['sector'] <= 3 else self.size
+        assert n == expect, f"sector {st['sector']}: size {n}, expected {expect}"
+        if st['cmd'] == SIO_RD:
+            for i in range(n):
+                sim.mem[st['buf'] + i] = pattern(st['sector'], i)
+        elif st['cmd'] == SIO_WT:
+            self.written[st['sector']] = bytes(sim.mem[st['buf'] + i] for i in range(n))
+        return 1
+
+
+class TestArithmetic(unittest.TestCase):
+    def setUp(self):
+        self.s = Sim()
+
+    def test_calclen_carries_into_high_byte(self):
+        s = self.s
+        for start, end in [(0x2000, 0x20FF), (0x2000, 0x3FFF), (0x1234, 0x1234), (0x2080, 0x217F)]:
+            s.poke_word(s['FILPOS'], start)
+            s.poke_word(s['FILEND'], end)
+            s.call('CALCLEN')
+            self.assertEqual(s.word(s['FILLEN']), end - start + 1, f"{start:04X}-{end:04X}")
+
+    def test_hex2bin(self):
+        s = self.s
+        for txt, val in [('A0', 0xA0), ('00', 0), ('FF', 0xFF), ('3c', None)]:
+            if val is None:
+                continue
+            mpu = s.call('HEX2BIN', a=ord(txt[0]), y=ord(txt[1]))
+            self.assertEqual(mpu.a, val, txt)
+
+    def test_inp2addr(self):
+        s = self.s
+        for txt, val in [('2000', 0x2000), ('9C', 0x9C), ('', 0), ('BFFA', 0xBFFA)]:
+            for k, c in enumerate(txt.encode() + bytes([EOL])):
+                s.poke(s['INP1'] + k, c)
+            s.call('INP2ADDR', y=len(txt))
+            self.assertEqual(s.word(s['FILPOS']), val, txt)
+
+    def test_bin2hex(self):
+        s = self.s
+        for v in (0, 0x0A, 0xA0, 0xFF):
+            s.call('BIN2HEX', a=v)
+            self.assertEqual(chr(s.peek(s['D1'])) + chr(s.peek(s['D0'])), f"{v:02X}")
+
+
+class TestErrorText(unittest.TestCase):
+    def setUp(self):
+        self.s = Sim()
+
+    def text(self):
+        s, out = self.s, ''
+        for k in range(64):
+            c = s.peek(s['FILE'] + k)
+            if c == EOL:
+                return out
+            out += chr(c)
+        self.fail("no EOL in FILE")
+
+    def test_known_code(self):
+        self.s.call('GETERRTXT', y=170)
+        self.assertEqual(self.text(), 'File not found')
+
+    def test_unknown_code_terminates(self):
+        # used to scan past the table and hang or print garbage
+        for code in (148, 150, 172, 200, 255):
+            self.s.call('GETERRTXT', y=code, max_steps=20_000)
+            self.assertEqual(self.text(), '', code)
+
+
+class TestDiskCopy(unittest.TestCase):
+    """DSKCPY read then write through 256K of simulated banks."""
+
+    def run_copy(self, density, sectors, size):
+        s = Sim()
+        disk = FakeDisk(size)
+        s.sio_handler = disk
+        s.poke(s['DSKNUM'], 1)
+        s.poke(s['DENSITY'], density)
+        s.poke_word(s['FSIOV'], 0)
+        s.call('RSTSCTCNT')                  # COMDUP does this first
+        s.call('DSKCPY', a=SIO_RD, max_steps=50_000_000)
+        s.poke_word(s['FSIOV'], 0)
+        s.call('RSTSCTCNT')
+        s.call('DSKCPY', a=SIO_WT, max_steps=50_000_000)
+        self.assertEqual(sorted(disk.written), list(range(1, sectors + 1)))
+        bad = [n for n, data in disk.written.items()
+               if data != bytes(pattern(n, i) for i in range(len(data)))]
+        self.assertEqual(bad, [], f"sectors written back wrong: {bad[:12]}")
+        self.assertEqual(s.peek(PORTB), s.peek(s['BANKS']), "main bank restored")
+
+    def test_single_density(self):
+        self.run_copy(1, 720, 128)
+
+    def test_enhanced_density(self):
+        self.run_copy(2, 1040, 128)
+
+    def test_double_density(self):
+        # used to lose the 2nd half of one sector per bank via $8000
+        self.run_copy(3, 720, 256)
+
+
+class TestSioCommands(unittest.TestCase):
+    def test_format_commands(self):
+        # @DOSIO with zero-page D2 used to send command $B7
+        for density, cmd in ((2, 0x22), (1, 0x21)):
+            s = Sim()
+            s.poke(s['DSKNUM'], 1)
+            s.call('FRMTDRV', a=density)
+            self.assertEqual(s.sio_log[-1]['cmd'], cmd)
+
+
+class TestInput(unittest.TestCase):
+    """Drive COMANA (Analyze Sector) with scripted keyboard/editor input."""
+
+    def make(self, typed):
+        s = Sim()
+        s.poke(s['DSKNUM'], 1)
+        s.poke_word(s['RTNPTR'], s['GETCOM'])
+        seen = {}
+
+        def cio(sim, x):
+            cmd = sim.peek(ICCOM + x)
+            if cmd == 5:                               # get record (GETTEXT)
+                buf = sim.word(ICBAL + x)
+                limit = sim.peek(ICBLL + x)
+                seen['limit'] = limit
+                data = typed.encode() + bytes([EOL])
+                n = min(len(data), limit)
+                for k in range(n):
+                    sim.poke(buf + k, data[k])
+                sim.poke(ICBLL + x, n)
+                return 1 if n == len(data) else 137     # truncated record
+            if cmd == 7 and sim.word(ICBLL + x) == 0:  # GETCHR
+                return (1, ord('N'))
+            return 1
+        s.cio_handler = cio
+        return s, seen
+
+    def run_until_getcom(self, s):
+        # COMANA ends with JMP GETCOM; run it as a call and stop there
+        mpu = s.mpu
+        target = s['GETCOM']
+        s.mpu.sp = 0xFD
+        mpu.pc = s['COMANA']
+        for _ in range(3_000_000):
+            if mpu.pc == target:
+                return
+            if mpu.pc >= 0xD800 and s._trap():
+                continue
+            mpu.step()
+        self.fail("COMANA did not reach GETCOM")
+
+    def test_reads_typed_sector(self):
+        # @SETSCT VALUE used to load the constant $B5/$B6 (sector 46773)
+        s, _ = self.make('10')
+        self.run_until_getcom(s)
+        reads = [e['sector'] for e in s.sio_log if e['cmd'] == SIO_RD]
+        self.assertIn(10, reads)
+        self.assertNotIn(0xB6B5, reads)
+
+    def test_sector_input_is_bounded(self):
+        s, seen = self.make('1234567890123')
+        # NUMBKS and RTNPTR sit right after the 5-byte SCTR
+        guard = [s.peek(a) for a in range(s['SCTR'] + 5, s['SCTR'] + 8)]
+        self.run_until_getcom(s)
+        self.assertEqual(seen['limit'], 5)
+        self.assertEqual(guard, [s.peek(a) for a in range(s['SCTR'] + 5, s['SCTR'] + 8)])
+
+
+if __name__ == '__main__':
+    unittest.main()
