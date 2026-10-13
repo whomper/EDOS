@@ -256,49 +256,34 @@
 2500     PHA
 2510     .ENDM
 2520 ;
-2530 ;HELPER FOR DOCIO METHOD | %1 - DEVIO | %2 - ICM.XX | %3 - BUF | %4 - ICAX
-2540 ;%5 - BUF LEN L - MEM | %6 - BUF LEN H - MEM | %7 - 1=BUF IS PNTR
-2550     .MACRO @DOCIO
-2560       .IF %0>5
-2570       LDA %6
-2580       .ELSE
-2590       LDA #$00
-2600       .ENDIF
-2610     PHA
-2620       .IF %0>4
-2630       LDA %5
-2640       .ELSE
-2650       LDA #$00
-2660       .ENDIF
-2670     PHA
-2680     LDA #%4
-2690     PHA
-2700       .IF %0>6
-2710         .IF %7=1
-2720         LDA %3+1
-2730         .ELSE
-2740         LDA # >%3
-2750         .ENDIF
-2760       .ELSE
-2770       LDA # >%3
-2780       .ENDIF
-2790     PHA
-2800       .IF %0>6
-2810         .IF %7=1
-2820         LDA %3
-2830         .ELSE
-2840         LDA # <%3
-2850         .ENDIF
-2860       .ELSE
-2870       LDA # <%3
-2880       .ENDIF
-2890     PHA
-2900     LDA #%2
-2910     PHA
-2920     LDA #%1
-2930     PHA
-2940     JSR DOCIO
-2950     .ENDM
+2530 ;HELPER FOR DOCIO | %1 - IOCB | %2 - ICM.XX | %3 - BUF | %4 - ICAX1
+2540 ;%5 - LEN LO ADDR | %6 - LEN HI ADDR, MUST BE %5+1 | %7 - 1=BUF IS PNTR
+2550 ;EMITS JSR DOCIO + 5 OR 7 INLINE BYTES: IOCB+FLAGS,CMD,BUF,ICAX1[,LEN ADR]
+2560     .MACRO @DOCIO
+2570     JSR DOCIO
+2580     .IF %0<5
+2590     .BYTE %1
+2600     .ENDIF
+2610     .IF %0=5
+2620     .BYTE %1+1
+2630     .ENDIF
+2640     .IF %0=6
+2650     .BYTE %1+3
+2660     .ENDIF
+2670     .IF %0>6
+2680     .IF %7=1
+2690     .BYTE %1+7
+2700     .ELSE
+2710     .BYTE %1+3
+2720     .ENDIF
+2730     .ENDIF
+2740     .BYTE %2
+2750     .WORD %3
+2760     .BYTE %4
+2770     .IF %0>4
+2780     .WORD %5
+2790     .ENDIF
+2800     .ENDM
 2960 ;
 2970 ;CLOSE A CIO CHANNEL | %1 - DEV ID
 2980     .MACRO @CLOSEIO
