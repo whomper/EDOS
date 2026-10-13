@@ -237,6 +237,15 @@ and a fake disk drive:
   used to prove refactors and size reductions change nothing GitHub Actions runs the build and tests on
 every push and keeps `build/` as a downloadable artifact.
 
-Other tools: `tools/atr.py` lists, extracts and adds files on DOS 2/MyDOS
-ATR images; `tools/mac65.py --help` for assembler options.
+Disk images (built by `tools/build.sh`):
+- `build/EDOS.ATR` - clean SpartaDOS rebuild of `EDOS.atr`: same boot code,
+  DOS and files, the new EDOS.COM. `STARTUP.BAT` and `EDOS.DOC` are left
+  out: on the 2025 image their sectors are shared with other files.
+- `build/EDOSTEST.ATR` - bootable SpartaDOS test disk with EDOS.COM, the
+  test files used by the automated tests, RUNME.COM and `TESTPLAN.TXT`
+  (31 manual checks for the real Atari; `TYPE TESTPLAN.TXT`).
+
+Other tools: `tools/sparta.py` lists, extracts, adds, deletes and checks
+(fsck) files on SpartaDOS images; `tools/atr.py` does the same for DOS
+2/MyDOS images; `tools/mac65.py --help` for assembler options.
 
