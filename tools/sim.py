@@ -84,10 +84,11 @@ def load_binary(mem, path=os.path.join(BUILD, 'EDOS.COM')):
 
 
 class Sim:
-    def __init__(self):
+    def __init__(self, build=None):
         self.mem = BankedMemory()
-        load_binary(self.mem)
-        self.sym = load_symbols()
+        build = build or BUILD
+        load_binary(self.mem, os.path.join(build, 'EDOS.COM'))
+        self.sym = load_symbols(os.path.join(build, 'EDOS.SYM'))
         self.mpu = MPU(memory=self.mem)
         self.sio_log = []
         self.cio_log = []
