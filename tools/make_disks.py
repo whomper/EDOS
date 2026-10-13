@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Build SpartaDOS disk images from the repository's EDOS.atr.
 
-  build/EDOS.ATR      clean copy of EDOS.atr: same boot code and files,
-                      new build/EDOS.COM, files damaged on the original
-                      image left out (see DAMAGED)
+  build/EDOS.ATR      the EDOS disk: EDOS.atr's boot code, SpartaDOS and
+                      utilities, the new build/EDOS.COM and the current
+                      sources in MAC/65 tokenized form (LOAD #D:EDOS.M65);
+                      old source copies (*.BAK) and the files damaged on
+                      the 2025 image (DAMAGED) are left out
   build/EDOSTEST.ATR  bootable test disk: SpartaDOS, EDOS.COM, the test
                       files used by tools/test_commands.py, RUNME.COM and
                       TESTPLAN.TXT (manual test steps for the real Atari)
@@ -16,6 +18,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import sparta  # noqa: E402
+import mac65tok  # noqa: E402
 from test_commands import PROG, NORUN, TEXT, BIG, binfile  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -23,6 +26,15 @@ BUILD = os.path.join(ROOT, 'build')
 SOURCE = os.path.join(ROOT, 'EDOS.atr')
 DOS = 'X32G.DOS'
 DAMAGED = {'STARTUP.BAT', 'EDOS.DOC'}     # cross-linked on the 2025 image
+SOURCES = ['EDOS.M65', 'EDOSVARS.M65', 'MACROS.M65', 'SYSTEM.M65', 'UTILS.M65', 'CIOSTAT.M65']
+
+
+def tokenized_sources():
+    out = []
+    for name in SOURCES:
+        with open(os.path.join(ROOT, name), encoding='utf-8') as f:
+            out.append((name, mac65tok.tokenize(f.read())))
+    return out
 
 # RUNME.COM: INIT stores $5A at $5300; RUN sets the background colour
 # (COLOR4) to red and returns to DOS through DOSVEC.
@@ -168,10 +180,13 @@ def main():
 
     orig = {n: (d, st) for n, d, st in originals}
     files = [(DOS,) + orig[DOS]]
+    files.append(('EDOS.COM', edos))
+    files += tokenized_sources()
     for name, data, stamp in originals:
-        if name == DOS or name in DAMAGED:
+        if name in (DOS, 'EDOS.COM') or name in DAMAGED or name in SOURCES \
+                or name.endswith('.BAK'):
             continue
-        files.append((name, edos) if name == 'EDOS.COM' else (name, data, stamp))
+        files.append((name, data, stamp))
     make(os.path.join(BUILD, 'EDOS.ATR'), 'EDOS', files, DOS)
 
     test = [(DOS,) + orig[DOS], ('EDOS.COM', edos),

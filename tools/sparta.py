@@ -328,8 +328,7 @@ def new_disk(path, template, volume):
         boot[o], boot[o + 1] = v & 0xFF, v >> 8
     boot[0x0F] = nbm
     boot[0x16:0x1E] = vol
-    boot[0x26] = 0
-    boot[0x27] = os.urandom(1)[0]
+    boot[0x26] = 0                                      # keep the template's random id ($27)
     boot[0x28] = boot[0x29] = 0                         # no DOS file yet
     d.write(1, boot)
     bm = bytearray(nbm * ss)

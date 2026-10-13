@@ -24,6 +24,7 @@ else
     echo "py65 not installed (pip install py65): skipping unit tests"
 fi
 
+python3 tools/test_mac65tok.py
 python3 tools/make_disks.py
 python3 tools/test_sparta.py
 
