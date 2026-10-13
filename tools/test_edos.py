@@ -202,5 +202,39 @@ class TestInput(unittest.TestCase):
         self.assertEqual(guard, [s.peek(a) for a in range(s['SCTR'] + 5, s['SCTR'] + 8)])
 
 
+class TestFastSio(unittest.TestCase):
+    """READFIO loads drive fast-SIO code only if it fits the FSIOV page."""
+
+    def run_readfio(self, size):
+        s = Sim()
+        s.poke(s['DSKNUM'], 1)
+        s.poke_word(s['FSIOV'], 0)
+
+        def sio(sim):
+            st = sim.sio_log[-1]
+            if st['cmd'] == SIO_SL:                 # report code length
+                sim.poke_word(st['buf'], size)
+            return 1
+        s.sio_handler = sio
+        s.call('READFIO')
+        return [e for e in s.sio_log if e['cmd'] == SIO_SL + 1]
+
+    def test_fits_page(self):
+        for size in (0x80, 0x100):
+            loads = self.run_readfio(size)
+            self.assertEqual(len(loads), 1, hex(size))
+            self.assertEqual(loads[0]['buf'], Sim()['FSIOV'])
+            self.assertEqual(loads[0]['size'], size)
+
+    def test_too_big_is_skipped(self):
+        for size in (0x101, 0x200, 0x400):
+            self.assertEqual(self.run_readfio(size), [], hex(size))
+
+    def test_work_area_below_bank_window(self):
+        s = Sim()
+        self.assertLessEqual(s['END_PROG'], s['WRKBEG'])
+        self.assertLessEqual(s['FSIOV'] + 0x100, 0x4000)
+
+
 if __name__ == '__main__':
     unittest.main()

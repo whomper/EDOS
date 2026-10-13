@@ -10,7 +10,7 @@ MAC/65 that EDOS uses:
   * label = expr, *= expr, label *= *+n (reserve), .BYTE, .WORD, .OPT
   * .INCLUDE #D:FILE (resolved next to the including file)
   * .MACRO/.ENDM with %0 (argument count) and %1..%9, macro-local labels
-  * .IF/.ELSE/.ENDIF
+  * .IF/.ELSE/.ENDIF, .ERROR "text" (fails the build)
   * expressions: $hex, decimal, 'c, symbols, * (PC), + - * / & ! ^,
     comparisons = <> < > <= >=, unary - and leading < (low) / > (high)
 
@@ -360,6 +360,8 @@ class Assembler:
             if self.pass_no == 2:
                 self.listing.append((self.pc, b'', src))
             return
+        if op == '.ERROR':
+            raise AsmError(f".ERROR {operand}")
         if op == '.OPT' or op == '.TITLE' or op == '.PAGE':
             return
         if op == '.INCLUDE':
