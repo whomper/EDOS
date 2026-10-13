@@ -17,6 +17,7 @@ python3 tools/mac65.py EDOS.M65 -o build/EDOS.COM -l build/EDOS.LST -s build/EDO
 
 if python3 -c 'import py65' 2>/dev/null; then
     python3 tools/test_edos.py
+    python3 tools/test_commands.py
 else
     echo "py65 not installed (pip install py65): skipping unit tests"
 fi
