@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Build SpartaDOS disk images from the repository's EDOS.atr.
+"""Build SpartaDOS disk images from tools/disk/BASE.ATR.
 
-  build/EDOS.ATR      the EDOS disk: EDOS.atr's boot code, SpartaDOS and
-                      utilities, the new build/EDOS.COM and the current
-                      sources in MAC/65 tokenized form (LOAD #D:EDOS.M65);
-                      old source copies (*.BAK) and the files damaged on
-                      the 2025 image (DAMAGED) are left out
+BASE.ATR holds the SpartaDOS boot code, SpartaDOS 3.2 (X32G.DOS) and the
+utilities that go on the EDOS disk; nothing EDOS-specific.
+
+  build/EDOS.ATR      the EDOS disk: BASE.ATR's files, build/EDOS.COM and
+                      the current sources in MAC/65 tokenized form
+                      (LOAD #D:EDOS.M65)
   build/EDOSTEST.ATR  bootable test disk: SpartaDOS, EDOS.COM, the test
                       files used by tools/test_commands.py, RUNME.COM and
                       TESTPLAN.TXT (manual test steps for the real Atari)
@@ -23,9 +24,8 @@ from test_commands import PROG, NORUN, TEXT, BIG, binfile  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD = os.path.join(ROOT, 'build')
-SOURCE = os.path.join(ROOT, 'EDOS.atr')
+SOURCE = os.path.join(ROOT, 'tools', 'disk', 'BASE.ATR')
 DOS = 'X32G.DOS'
-DAMAGED = {'STARTUP.BAT', 'EDOS.DOC'}     # cross-linked on the 2025 image
 SOURCES = ['EDOS.M65', 'EDOSVARS.M65', 'MACROS.M65', 'SYSTEM.M65', 'UTILS.M65', 'CIOSTAT.M65']
 
 
@@ -183,8 +183,7 @@ def main():
     files.append(('EDOS.COM', edos))
     files += tokenized_sources()
     for name, data, stamp in originals:
-        if name in (DOS, 'EDOS.COM') or name in DAMAGED or name in SOURCES \
-                or name.endswith('.BAK'):
+        if name in (DOS, 'EDOS.COM') or name in SOURCES:
             continue
         files.append((name, data, stamp))
     make(os.path.join(BUILD, 'EDOS.ATR'), 'EDOS', files, DOS)
