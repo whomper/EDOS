@@ -1,4 +1,7 @@
 # EDOS
+
+![The EDOS main menu on an Atari 8-bit screen](EDOS.jpeg)
+
 E-DOS is a refreshed Disk Utility Package (DUP) that sits on
 top of a regular DOS, such as MyDOS or SpartaDOS to provide a
 menu based disk operations in a friendly user interface.
@@ -234,8 +237,9 @@ and a fake disk drive:
   disk copy loop in all densities, fast SIO loading, memory layout)
 - `tools/difftest.py OLD NEW` - runs 29 command scenarios on two builds and
   reports any change in screen output, CIO/SIO calls, files or memory;
-  used to prove refactors and size reductions change nothing GitHub Actions runs the build and tests on
-every push and keeps `build/` as a downloadable artifact.
+  used to prove refactors and size reductions change nothing
+
+GitHub Actions runs the build and tests on every push and keeps `build/` as a downloadable artifact.
 
 Disk images (built by `tools/build.sh`):
 - `build/EDOS.ATR` - the EDOS disk: SpartaDOS 3.2, EDOS.COM and the current
@@ -252,3 +256,16 @@ by MAC/65); `tools/sparta.py` lists, extracts, adds, deletes and checks
 (fsck) files on SpartaDOS images; `tools/atr.py` does the same for DOS
 2/MyDOS images; `tools/mac65.py --help` for assembler options.
 
+## Licence
+
+EDOS is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 2 of the License, or (at your option)
+any later version. It is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See [COPYING](COPYING).
+
+Copyright (C) 2024-2026 Erez Yaary.
+
+The disk images also carry SpartaDOS and the other DOS files they boot
+with; those stay under their own authors' terms.

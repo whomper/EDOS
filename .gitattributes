@@ -1,0 +1,4 @@
+# GitHub language stats: the program is the 6502 assembly; tools/ is the
+# Python build and test kit around it
+*.M65 linguist-language=Assembly
+tools/*.py linguist-detectable=false
