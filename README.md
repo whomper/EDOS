@@ -219,9 +219,10 @@ repository: `EDOS.COM`, the bootable SpartaDOS disk `EDOS.ATR` (with the
 sources) and the test disk `EDOSTEST.ATR`.
 
 To publish a release, set the version in the title bar (`TTL2` in
-EDOSVARS.M65), add `release-notes/vX.Y.md` and push a tag `vX.Y`. GitHub
-Actions builds, runs all tests, checks that the tag matches the version
-EDOS shows, and creates the release with those three files.
+EDOSVARS.M65), add `release-notes/vX.Y.md`, then either push a tag `vX.Y`
+or run the **release** workflow from the Actions tab with version `X.Y`.
+GitHub Actions builds, runs all tests, checks that the version matches the
+one EDOS shows, and creates the tag and the release with those three files.
 
 ## Building
 The sources can be assembled on a PC as well as with MAC/65 on the Atari.
