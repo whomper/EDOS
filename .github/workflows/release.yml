@@ -1,11 +1,17 @@
 name: release
 
-# Push a tag like v2.8 to build, test and publish a GitHub release with
-# EDOS.COM, EDOS.ATR and EDOSTEST.ATR. Notes come from
-# release-notes/<tag>.md when that file exists.
+# Build, test and publish a GitHub release with EDOS.COM, EDOS.ATR and
+# EDOSTEST.ATR, either by pushing a tag like v2.8 or by running this
+# workflow from the Actions tab with a version (it then creates the tag on
+# the selected commit). Notes come from release-notes/<tag>.md if present.
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, e.g. 2.8 (tag v2.8 is created)'
+        required: true
 
 permissions:
   contents: write
@@ -21,17 +27,24 @@ jobs:
       - run: pip install py65
       - run: tools/build.sh
       - name: Tag matches the version EDOS shows
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          shown="$(python3 tools/version.py)"
-          if [ "v$shown" != "$GITHUB_REF_NAME" ]; then
-            echo "tag $GITHUB_REF_NAME but EDOS shows $shown"; exit 1
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            tag="v$INPUT_VERSION"
+          else
+            tag="$GITHUB_REF_NAME"
           fi
+          shown="$(python3 tools/version.py)"
+          if [ "v$shown" != "$tag" ]; then
+            echo "tag $tag but EDOS shows $shown"; exit 1
+          fi
+          echo "TAG=$tag" >> "$GITHUB_ENV"
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag="$GITHUB_REF_NAME"
-          notes="release-notes/$tag.md"
+          notes="release-notes/$TAG.md"
           if [ -f "$notes" ]; then set -- --notes-file "$notes"; else set -- --generate-notes; fi
-          gh release create "$tag" build/EDOS.COM build/EDOS.ATR build/EDOSTEST.ATR \
-            --title "EDOS ${tag#v}" --verify-tag "$@"
+          gh release create "$TAG" build/EDOS.COM build/EDOS.ATR build/EDOSTEST.ATR \
+            --title "EDOS ${TAG#v}" --target "$GITHUB_SHA" "$@"
