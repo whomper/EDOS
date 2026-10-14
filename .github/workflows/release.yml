@@ -1,0 +1,37 @@
+name: release
+
+# Push a tag like v2.8 to build, test and publish a GitHub release with
+# EDOS.COM, EDOS.ATR and EDOSTEST.ATR. Notes come from
+# release-notes/<tag>.md when that file exists.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install py65
+      - run: tools/build.sh
+      - name: Tag matches the version EDOS shows
+        run: |
+          shown="$(python3 tools/version.py)"
+          if [ "v$shown" != "$GITHUB_REF_NAME" ]; then
+            echo "tag $GITHUB_REF_NAME but EDOS shows $shown"; exit 1
+          fi
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$GITHUB_REF_NAME"
+          notes="release-notes/$tag.md"
+          if [ -f "$notes" ]; then set -- --notes-file "$notes"; else set -- --generate-notes; fi
+          gh release create "$tag" build/EDOS.COM build/EDOS.ATR build/EDOSTEST.ATR \
+            --title "EDOS ${tag#v}" --verify-tag "$@"

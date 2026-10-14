@@ -12,7 +12,7 @@ import sparta  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD = os.path.join(ROOT, 'build')
-ORIGINAL = os.path.join(ROOT, 'EDOS.atr')
+ORIGINAL = os.path.join(ROOT, 'tools', 'disk', 'BASE.ATR')
 
 
 def content(d, name):
@@ -59,16 +59,12 @@ class TestFileSystem(unittest.TestCase):
         self.assertEqual(d.fsck(), ([], []))
 
 
-class TestOriginalImage(unittest.TestCase):
-    def test_reads_files(self):
+class TestBaseImage(unittest.TestCase):
+    def test_base_is_clean_and_bootable(self):
         d = sparta.Disk(ORIGINAL)
+        self.assertEqual(d.fsck(), ([], []))
         self.assertTrue(content(d, 'X32G.DOS').startswith(b'\xff\xff'))
-
-    def test_known_damage_is_detected(self):
-        problems, _ = sparta.Disk(ORIGINAL).fsck()
-        if not problems:
-            self.skipTest('EDOS.atr has been replaced by a clean image')
-        self.assertTrue(any('sector 496' in p for p in problems))
+        self.assertEqual(d.w(d.read(1), 0x28), d.w(d.find('X32G.DOS')[1], 1))
 
 
 @unittest.skipUnless(os.path.exists(os.path.join(BUILD, 'EDOSTEST.ATR')), 'run make_disks.py')
@@ -88,8 +84,7 @@ class TestBuiltDisks(unittest.TestCase):
         old, new = sparta.Disk(ORIGINAL), sparta.Disk(os.path.join(BUILD, 'EDOS.ATR'))
         for i, e in old.entries():
             n = old.name(e)
-            if old.live(e) and n != 'EDOS.COM' and n not in make_disks.DAMAGED \
-                    and n not in make_disks.SOURCES and not n.endswith('.BAK'):
+            if old.live(e):
                 self.assertEqual(content(new, n), content(old, n), n)
 
     def test_sources_on_disk_assemble_to_edos_com(self):

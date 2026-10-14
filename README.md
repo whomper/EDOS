@@ -212,6 +212,17 @@ number
 - @CLOSEIO - Closes all open IO channels
 - @SETRTNA - Caches the address to return from functions that have no RTS
 
+## Download
+Binaries are published on the
+[Releases](https://github.com/whomper/EDOS/releases) page, not kept in the
+repository: `EDOS.COM`, the bootable SpartaDOS disk `EDOS.ATR` (with the
+sources) and the test disk `EDOSTEST.ATR`.
+
+To publish a release, set the version in the title bar (`TTL2` in
+EDOSVARS.M65), add `release-notes/vX.Y.md` and push a tag `vX.Y`. GitHub
+Actions builds, runs all tests, checks that the tag matches the version
+EDOS shows, and creates the release with those three files.
+
 ## Building
 The sources can be assembled on a PC as well as with MAC/65 on the Atari.
 `tools/` holds a Python cross assembler that understands the MAC/65 syntax
@@ -244,8 +255,7 @@ GitHub Actions runs the build and tests on every push and keeps `build/` as a do
 Disk images (built by `tools/build.sh`):
 - `build/EDOS.ATR` - the EDOS disk: SpartaDOS 3.2, EDOS.COM and the current
   sources in MAC/65 tokenized form (`LOAD #D:EDOS.M65` in MAC/65), plus the
-  utilities. The repository's `EDOS.atr` is a copy of it; refresh it with
-  `cp build/EDOS.ATR EDOS.atr` after source changes.
+  utilities, all taken from `tools/disk/BASE.ATR`.
 - `build/EDOSTEST.ATR` - bootable SpartaDOS test disk with EDOS.COM, the
   test files used by the automated tests, RUNME.COM and `TESTPLAN.TXT`
   (31 manual checks for the real Atari; `TYPE TESTPLAN.TXT`).

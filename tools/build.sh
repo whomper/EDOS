@@ -4,7 +4,7 @@
 #   build/EDOS.COM      binary load file (same format MAC/65 writes)
 #   build/EDOS.LST      listing with addresses and bytes
 #   build/EDOS.SYM      symbol table
-#   build/EDOS.ATR      clean SpartaDOS rebuild of EDOS.atr with the new EDOS.COM
+#   build/EDOS.ATR      SpartaDOS disk: tools/disk/BASE.ATR + EDOS.COM + sources
 #   build/EDOSTEST.ATR  bootable SpartaDOS test disk + TESTPLAN.TXT
 #   build/EDOS-D2.ATR   DOS 2/MyDOS data disk holding EDOS.COM
 #   build/EDOS-BOOT.ATR bootable disk, only if a DOS master is found:
