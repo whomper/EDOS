@@ -159,25 +159,21 @@ formatted
 - READFIO - Load fast IO code from Speedy into memory
 - RDSCT - Reads one sector
 - WRTSCT - Writes one sector
-- INCCNTR - Incremets FILPOS counter
 - INCPTR - Increment INDPTR page zero pointer
 - DOSIO - Perform SIO operation
 - CALLSIO - Calls the actual SIOV function, uses fast SIO
 - FXSCSZ - Fix SIO sector size based on density and sector
 number
-- INP2ADDR - Convert INP1 to Hex address
+- INP2ADDR - Convert up to 4 hex digits in INP1 to an address
 - DOCIO - Perform CIO operation
 - DISKERR - Handles error condition and display message
 - GETCHR - Gets one character from user
-- MUL16 - 16 bit multiplication
 - GETTEXT - Gets a line of text fromte user
 - PRNTLN - Prints one line on screen
 - PRNTNL - Goes down one line
 - BIN2DEC - 2 byte hex 2 ASCII decimal FF->"255"
 - BIN2HEX - 1 byte binary to hex conversion A0->"A0"
 - DTXMEM - Detect number of extended memory banks
-- HEX2BIN - 1 byte ASCII hex to hex number conversion
-"A0"->A0
 - DEC2HEX - 4 digits decimal to HEX conversion "1234"->04C2
 
 
@@ -210,7 +206,6 @@ number
 - @DOSIO - DOSIO function helper
 - @DOCIO - DOCIO function helper
 - @CLOSEIO - Closes all open IO channels
-- @SETRTNA - Caches the address to return from functions that have no RTS
 
 ## Download
 Binaries are published on the

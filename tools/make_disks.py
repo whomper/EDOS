@@ -119,6 +119,7 @@ Expect: what you should see.
   Y shows 0090-, N ends.
 21 M 5000: shows Low/High memory,
   5000- row; + next 128, - back.
+  M 600: first row is 0600-.
 22 A 10: Sector: 10. + shows 11,
   - shows 10, N ends.
 

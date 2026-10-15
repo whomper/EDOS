@@ -49,6 +49,7 @@ class World:
         self.trace = []
         self.disk = {}
         self.ignore_len = False
+        self.dvstat = 0                                  # drive status byte 0
 
     # ---------------------------------------------------------------- CIO
     def field(self, x, off, n=1):
@@ -200,7 +201,7 @@ class World:
                            st['size'], st['portb']))
         cmd = st['cmd']
         if cmd == 0x53:
-            sim.poke(0x02EA, 0, 0, 0, 0)                 # DVSTAT: single density
+            sim.poke(0x02EA, self.dvstat, 0, 0, 0)       # $20 double, $80 enhanced
             return 1 if st['unit'] <= 2 else 138
         if cmd in (0x3F, 0x68):
             return 0x8B                                  # no fast-SIO drive
@@ -215,12 +216,12 @@ class World:
 
 
 def symbolizer(sim):
-    lo, hi = sim['START_PROG'], sim['END_PROG']
+    lo, hi = sim['START_PROG'], sim.sym.get('VAREND', sim['END_PROG'])
     named = {}
     for k, v in sorted(sim.sym.items()):
         if '?' in k:
             continue
-        if lo <= v <= hi or k in ('BUF', 'FILE', 'INP1', 'M4000', 'M5000', 'FSIOV'):
+        if lo <= v <= hi or 0xB0 <= v <= 0xCF or k in ('BUF', 'FILE', 'INP1', 'M4000', 'M5000', 'FSIOV'):
             named.setdefault(v, k)
     keys = sorted(v for v in named if lo <= v <= hi)
 
@@ -239,11 +240,13 @@ def run(build, sc):
     sim = Sim(build)
     w = World(sim, sc.get('files', {}), sc.get('keys', ''), sc.get('lines', []), symbolizer(sim))
     w.ignore_len = sc.get('ignore_lengths', False)   # e.g. saving EDOS itself
+    w.dvstat = sc.get('dvstat', 0)
     sim.cio_handler = w.cio
     sim.sio_handler = w.sio
     sim.poke(sim['DSKNUM'], 1)
     sim.poke(sim['NUMBKS'], sc.get('numbks', 16))
-    sim.poke_word(sim['RTNPTR'], sim['GETCOM'])
+    if 'RTNPTR' in sim.sym:                         # 2.9 and earlier
+        sim.poke_word(sim['RTNPTR'], sim['GETCOM'])
     sim.poke(sim['STKPTR'], 0xFD)
     for a, data in sc.get('mem', {}).items():
         sim.poke(a, *data)
@@ -300,6 +303,7 @@ SCENARIOS = {
     'menu': dict(entry='GOMENU'),
     'dir': dict(entry='COMDIR', lines=[''], files=BASE),
     'dir_pattern': dict(entry='COMDIR', lines=['*.COM'], files=BASE),
+    'dir_even': dict(entry='COMDIR', lines=['A*.COM'], files=BASE),
     'load_no_run': dict(entry='COMLOA', lines=['D1:A.COM'], keys='N', files=BASE,
                         check_mem=[(0x5000, 0x110), (0x5200, 1)]),
     'load_ffff_mid': dict(entry='COMLOA', lines=['P2.COM'], keys='N', files=BASE,
@@ -325,10 +329,14 @@ SCENARIOS = {
     'unprotect': dict(entry='COMUNP', lines=['A.COM'], files=BASE),
     'memory': dict(entry='COMMEM', lines=['5000'], keys='+-N', mem=dict(PATTERN)),
     'analyze': dict(entry='COMANA', lines=['10'], keys='+-N'),
+    'analyze_double': dict(entry='COMANA', lines=['720'], keys='+-N', dvstat=0x20),
     'format_single': dict(entry='COMINI', keys='1Y', files=BASE),
     'format_enhanced': dict(entry='COMINI', keys='2Y'),
     'new_drive': dict(entry='COMNEW', keys='2'),
     'duplicate': dict(entry='COMDUP', keys='YY', zp={'DENSITY': 1}),
+    'duplicate_enhanced': dict(entry='COMDUP', keys='YY', dvstat=0x80),
+    'duplicate_double': dict(entry='COMDUP', keys='YY', dvstat=0x20),
+    'duplicate_to_d2': dict(entry='COMDUP', keys='Y2', dvstat=0x80),
     'write_edos': dict(entry='COMWRT', keys='Y', ignore_file_data=True, ignore_lengths=True),
 }
 
