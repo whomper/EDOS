@@ -138,7 +138,8 @@ different parts and with extensiblity in mind.
 
 Here is a rundown of the contained files and their purpose:
 
-- EDOS.M65 - The main application codebase
+- EDOS.M65 - The main file: options, origin and the list of includes
+- EDOSMAIN.M65 - The main application codebase: start, menu and commands
 - EDOSVARS.M65 - Main application variables and string
 constants
 - UTILS.M65 - A set of general purpose utilities that can be
@@ -233,6 +234,19 @@ This writes to `build/`:
 - `EDOS-D2.ATR` - DOS 2/MyDOS disk image holding EDOS.COM
 - `EDOS-BOOT.ATR` - bootable disk, when a DOS 2.5 or MyDOS master is placed
   at `tools/dos/DOS.ATR` (see `tools/dos/README.md`)
+
+On the Atari, with the sources from `EDOS.ATR` on D1:
+
+    LOAD #D:EDOS.M65
+    ASM ,,#D:EDOS.COM
+
+EDOS.M65 is only the list of includes; the rest is read from disk during
+the assembly, leaving about 21K free for the symbol table. Always give the
+object file: a plain `ASM` would write the program into memory at $1E00,
+where MAC/65 keeps its own work area. `ASM #D:EDOS.M65,,#D:EDOS.COM`
+works on DOS 2.5 and MyDOS but not on SpartaDOS: MAC/65 1.01 rewinds the
+main file for pass 2 with a POINT that SpartaDOS rejects, and stops with
+`ERROR -` and no number.
 
 Tests run the real EDOS machine code on an emulated 6502 (py65) with 256K of
 banked memory, a fake DOS (files on D1:/D2:), scripted keys and typed lines,

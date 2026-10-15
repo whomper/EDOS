@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mac65tok as t  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SOURCES = ['EDOS.M65', 'EDOSVARS.M65', 'MACROS.M65', 'SYSTEM.M65', 'UTILS.M65', 'CIOSTAT.M65']
+SOURCES = ['EDOS.M65', 'EDOSMAIN.M65', 'EDOSVARS.M65', 'MACROS.M65', 'SYSTEM.M65', 'UTILS.M65', 'CIOSTAT.M65']
 
 
 class TestTokens(unittest.TestCase):
@@ -50,6 +50,22 @@ class TestTokens(unittest.TestCase):
                 nums = [int(re.match(r'(\d+)', l).group(1)) for l in f if l.strip()]
             bad = [(a, b) for a, b in zip(nums, nums[1:]) if b <= a]
             self.assertEqual(bad, [], name)
+
+    def test_main_file_is_a_short_driver(self):
+        # On the Atari EDOS.M65 is LOADed and assembled with ASM ,,#D:EDOS.COM.
+        # ASM #D:EDOS.M65 fails on SpartaDOS: MAC/65 1.01 rewinds the file for
+        # pass 2 with POINT, forcing ICAX5 = 2 (a DOS 2 sector offset), which
+        # SpartaDOS reads as a 24-bit position past the end of the file. The
+        # source in memory shares RAM with the symbol table (MEM FULL when
+        # the whole program was in EDOS.M65), so it holds only the includes.
+        with open(os.path.join(ROOT, 'EDOS.M65'), encoding='utf-8') as f:
+            self.assertLess(len(t.tokenize(f.read())), 1024)
+
+    def test_includes_are_not_nested(self):
+        # MAC/65 stops with NESTED INCLUDE when an included file includes
+        for name in SOURCES[1:]:
+            with open(os.path.join(ROOT, name), encoding='utf-8') as f:
+                self.assertNotIn('.INCLUDE', f.read().upper(), name)
 
     def test_rejects_unknown(self):
         with self.assertRaises(t.TokError):
