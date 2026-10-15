@@ -67,6 +67,16 @@ class TestArithmetic(unittest.TestCase):
             s.call('INP2ADDR', y=len(txt))
             self.assertEqual(s.word(s['FILPOS']), val, txt)
 
+    def test_copy(self):
+        # JSR COPY / .WORD SRC,DST / LDA #$42 / RTS: copies through EOL,
+        # Y = bytes copied, returns past the inline words
+        s = self.s
+        s.poke(0x5000, 0x20, s['COPY'] & 0xFF, s['COPY'] >> 8, 0x00, 0x51, 0x00, 0x52, 0xA9, 0x42, 0x60)
+        s.poke(0x5100, *b'ABC', EOL, *b'XYZ')
+        mpu = s.call(0x5000)
+        self.assertEqual(bytes(s.mem[0x5200:0x5205]), b'ABC\x9b\x00')
+        self.assertEqual((mpu.y, mpu.a), (4, 0x42))
+
     def test_hexout(self):
         s = self.s
         for v in (0, 0x09, 0x0A, 0x5F, 0x9A, 0xA0, 0xFF):
