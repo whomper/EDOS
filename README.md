@@ -159,7 +159,7 @@ formatted
 - READFIO - Load fast IO code from Speedy into memory
 - RDSCT - Reads one sector
 - WRTSCT - Writes one sector
-- INCPTR - Increment INDPTR page zero pointer
+- INLINE - Points RETADR at the parameters after a JSR and makes the routine return past them
 - DOSIO - Perform SIO operation
 - CALLSIO - Calls the actual SIOV function, uses fast SIO
 - FXSCSZ - Fix SIO sector size based on density and sector
@@ -169,18 +169,20 @@ number
 - DISKERR - Handles error condition and display message
 - GETCHR - Gets one character from user
 - GETTEXT - Gets a line of text fromte user
-- PRNTLN - Prints one line on screen
+- PRNTLN / PRNTDL - Print text up to and with EOL / up to DEL
 - PRNTNL - Goes down one line
-- BIN2DEC - 2 byte hex 2 ASCII decimal FF->"255"
-- BIN2HEX - 1 byte binary to hex conversion A0->"A0"
+- BIN2DEC - VALUE to decimal text at A/Y, FF->"255"
+- HEXOUT - 1 byte to two hex digits at FILE,Y, A0->"A0"
+- COPY / FILL - Copy text up to EOL / fill memory (used by @CPYMEM, @FILLMEM)
+- GETINP1 / GETADDR / GETSPEC - Read a line into INP1 / as an address / as a file spec
+- YESORMENU - Returns on Y, any other key goes back to the menu
+- TITLE - Prints a command's menu label as its title bar
 - DTXMEM - Detect number of extended memory banks
 - DEC2HEX - 4 digits decimal to HEX conversion "1234"->04C2
 
 
 ## MACROS.M65 Macros List
-- @COPYMEM - Copies one memory buffer to another
-- @WRD2STK - Pushes a word on the stack
-- @PTR2STK - Pushes a pinter on the stack
+- @CPYMEM - Copies one memory buffer to another (2 parameters: JSR COPY)
 - @CACHECURPOS - Caches the cursor position on the stack
 - @HIDECURSOR - Hides the cursor
 - @SHOWCURSOR - Shows the cursor
@@ -189,15 +191,13 @@ number
 - @COLDEF - Background screen color to black
 - @MKBOLD - Makes a char bold
 - @MKASCII - Makes a digit an ASCII one
-- @GETRETADR - Get a stored return address to jump from the stack
-- @SETRETADR - Caches address to return on the stack
 - @SIOSNDOFF - Turns off SIO sounds
 - @SIOSNDON - Turns on SIO sounds
 - @HIDECHR - Do not display special characters
 - @SHWCHR - Display special characters
 - @RSTCURPOS - Restor cursor position
 - @POINT2TXT - Points zero page pointer to buffer
-- @FILLMEM - Fills memory with a character
+- @FILLMEM - Fills memory with a character (JSR FILL)
 - @INPRM - Set memory location for text input
 - @MUL16PRM - Set MUL16 input paramters
 - @DRAW - Draw function helper

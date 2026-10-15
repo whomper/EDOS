@@ -67,11 +67,33 @@ class TestArithmetic(unittest.TestCase):
             s.call('INP2ADDR', y=len(txt))
             self.assertEqual(s.word(s['FILPOS']), val, txt)
 
-    def test_bin2hex(self):
+    def test_copy(self):
+        # JSR COPY / .WORD SRC,DST / LDA #$42 / RTS: copies through EOL,
+        # Y = bytes copied, returns past the inline words
         s = self.s
-        for v in (0, 0x0A, 0xA0, 0xFF):
-            s.call('BIN2HEX', a=v)
-            self.assertEqual(chr(s.peek(s['D1'])) + chr(s.peek(s['D0'])), f"{v:02X}")
+        s.poke(0x5000, 0x20, s['COPY'] & 0xFF, s['COPY'] >> 8, 0x00, 0x51, 0x00, 0x52, 0xA9, 0x42, 0x60)
+        s.poke(0x5100, *b'ABC', EOL, *b'XYZ')
+        mpu = s.call(0x5000)
+        self.assertEqual(bytes(s.mem[0x5200:0x5205]), b'ABC\x9b\x00')
+        self.assertEqual((mpu.y, mpu.a), (4, 0x42))
+
+    def test_fill(self):
+        s = self.s
+        f = s['FILL']
+        for length, count in ((5, 5), (0, 256)):
+            s.poke(0x5000, 0x20, f & 0xFF, f >> 8, 0x00, 0x51, length, 0x2A, 0x60)
+            s.poke(0x5100, *bytes(258))
+            mpu = s.call(0x5000, x=0x77)
+            got = bytes(s.mem[0x5100:0x5100 + 258])
+            self.assertEqual(got, b'*' * count + bytes(258 - count), length)
+            self.assertEqual(mpu.x, 0x77)
+
+    def test_hexout(self):
+        s = self.s
+        for v in (0, 0x09, 0x0A, 0x5F, 0x9A, 0xA0, 0xFF):
+            mpu = s.call('HEXOUT', a=v, x=0x33, y=3)
+            self.assertEqual(bytes(s.mem[s['FILE'] + 3:s['FILE'] + 5]).decode(), f"{v:02X}")
+            self.assertEqual((mpu.y, mpu.x), (5, 0x33))
 
 
 class TestErrorText(unittest.TestCase):

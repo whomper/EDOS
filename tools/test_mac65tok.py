@@ -41,6 +41,16 @@ class TestTokens(unittest.TestCase):
             self.assertEqual(tok[2] | tok[3] << 8, len(tok) - 4)
             self.assertEqual(t.tokenize(t.detokenize(tok)), tok, name)
 
+    def test_line_numbers_ascend(self):
+        # MAC/65 keeps one line per number, in order: a repeated or
+        # lower number would replace or reorder lines when loaded
+        import re
+        for name in SOURCES:
+            with open(os.path.join(ROOT, name), encoding='utf-8') as f:
+                nums = [int(re.match(r'(\d+)', l).group(1)) for l in f if l.strip()]
+            bad = [(a, b) for a, b in zip(nums, nums[1:]) if b <= a]
+            self.assertEqual(bad, [], name)
+
     def test_rejects_unknown(self):
         with self.assertRaises(t.TokError):
             t.tokenize_line("    FOO BAR")
