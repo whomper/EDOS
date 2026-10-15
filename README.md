@@ -282,7 +282,7 @@ any later version. It is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See [COPYING](COPYING).
 
-Copyright (C) 2024-2026 Erez Yaary.
+Copyright (C) 2024-2026 AERA | Erez Yaary.
 
 The disk images also carry SpartaDOS and the other DOS files they boot
 with; those stay under their own authors' terms.
