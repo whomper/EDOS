@@ -1,5 +1,5 @@
 10 ;
-20 ; E-DOS 2.9 BY EREZ YAARY
+20 ; E-DOS 3.0 BY EREZ YAARY
 30 ;
 40 ; VARIABLES
 50 ;
@@ -18,7 +18,7 @@
 0260 DELL .BYTE DLN,CUP,CUP,DEL
 0270 DLLN .BYTE DLN,DEL
 0280 TTL1 .BYTE CLS,DEL
-0290 TTL2 .BYTE "",EOL
+0290 TTL2 .BYTE "",EOL
 0300 STAT .BYTE " D:                 XMEM:      ",EOL
 0310 MNU1 .BYTE "" ;"1-8": NO TITLE BAR
 0315 MNUL .BYTE " Dir D1-D8      ","rite EDOS",EOL

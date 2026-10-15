@@ -1,6 +1,6 @@
 # EDOS
 
-![The EDOS 2.9 main menu on an Atari 8-bit with 512K extended memory and two drives](EDOS.png)
+![The EDOS 3.0 main menu on an Atari 8-bit with 512K extended memory and two drives](EDOS.png)
 
 E-DOS is a refreshed Disk Utility Package (DUP) that sits on
 top of a regular DOS, such as MyDOS or SpartaDOS to provide a
