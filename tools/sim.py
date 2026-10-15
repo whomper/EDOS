@@ -26,7 +26,10 @@ RETURN_TRAP = 0xFFF0    # fake return address that ends call()
 
 
 class BankedMemory:
-    def __init__(self):
+    # PORTB bits that select a bank: $6C = bits 2,3,5,6 -> 16 banks (256K);
+    # $6E adds bit 1 -> 32 banks (512K)
+    def __init__(self, bank_bits=0x6C):
+        self.bank_bits = bank_bits
         self.main = bytearray(0x10000)
         self.banks = {}
         self.main[PORTB] = 0xFF
@@ -34,7 +37,7 @@ class BankedMemory:
     def _bank(self, addr):
         pb = self.main[PORTB]
         if 0x4000 <= addr < 0x8000 and not pb & 0x10:
-            key = pb & 0x6C
+            key = pb & self.bank_bits
             return self.banks.setdefault(key, bytearray(0x4000))
         return None
 
@@ -84,8 +87,8 @@ def load_binary(mem, path=os.path.join(BUILD, 'EDOS.COM')):
 
 
 class Sim:
-    def __init__(self, build=None):
-        self.mem = BankedMemory()
+    def __init__(self, build=None, bank_bits=0x6C):
+        self.mem = BankedMemory(bank_bits)
         build = build or BUILD
         load_binary(self.mem, os.path.join(build, 'EDOS.COM'))
         self.sym = load_symbols(os.path.join(build, 'EDOS.SYM'))
