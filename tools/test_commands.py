@@ -134,6 +134,24 @@ class TestMenu(unittest.TestCase):
             m = Machine(keys=key)
             self.assertEqual(m.run('GETCOM', stop=list(self.KEYS.values())), target, repr(key))
 
+    def test_title_bars(self):
+        # the dispatcher prints the menu label in inverse capitals
+        names = {'F': 'FILES ON DISK', 'T': 'TO CARTRIDGE', 'C': 'COPY FILES',
+                 'D': 'DUPLICATE DISK', 'E': 'ERASE FILES', 'I': 'INITIALIZE DISK',
+                 'V': 'VIEW FILE', 'A': 'ANALYZE SECTOR', 'P': 'PROTECT FILES',
+                 'U': 'UNPROTECT FILES', 'R': 'RENAME FILES', 'S': 'SAVE BINARY',
+                 'L': 'LOAD BINARY', 'G': 'GO TO ADDRESS', 'N': 'NEW DRIVE',
+                 'M': 'MEMORY STATUS', 'B': 'BYTE COMPARE', 'W': 'WRITE EDOS'}
+        for key, name in names.items():
+            m = Machine(keys=key)
+            m.run('GETCOM', stop=[self.KEYS[key]])
+            bar = bytes([0x9C]) + bytes(ord(c) | 0x80 for c in f' {name} ') + bytes([0x9B])
+            self.assertTrue(m.w.screen.endswith(bar), (key, m.w.screen[-24:]))
+        for key in ('Q', '\x9b'):                      # no title bar
+            m = Machine(keys=key)
+            m.run('GETCOM', stop=[self.KEYS[key]])
+            self.assertNotIn(0x9C, m.w.screen[-24:].rstrip(b'\x9b'), repr(key))
+
     def test_digits_list_that_drive(self):
         for d in '12345678':
             m = Machine(keys=d)

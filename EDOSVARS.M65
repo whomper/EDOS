@@ -18,7 +18,8 @@
 0280 TTL1 .BYTE CLS,DEL
 0290 TTL2 .BYTE "",EOL
 0300 STAT .BYTE " D:                 XMEM:      ",EOL
-0310 MNU1 .BYTE " Dir D1-D8      ","rite EDOS",EOL
+0310 MNU1 .BYTE "" ;"1-8": NO TITLE BAR
+0315 MNUL .BYTE " Dir D1-D8      ","rite EDOS",EOL
 0320     .BYTE "iles on Disk      ","rotect Files",EOL
 0330     .BYTE "o Cartridge       ","nprotect Files",EOL
 0340     .BYTE "opy Files         ","ename Files",EOL
@@ -69,24 +70,7 @@
 0780 DRSP .BYTE "HIGH",DEL
 0790 DRGN .BYTE "NORM",DEL
 0800 MEMS .BYTE ":      :     ",DEL
-0810 COMF .BYTE DLN,"",EOL
-0820 COMT .BYTE DLN,"",EOL
-0830 COMC .BYTE DLN,"",EOL
-0840 COMD .BYTE DLN,"",EOL
-0850 COME .BYTE DLN,"",EOL
-0860 COMI .BYTE DLN,"",EOL
-0870 COMP .BYTE DLN,"",EOL
-0880 COMU .BYTE DLN,"",EOL
-0890 COMR .BYTE DLN,"",EOL
-0900 COMS .BYTE DLN,"",EOL
-0910 COML .BYTE DLN,"",EOL
-0920 COMN .BYTE DLN,"",EOL
-0930 COMG .BYTE DLN,"",EOL
-0940 COMV .BYTE DLN,"",EOL
-0950 COMA .BYTE DLN,"",EOL
-0960 COMM .BYTE DLN,"",EOL
-0970 COMB .BYTE DLN,"",EOL
-0980 COMW .BYTE DLN,"",EOL
+0810 ; TITLE BARS ARE THE MENU LABELS, SEE TITLE IN EDOS.M65
 1000 ;
 1010 ; EDOS.COM ENDS HERE. THE VARIABLES BELOW ARE RESERVED
 1020 ; AFTER IT AND NOT IN THE FILE. MORE IN ZERO PAGE.
