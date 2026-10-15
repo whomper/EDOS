@@ -179,8 +179,6 @@ number
 
 ## MACROS.M65 Macros List
 - @COPYMEM - Copies one memory buffer to another
-- @WRD2STK - Pushes a word on the stack
-- @PTR2STK - Pushes a pinter on the stack
 - @CACHECURPOS - Caches the cursor position on the stack
 - @HIDECURSOR - Hides the cursor
 - @SHOWCURSOR - Shows the cursor
