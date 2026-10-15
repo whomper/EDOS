@@ -62,7 +62,7 @@ Download from **[Releases](../../releases/latest)**:
 
 | File | What it is |
 |---|---|
-| `EDOS.ATR` | a bootable SpartaDOS 3.2 disk with EDOS, its font and the MAC/65 sources |
+| `EDOS.ATR` | a bootable SpartaDOS 3.2 disk with EDOS, its font and the current MAC/65 sources |
 | `EDOS.COM` | the program: a binary load file for any DOS |
 | `EDOS.FNT` | EDOS's character set; keep it next to `EDOS.COM` |
 | `EDOSTEST.ATR` | a bootable test disk with the test files and `TESTPLAN.TXT`, 33 checks for a real Atari |
@@ -116,7 +116,10 @@ POINT that SpartaDOS rejects, and stops with `ERROR -` and no number.
 release: change it, add `release-notes/vX.Y.md`, commit and push, then run the Release workflow
 (Actions > Release > Run workflow, on main) with version `X.Y`, or push a tag `vX.Y`. GitHub Actions
 builds and tests, checks that EDOS shows that version, tags the commit and publishes `EDOS.COM`,
-`EDOS.FNT`, `EDOS.ATR` and `EDOSTEST.ATR` as a GitHub Release with the notes.
+`EDOS.FNT`, `EDOS.ATR` and `EDOSTEST.ATR` as a GitHub Release with the notes. From then on, each
+push to main that leaves `EDOS.COM` as released replaces that release's `EDOS.ATR` and `EDOSTEST.ATR`
+with the new build, so the disk always carries the current sources; a changed program waits for the
+next release.
 
 ## Source
 

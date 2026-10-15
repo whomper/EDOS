@@ -18,3 +18,33 @@ jobs:
         with:
           name: edos-build
           path: build/
+
+  # On main: while EDOS.COM is the latest release's, that release gets this
+  # build's disks, so its EDOS.ATR always carries the current sources. A
+  # changed program waits for the next release, so a release's disks never
+  # hold a program other than the one its version names.
+  refresh-release:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency: refresh-release
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: edos-build
+          path: build
+      - name: Replace the latest release's EDOS.ATR and EDOSTEST.ATR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag="$(gh release view --json tagName --jq .tagName)"
+          gh release download "$tag" --pattern EDOS.COM --dir released
+          if cmp -s released/EDOS.COM build/EDOS.COM; then
+            gh release upload "$tag" build/EDOS.ATR build/EDOSTEST.ATR --clobber
+            echo "$tag: EDOS.ATR and EDOSTEST.ATR replaced with this build's"
+          else
+            echo "EDOS.COM is not $tag's: the disks are updated by the next release"
+          fi
