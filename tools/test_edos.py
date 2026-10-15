@@ -150,7 +150,6 @@ class TestInput(unittest.TestCase):
     def make(self, typed):
         s = Sim()
         s.poke(s['DSKNUM'], 1)
-        s.poke_word(s['RTNPTR'], s['GETCOM'])
         seen = {}
 
         def cio(sim, x):
@@ -195,7 +194,7 @@ class TestInput(unittest.TestCase):
 
     def test_sector_input_is_bounded(self):
         s, seen = self.make('1234567890123')
-        # NUMBKS and RTNPTR sit right after the 5-byte SCTR
+        # NUMBKS and FILEND sit right after the 5-byte SCTR
         guard = [s.peek(a) for a in range(s['SCTR'] + 5, s['SCTR'] + 8)]
         self.run_until_getcom(s)
         self.assertEqual(seen['limit'], 5)
@@ -232,7 +231,8 @@ class TestFastSio(unittest.TestCase):
 
     def test_work_area_below_bank_window(self):
         s = Sim()
-        self.assertLessEqual(s['END_PROG'], s['WRKBEG'])
+        self.assertLessEqual(s['END_PROG'], s['VAREND'])
+        self.assertLessEqual(s['VAREND'], s['WRKBEG'])
         self.assertLessEqual(s['FSIOV'] + 0x100, 0x4000)
 
 

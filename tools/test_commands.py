@@ -47,7 +47,6 @@ class Machine:
         s.sio_handler = self.w.sio
         s.poke(s['DSKNUM'], 1)
         s.poke(s['NUMBKS'], numbks)
-        s.poke_word(s['RTNPTR'], s['GETCOM'])
         s.poke(s['STKPTR'], 0xFD)
         self.hits = {}
 

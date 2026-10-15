@@ -216,12 +216,12 @@ class World:
 
 
 def symbolizer(sim):
-    lo, hi = sim['START_PROG'], sim['END_PROG']
+    lo, hi = sim['START_PROG'], sim.sym.get('VAREND', sim['END_PROG'])
     named = {}
     for k, v in sorted(sim.sym.items()):
         if '?' in k:
             continue
-        if lo <= v <= hi or k in ('BUF', 'FILE', 'INP1', 'M4000', 'M5000', 'FSIOV'):
+        if lo <= v <= hi or 0xB0 <= v <= 0xCF or k in ('BUF', 'FILE', 'INP1', 'M4000', 'M5000', 'FSIOV'):
             named.setdefault(v, k)
     keys = sorted(v for v in named if lo <= v <= hi)
 
@@ -245,7 +245,8 @@ def run(build, sc):
     sim.sio_handler = w.sio
     sim.poke(sim['DSKNUM'], 1)
     sim.poke(sim['NUMBKS'], sc.get('numbks', 16))
-    sim.poke_word(sim['RTNPTR'], sim['GETCOM'])
+    if 'RTNPTR' in sim.sym:                         # 2.9 and earlier
+        sim.poke_word(sim['RTNPTR'], sim['GETCOM'])
     sim.poke(sim['STKPTR'], 0xFD)
     for a, data in sc.get('mem', {}).items():
         sim.poke(a, *data)
