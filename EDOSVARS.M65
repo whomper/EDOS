@@ -60,7 +60,7 @@
 0690 DSNG .BYTE "Single ",DEL
 0700 DENH .BYTE "Enhance",DEL
 0710 DDBL .BYTE "Double ",DEL
-0720 SECT .BYTE "Sector: ",EOL
+0720 SECT .BYTE "Sector:     ",EOL ;4 DIGITS AT SECT+8
 0730 DUPE .BYTE "    ",DEL
 0740 DUPS .BYTE ":       :        :     :     ",DEL
 0750 MODR .BYTE "Read ",DEL

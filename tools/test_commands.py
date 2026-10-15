@@ -362,7 +362,9 @@ class TestViewers(unittest.TestCase):
         m.run('COMANA')
         reads = [sec for cmd, unit, sec in m.w.sio_cmds if cmd == 0x52 and sec != 0x10]
         self.assertEqual(reads, [10, 11, 10])
-        self.assertIn('Sector: 10', m.screen)
+        # whole line: 2.9 printed past SECT's overwritten EOL into other texts
+        lines = [l for l in m.screen.split('\n') if 'Sector:' in l][1:]   # [0]: the prompt
+        self.assertEqual(lines, ['Sector: 10  ', 'Sector: 11  ', 'Sector: 10  '])
 
 
 class TestDisk(unittest.TestCase):
