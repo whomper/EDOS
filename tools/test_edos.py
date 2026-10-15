@@ -67,11 +67,12 @@ class TestArithmetic(unittest.TestCase):
             s.call('INP2ADDR', y=len(txt))
             self.assertEqual(s.word(s['FILPOS']), val, txt)
 
-    def test_bin2hex(self):
+    def test_hexout(self):
         s = self.s
-        for v in (0, 0x0A, 0xA0, 0xFF):
-            s.call('BIN2HEX', a=v)
-            self.assertEqual(chr(s.peek(s['D1'])) + chr(s.peek(s['D0'])), f"{v:02X}")
+        for v in (0, 0x09, 0x0A, 0x5F, 0x9A, 0xA0, 0xFF):
+            mpu = s.call('HEXOUT', a=v, x=0x33, y=3)
+            self.assertEqual(bytes(s.mem[s['FILE'] + 3:s['FILE'] + 5]).decode(), f"{v:02X}")
+            self.assertEqual((mpu.y, mpu.x), (5, 0x33))
 
 
 class TestErrorText(unittest.TestCase):

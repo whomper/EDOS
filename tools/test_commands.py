@@ -375,6 +375,15 @@ class TestViewers(unittest.TestCase):
         self.assertIn('5000-00 01 02 03 04 05 06 07', m.screen)
         self.assertIn('5080-80 81 82 83 84 85 86 87', m.screen)
 
+    def test_memory_shows_full_block_after_compare(self):
+        m = Machine(lines=['5000'], keys='N')
+        m.sim.poke(0x5000, *range(256))
+        m.sim.poke(m['BYTRD'], 20)                     # as Byte Compare leaves it
+        m.run('COMMEM')
+        rows = [l for l in m.screen.split('\n') if l[:2] == '50']
+        self.assertEqual(len(rows), 16)
+        self.assertTrue(rows[-1].startswith('5078-78 79 7A 7B 7C 7D 7E 7F'))
+
     def test_analyze_sector_navigation(self):
         m = Machine(lines=['10'], keys='+-N')
         m.run('COMANA')
