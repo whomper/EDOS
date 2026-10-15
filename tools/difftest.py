@@ -255,6 +255,8 @@ def run(build, sc):
     mpu = sim.mpu
     mpu.sp, mpu.a = 0xFD, sc.get('a', 0)
     mpu.pc = sim[sc['entry']]
+    if sc['entry'] in MENU_KEY:                      # through the dispatcher,
+        mpu.pc, mpu.a = sim['FINDCM'], ord(MENU_KEY[sc['entry']])   # title bar included
     stop = sim['GETCOM']
     note = ''
     try:
@@ -298,6 +300,11 @@ BIG = bytes((i * 7) & 0xFF for i in range(20000))
 BASE = {1: {'A.COM': PROG, 'A2.COM': PROG, 'B.TXT': b'hello world\x9b' * 40,
             'P2.COM': PROG2, 'BIG.DAT': BIG}}
 PATTERN = [(0x5000, bytes((i * 5 + 3) & 0xFF for i in range(512)))]
+
+MENU_KEY = {'COMDIR': 'F', 'COMCAR': 'T', 'COMCPY': 'C', 'COMDUP': 'D', 'COMERA': 'E',
+            'COMINI': 'I', 'COMVIE': 'V', 'COMANA': 'A', 'COMPRC': 'P', 'COMUNP': 'U',
+            'COMREN': 'R', 'COMSAV': 'S', 'COMLOA': 'L', 'COMGOT': 'G', 'COMNEW': 'N',
+            'COMMEM': 'M', 'COMCMP': 'B', 'COMWRT': 'W'}
 
 SCENARIOS = {
     'menu': dict(entry='GOMENU'),

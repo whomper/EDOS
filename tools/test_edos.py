@@ -5,6 +5,7 @@ Run tools/build.sh first (it runs these tests too), or:
     python3 tools/test_edos.py -v
 """
 import os
+import re
 import sys
 import unittest
 
@@ -90,9 +91,18 @@ class TestErrorText(unittest.TestCase):
         self.s.call('GETERRTXT', y=170)
         self.assertEqual(self.text(), 'File not found')
 
+    def test_every_message(self):
+        src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'CIOSTAT.M65')).read()
+        msgs = re.findall(r'\.BYTE (\d+),"([^"]*)",EOL', src)
+        self.assertGreater(len(msgs), 20)
+        for code, text in msgs:
+            self.s.call('GETERRTXT', y=int(code))
+            self.assertEqual(self.text(), text, code)
+
     def test_unknown_code_terminates(self):
-        # used to scan past the table and hang or print garbage
-        for code in (148, 150, 172, 200, 255):
+        # used to scan past the table and hang or print garbage;
+        # 134, 141, 145, 166 and 171 cannot happen in EDOS (no text)
+        for code in (148, 150, 172, 200, 255, 134, 141, 145, 166, 171):
             self.s.call('GETERRTXT', y=code, max_steps=20_000)
             self.assertEqual(self.text(), '', code)
 

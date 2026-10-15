@@ -66,7 +66,8 @@ Expect: what you should see.
 1 Boot, run EDOS. Expect title
   EDOS 2.9, D:12 (or your drives),
   XMEM size, full menu.
-2 F, RETURN. Expect D1 listing,
+2 F: inverse title FILES ON DISK.
+  RETURN: D1 listing,
   Number of files: {nfiles}.
 3 F, *.COM. Expect only .COM files.
 4 Press 2. Expect D2 listing.
