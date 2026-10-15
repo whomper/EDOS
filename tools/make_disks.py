@@ -28,7 +28,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD = os.path.join(ROOT, 'build')
 SOURCE = os.path.join(ROOT, 'tools', 'disk', 'BASE.ATR')
 DOS = 'X32G.DOS'
-SOURCES = ['EDOS.M65', 'EDOSVARS.M65', 'MACROS.M65', 'SYSTEM.M65', 'UTILS.M65', 'CIOSTAT.M65']
+SOURCES = ['EDOS.M65', 'EDOSMAIN.M65', 'EDOSVARS.M65', 'MACROS.M65', 'SYSTEM.M65', 'UTILS.M65', 'CIOSTAT.M65']
 
 
 def tokenized_sources():
