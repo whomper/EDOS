@@ -9,9 +9,8 @@ the OS screen editor (E:): cursor at ROWCRS/COLCRS, margins LMARGN/RMARGN,
 clear screen, delete line, cursor moves, inverse video, and DSPFLG for
 showing control characters. It stops when EDOS waits for the first key
 and draws the 40x24 text screen in GRAPHICS 0 colours (COLOR2 background,
-COLOR1 luminance) with a COLOR4 border. EDOS uses the ROM character set,
-which is not available here; the image uses EREZ.FNT from
-tools/disk/BASE.ATR, shifted to the ROM font's blank left column.
+COLOR1 luminance) with a COLOR4 border, in EDOS.FNT, the character set
+EDOS loads at start (tools/font.py).
 """
 import argparse
 import os
@@ -19,7 +18,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from sim import Sim  # noqa: E402
-import sparta  # noqa: E402
+from font import edos_font  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROWS, COLS = 24, 40
@@ -76,12 +75,18 @@ def capture(xmem=512):
     s = Sim(bank_bits=bits)
     ed = Editor(s)
 
+    font = edos_font()
+
     def cio(sim, x):
         cmd = sim.peek(0x342 + x)
         if x == 0 and cmd in (0x09, 0x0B):
             buf, n = sim.word(0x344), sim.word(0x348)
             for k in range(n):
                 ed.put(sim.peek(buf + k))
+        elif x != 0 and cmd == 0x07 and sim.word(0x348 + x) == len(font):   # D:EDOS.FNT
+            buf = sim.word(0x344 + x)
+            for k, b in enumerate(font):
+                sim.mem[buf + k] = b
         return 1
 
     def sio(sim):
@@ -101,6 +106,7 @@ def capture(xmem=512):
     s.poke_word(0x0C, 0x9000)
     s.poke(LMARGN, 2)
     s.poke(RMARGN, 39)
+    s.poke(0x6A, 0xA0)                                       # RAMTOP: 40K
     mpu = s.mpu
     mpu.sp, mpu.pc = 0xFD, s['PRE_START']
     for _ in range(5_000_000):
@@ -128,16 +134,7 @@ def atari_rgb(colour):
 
 def render(sim, ed, path, scale=3):
     from PIL import Image
-    d = sparta.Disk(os.path.join(ROOT, 'tools', 'disk', 'BASE.ATR'))
-    e = d.find('EREZ.FNT')[1]
-    font = bytearray(d.read_file(d.w(e, 1), 1024))
-    # EREZ.FNT draws letters from column 0; the ROM font that EDOS really
-    # uses leaves column 0 blank, which is what makes inverse letters look
-    # like blocks. Shift glyphs whose column 7 is empty one pixel right.
-    for g in range(128):
-        rows = font[g * 8:g * 8 + 8]
-        if not any(r & 1 for r in rows):
-            font[g * 8:g * 8 + 8] = bytes(r >> 1 for r in rows)
+    font = edos_font()                      # the EDOS.FNT that EDOS loads
     bg_c = sim.peek(COLOR2)
     bg = atari_rgb(bg_c)
     fg = atari_rgb((bg_c & 0xF0) | (sim.peek(COLOR1) & 0x0F))

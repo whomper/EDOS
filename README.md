@@ -215,14 +215,14 @@ number
 ## Download
 Binaries are published on the
 [Releases](https://github.com/whomper/EDOS/releases) page, not kept in the
-repository: `EDOS.COM`, the bootable SpartaDOS disk `EDOS.ATR` (with the
-sources) and the test disk `EDOSTEST.ATR`.
+repository: `EDOS.COM`, its font `EDOS.FNT`, the bootable SpartaDOS disk
+`EDOS.ATR` (with the sources and font) and the test disk `EDOSTEST.ATR`.
 
 To publish a release, set the version in the title bar (`TTL2` in
 EDOSVARS.M65), add `release-notes/vX.Y.md`, then either push a tag `vX.Y`
 or run the **release** workflow from the Actions tab with version `X.Y`.
 GitHub Actions builds, runs all tests, checks that the version matches the
-one EDOS shows, and creates the tag and the release with those three files.
+one EDOS shows, and creates the tag and the release with those files.
 
 ## Building
 The sources can be assembled on a PC as well as with MAC/65 on the Atari.
@@ -259,7 +259,15 @@ Disk images (built by `tools/build.sh`):
   utilities, all taken from `tools/disk/BASE.ATR`.
 - `build/EDOSTEST.ATR` - bootable SpartaDOS test disk with EDOS.COM, the
   test files used by the automated tests, RUNME.COM and `TESTPLAN.TXT`
-  (31 manual checks for the real Atari; `TYPE TESTPLAN.TXT`).
+  (33 manual checks for the real Atari; `TYPE TESTPLAN.TXT`).
+
+EDOS loads its character set from `EDOS.FNT` on the current drive (`D:`)
+when it starts and puts it at the highest 1K boundary below the screen
+($9800 on a 40K+ machine). Without the file, or without room above $8000,
+it keeps the Atari ROM font. `tools/font.py` makes EDOS.FNT from
+`EREZ.FNT`, shifted one pixel right so inverse letters show as blocks; to
+use another font, put any 1,024-byte Atari character set on the disk as
+EDOS.FNT.
 
 `tools/screenshot.py EDOS.png` regenerates the menu picture above by
 running EDOS.COM on the emulated 6502 (needs Pillow).

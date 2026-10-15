@@ -1,7 +1,7 @@
 name: release
 
-# Build, test and publish a GitHub release with EDOS.COM, EDOS.ATR and
-# EDOSTEST.ATR, either by pushing a tag like v2.8 or by running this
+# Build, test and publish a GitHub release with EDOS.COM, EDOS.FNT, EDOS.ATR
+# and EDOSTEST.ATR, either by pushing a tag like v2.8 or by running this
 # workflow from the Actions tab with a version (it then creates the tag on
 # the selected commit). Notes come from release-notes/<tag>.md if present.
 on:
@@ -46,5 +46,5 @@ jobs:
         run: |
           notes="release-notes/$TAG.md"
           if [ -f "$notes" ]; then set -- --notes-file "$notes"; else set -- --generate-notes; fi
-          gh release create "$TAG" build/EDOS.COM build/EDOS.ATR build/EDOSTEST.ATR \
+          gh release create "$TAG" build/EDOS.COM build/EDOS.FNT build/EDOS.ATR build/EDOSTEST.ATR \
             --title "EDOS ${TAG#v}" --target "$GITHUB_SHA" "$@"

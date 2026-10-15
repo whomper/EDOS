@@ -487,5 +487,67 @@ class TestStartAndReset(unittest.TestCase):
         self.assertEqual(m.sim.mpu.sp, 0xFD)
 
 
+class TestFont(unittest.TestCase):
+    """EDOS loads D:EDOS.FNT below the screen at start and selects it."""
+
+    def setUp(self):
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from font import edos_font
+        self.font = edos_font()
+
+    def start(self, files, ramtop=0xA0):
+        m = Machine(files)
+        s = m.sim
+        s.poke(0x6A, ramtop)                          # RAMTOP
+        s.poke(0x9000, RTS)
+        s.poke_word(0x0C, 0x9000)
+        m.run('PRE_START')
+        return m
+
+    def test_loads_and_selects_font(self):
+        m = self.start({1: {'EDOS.FNT': self.font}})
+        self.assertIn('D:EDOS.FNT', m.opened())
+        self.assertEqual(m.sim.peek(0x2F4), 0x98)                 # CHBAS
+        self.assertEqual(m.mem(0x9800, 1024), self.font)
+        self.assertNotIn('Error', m.screen)
+        self.assertEqual(m.w.open, {}, "font file left open")
+
+    def test_no_font_file_keeps_rom_font_silently(self):
+        m = self.start({1: {}})
+        self.assertEqual(m.sim.peek(0x2F4), 0)
+        self.assertEqual(m.sim.peek(m['FONTPG']), 0)
+        self.assertNotIn('Error', m.screen)
+        self.assertIn('EDOS 2.8', m.screen)
+
+    def test_short_file_is_not_used(self):
+        m = self.start({1: {'EDOS.FNT': self.font[:500]}})
+        self.assertEqual(m.sim.peek(m['FONTPG']), 0)
+        self.assertEqual(m.sim.peek(0x2F4), 0)
+
+    def test_no_room_below_screen(self):
+        m = self.start({1: {'EDOS.FNT': self.font}}, ramtop=0x80)   # 16K cartridge
+        self.assertNotIn('D:EDOS.FNT', m.opened())
+        self.assertEqual(m.sim.peek(m['FONTPG']), 0)
+
+    def test_reset_reselects_without_reloading(self):
+        m = self.start({1: {'EDOS.FNT': self.font}})
+        m.sim.poke(0x2F4, 0xE0)                                   # OS reset
+        m.run('START')
+        self.assertEqual(m.opened().count('D:EDOS.FNT'), 1)
+        self.assertEqual(m.sim.peek(0x2F4), 0x98)
+
+    def test_exits_restore_rom_font(self):
+        m = self.start({1: {'EDOS.FNT': self.font}})
+        m.sim.poke_word(0x0A, 0xA100)
+        self.assertEqual(m.run('COMQIT', stop=['GETCOM', 0xA100]), 0xA100)
+        self.assertEqual(m.sim.peek(0x2F4), 0xE0)
+
+    def test_running_a_program_restores_rom_font(self):
+        m = self.start({1: {'EDOS.FNT': self.font, 'PROG.COM': PROG}})
+        m.w.lines, m.w.keys = ['PROG.COM'], ['Y']
+        self.assertEqual(m.run('COMLOA', stop=['GETCOM', 0x5000]), 0x5000)
+        self.assertEqual(m.sim.peek(0x2F4), 0xE0)
+
+
 if __name__ == '__main__':
     unittest.main()
