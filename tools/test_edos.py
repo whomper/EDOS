@@ -55,17 +55,12 @@ class TestArithmetic(unittest.TestCase):
             s.call('CALCLEN')
             self.assertEqual(s.word(s['FILLEN']), end - start + 1, f"{start:04X}-{end:04X}")
 
-    def test_hex2bin(self):
-        s = self.s
-        for txt, val in [('A0', 0xA0), ('00', 0), ('FF', 0xFF), ('3c', None)]:
-            if val is None:
-                continue
-            mpu = s.call('HEX2BIN', a=ord(txt[0]), y=ord(txt[1]))
-            self.assertEqual(mpu.a, val, txt)
-
     def test_inp2addr(self):
         s = self.s
-        for txt, val in [('2000', 0x2000), ('9C', 0x9C), ('', 0), ('BFFA', 0xBFFA)]:
+        for txt, val in [('2000', 0x2000), ('9C', 0x9C), ('', 0), ('BFFA', 0xBFFA),
+                         ('A0', 0xA0), ('00', 0), ('FF', 0xFF), ('0123', 0x0123),
+                         ('4567', 0x4567), ('89AB', 0x89AB), ('CDEF', 0xCDEF),
+                         ('600', 0x600), ('5', 5), ('E00', 0xE00), ('12345', 0x1234)]:
             for k, c in enumerate(txt.encode() + bytes([EOL])):
                 s.poke(s['INP1'] + k, c)
             s.call('INP2ADDR', y=len(txt))

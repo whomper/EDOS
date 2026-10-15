@@ -198,9 +198,10 @@ class TestLoadBinary(unittest.TestCase):
 
     def test_missing_file_error(self):
         m = Machine(files(), lines=['NOPE.COM'])
+        for a in range(m['BUF'], m['BUF'] + 0x100):    # leftovers must not show
+            m.sim.poke(a, ord('#'))
         m.run('COMLOA')
-        self.assertIn('170', m.screen)
-        self.assertIn('File not found', m.screen)
+        self.assertIn('* Error 170 File not found', m.screen)
 
 
 class TestSaveBinary(unittest.TestCase):
@@ -440,6 +441,10 @@ class TestExits(unittest.TestCase):
         self.m.w.lines = ['A123']
         self.assertEqual(self.m.run('COMGOT', stop=['GETCOM', 0xA123]), 0xA123)
         self.assertEqual(self.dosini(), 0x1234)
+
+    def test_goto_three_digit_address(self):
+        self.m.w.lines = ['600']                      # $0600, not $0060
+        self.assertEqual(self.m.run('COMGOT', stop=['GETCOM', 0x0600, 0x0060]), 0x0600)
 
     def test_cartridge(self):
         s = self.m.sim
