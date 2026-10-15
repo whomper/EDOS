@@ -224,6 +224,42 @@ class TestFastSio(unittest.TestCase):
         for size in (0x101, 0x200, 0x400):
             self.assertEqual(self.run_readfio(size), [], hex(size))
 
+    def run_fast(self, status, flags=0):
+        """CALLSIO for a read with fast-SIO code at FSIOV returning status"""
+        s = Sim()
+        s.poke(s['FSIOV'], 0xA0, status, 0x60)        # LDY #status / RTS
+        s.poke(s['DSKNUM'], 1)
+        s.poke(s['DENSITY'], 1)
+        s.poke(0x0302, SIO_RD)                         # DCOMND
+        s.poke(0x0307, flags)                          # DUNUSE
+        s.poke_word(0x030A, 5)                         # sector 5
+        mpu = s.mpu
+        s.poke_word(0x1FE, 0xFFF0 - 1)                 # sim.RETURN_TRAP
+        mpu.sp, mpu.pc = 0xFD, s['CALLSIO']
+        for _ in range(5000):
+            if mpu.pc == 0xFFF0:
+                return s, s.peek(0x0307)
+            if mpu.pc == s['DISKERR']:
+                return s, 'DISKERR'
+            if mpu.pc >= 0xD800 and s._trap():
+                continue
+            mpu.step()
+        self.fail('CALLSIO did not finish')
+
+    def test_fast_sio_used_for_read(self):
+        s, dunuse = self.run_fast(1)
+        self.assertEqual(s.sio_log, [])                # SIOV not called
+        self.assertEqual(dunuse, 0)
+
+    def test_fast_sio_error_reported(self):
+        s, dunuse = self.run_fast(0x90, flags=0x02)    # SKPERR: caller checks
+        self.assertEqual(s.sio_log, [])
+        self.assertEqual(dunuse, 0x80)                 # SIOERR
+
+    def test_fast_sio_error_goes_to_diskerr(self):
+        s, result = self.run_fast(0x90)
+        self.assertEqual(result, 'DISKERR')
+
     def test_work_area_below_bank_window(self):
         s = Sim()
         self.assertLessEqual(s['END_PROG'], s['VAREND'])
