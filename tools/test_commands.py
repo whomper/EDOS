@@ -375,6 +375,15 @@ class TestViewers(unittest.TestCase):
         self.assertIn('5000-00 01 02 03 04 05 06 07', m.screen)
         self.assertIn('5080-80 81 82 83 84 85 86 87', m.screen)
 
+    def test_view_more_at_end_of_file(self):
+        # a file of exactly 128 bytes: "View more" Y used to show the
+        # same block again as 0080-00FF
+        m = Machine(files(EXACT_BIN=bytes(range(128))), lines=['EXACT.BIN', '0000'], keys='YN')
+        m.run('COMVIE')
+        rows = [l for l in m.screen.split('\n') if l[:2] == '00']
+        self.assertEqual(len(rows), 16)
+        self.assertIn('Reached end of file', m.screen)
+
     def test_memory_shows_full_block_after_compare(self):
         m = Machine(lines=['5000'], keys='N')
         m.sim.poke(0x5000, *range(256))
