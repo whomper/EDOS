@@ -1,6 +1,6 @@
 # EDOS
 
-![The EDOS main menu on an Atari 8-bit screen](EDOS.jpeg)
+![The EDOS 2.8 main menu on an Atari 8-bit with 512K extended memory and two drives](EDOS.png)
 
 E-DOS is a refreshed Disk Utility Package (DUP) that sits on
 top of a regular DOS, such as MyDOS or SpartaDOS to provide a
@@ -260,6 +260,9 @@ Disk images (built by `tools/build.sh`):
 - `build/EDOSTEST.ATR` - bootable SpartaDOS test disk with EDOS.COM, the
   test files used by the automated tests, RUNME.COM and `TESTPLAN.TXT`
   (31 manual checks for the real Atari; `TYPE TESTPLAN.TXT`).
+
+`tools/screenshot.py EDOS.png` regenerates the menu picture above by
+running EDOS.COM on the emulated 6502 (needs Pillow).
 
 Other tools: `tools/mac65tok.py` converts between these text sources and
 MAC/65's tokenized SAVE format (checked byte for byte against files saved
