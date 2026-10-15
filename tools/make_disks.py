@@ -55,7 +55,7 @@ def symbols():
 
 def plan(sym, nfiles):
     size = sym['END_PROG'] - sym['START_PROG'] + 12
-    text = f"""EDOS 2.8 TEST PLAN
+    text = f"""EDOS 2.9 TEST PLAN
 ==================
 D1: this disk (boot it, then EDOS).
 D2: a blank formatted disk.
@@ -64,7 +64,7 @@ Expect: what you should see.
 
 -- MENU / DIR --
 1 Boot, run EDOS. Expect title
-  EDOS 2.8, D:12 (or your drives),
+  EDOS 2.9, D:12 (or your drives),
   XMEM size, full menu.
 2 F, RETURN. Expect D1 listing,
   Number of files: {nfiles}.
