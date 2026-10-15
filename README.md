@@ -1,291 +1,223 @@
 # EDOS
 
-![The EDOS 3.0 main menu on an Atari 8-bit with 512K extended memory and two drives](EDOS.png)
+<img src="https://raw.githubusercontent.com/whomper/AERA-Atari/main/brand/aera-star.jpg" width="96" align="right" alt="The AERA star, a four-point star in brushed metal, standing in for an icon">
 
-E-DOS is a refreshed Disk Utility Package (DUP) that sits on
-top of a regular DOS, such as MyDOS or SpartaDOS to provide a
-menu based disk operations in a friendly user interface.
- 
-I have created this software to provide me with the best disk
-management experience that is simple yet full of missing
-functions classical interfaces do not have, such as sector
-copier, memory dump and more.
+A menu-driven Disk Utility Package for Atari 8-bit computers, written in 6502 assembly with MAC/65,
+running on top of MyDOS, SpartaDOS or DOS 2.5.
 
-As EDOS can work with many DOS solutions, it provides a
-consistent interface for those who work with multiple DOS
-solutions. Care was given to not rely on specific DOS APIs
-and functionalty and most functions have been coded to the
-core CIO or SIO building blocks.
+**Highlights**
 
-Disk operations could be destructive at times, deleting
-precious files or whole disks. EDOS tries to make that easier
-via visual and colorful queues for read versus write
-operations so that the user can avoid unwanted deletions.
+- **Every disk job on one screen:** directory, copy, duplicate, erase, rename, protect, format,
+  binary load and save, compare. Each is one key from the menu, with no external utilities to find
+- **The same on any DOS:** EDOS works through CIO and SIO, not a DOS's own calls, so it looks and
+  behaves alike on MyDOS, SpartaDOS and DOS 2.5
+- **Big copies in one pass:** Copy Files and Duplicate Disk use the extended memory of an XL or XE
+- **Fast disk copies:** when a drive has its own fast SIO code, Duplicate Disk reads it from the drive
+  and uses it, whatever DOS you run
+- **Colour shows what's happening:** green while reading, red before anything is written or erased
+- **Sectors and memory too:** view any file, sector or memory address 128 bytes at a time; jump to
+  an address or into the cartridge
+- **Small:** `EDOS.COM` is 6,495 bytes
+- **Assembles on the Atari:** the MAC/65 sources are on the disk; a PC cross assembler and tests are
+  here too
 
-EDOS is also offered in an Open Source fasion and all source
-code is free to review and leverage, providing recognition is
-properly mentioned.
+![The EDOS 3.0 main menu: drives 1 and 2, HIGH speed and 512K of extended memory on the status line, and the twenty commands](EDOS.png)
 
-## The Story Behind It
-When I got my first Atari 600XL back in 1984 (after spending
-time each afternoon at my friend's place programming his
-Atari 400), I taught myself Assembly and have started
-programming various utilities and games. I also spent hours
-during school classes to write Assebly code snippets in my
-coding notebook.
+## The commands
 
-A few yers back I've stumbled across that same notebook and
-noticed I've been working on my own version of Atari Disk
-Utility Package, or DOS Menu.
+Press the key in inverse on the menu; **RETURN** shows the menu again. The status line at the top shows
+the drives connected (the current one in inverse), **HIGH** when that drive runs at high speed, and the
+extended memory (**XMEM**).
 
-Buying back my Atari setup and now migrting to the Atari
-1200XL with 2 1050 disk drives and other peripherals, I
-bought myself an Assembly MAC/65 cartridge and resumed my
-teen project.
+- **Dir D1-D8** (1 to 8) and **Files on Disk** (F): a two-column directory with the number of files
+  and the free space. 1 to 8 list that drive whichever is current.
+- **Copy Files** (C): copies one or more files from one disk to another. Name the files, then the
+  target drive, or Y for the same drive and swap disks when asked. The copy goes through extended
+  memory, so large files go in one pass.
+- **Duplicate Disk** (D): copies a whole disk, sector by sector, through extended memory. Pick the
+  source drive; once it is read, give the target drive or Y for the same one. EDOS checks whether the
+  target disk is formatted and has the source's density, and formats it if it needs to.
+- **Erase Files** (E), **Protect Files** (P), **Unprotect Files** (U), **Rename Files** (R): one or
+  more files at a time, with wildcards.
+- **Initialize Disk** (I): formats a disk in single, enhanced or double density.
+- **View File** (V), **Analyze Sector** (A), **Memory Status** (M): one viewer, 128 bytes a screen.
+  View File starts at a position you give in hex, Analyze Sector at a sector number in decimal, and
+  Memory Status shows `MEMLO` and `MEMTOP`, then starts at a hex address. Sectors and memory go
+  forwards (+) and backwards (-).
+- **Load Binary** (L): loads a binary file and runs it if you say so. **Save Binary** (S): saves a
+  memory range, with a run address.
+- **Byte Compare** (B): tells you whether two files are the same.
+- **Go To Address** (G): jumps to an address of one to four hex digits. **To Cartridge** (T): starts
+  the cartridge, when there is one.
+- **New Drive** (N): sets the current drive. Every command uses it unless you name another.
+- **Write EDOS** (W): saves EDOS itself as `EDOS.COM` on the current drive.
+- **Quit to DOS** (Q).
 
-Presented here is my completed project.
-I've added many functions that are  missing from similar
-solutions and am also actively using it in my day to day
-Atari activities.
+File names follow the usual DOS rules: `D2:GAME.COM`, `2:GAME.COM`, `GAME.COM`, `*.COM`, `G*.*` and
+other wildcards. A drive number in the name works on that drive without changing the current one.
 
-## Main Concepts and Commands
-As with any DOS menu program, the obvious set of functions are provided and a
-few essentials have been added as well. This reduces the need to call for
-external utilities.
+## Getting started
 
-A top line status bar provides additional information, such as connected
-drives, default drive number, whether it is high speed enabled and the total
-available extended memory.
+Download from **[Releases](../../releases/latest)**:
 
-Here's a list of provided commands with short explanation:
-### Show Directory
-Displays a two column directory list with files count and free space.
-Clicking on keys 1-8 performs the same function irrespective of selected
-drive.
+| File | What it is |
+|---|---|
+| `EDOS.ATR` | a bootable SpartaDOS 3.2 disk with EDOS, its font and the MAC/65 sources |
+| `EDOS.COM` | the program: a binary load file for any DOS |
+| `EDOS.FNT` | EDOS's character set; keep it next to `EDOS.COM` |
+| `EDOSTEST.ATR` | a bootable test disk with the test files and `TESTPLAN.TXT`, 33 checks for a real Atari |
 
-### Go to Cartridge
-Enters a cartridge if one is present.
+1. Boot `EDOS.ATR` and type `EDOS` at the SpartaDOS prompt.
+2. Or copy `EDOS.COM` and `EDOS.FNT` to your own DOS disk and load `EDOS.COM` (**L** in the DOS 2.5
+   or MyDOS menu, `EDOS` at the SpartaDOS prompt). On DOS 2.5 and MyDOS, EDOS can also take the place
+   of `DUP.SYS`.
+3. Press **N** to pick your drive, then any command's key.
 
-### Go to Address
-Enter a 4 digit hex address to jump to.
+EDOS loads `EDOS.FNT` from the current drive when it starts. Without it, or without room for it above
+$8000, EDOS keeps the Atari's own font. Any 1,024-byte Atari character set saved as `EDOS.FNT` works.
 
-### Copy Files
-Copies one of more files between 2 disks. File name uses standard DOS
-convention and can have source drive number a well (either D#: or #:). Target
-drive number, or Y for same, needs to be selected.
-The copy operation works for all files, alternating the background color for
-Read (Green) or Write (Red) operations.
-This operation uses extended memory in order to copy large files.
-
-### Duplicate Disk
-Duplicates a full disk between two drives using available extended memory. A
-sector copy operation will be used and if the drive has Fast SIO
-capabilities, its Fast IO code will be read and used. This ensures the fasted
-sector copy operation irrespective of underlying DOS.
-Source drive is selected and read. Once read operation is complete, the user
-will be asked to input target disk number (or Y for same). The background
-color will change to Red indicating a destructive operation.
-Once the target disk is inserted, it will be determined if a format operation
-is needed by assessing source/target density compatibility and whether the
-target disk is formatted at all.
-
-### Erase Files
-Performs files erase using standard DOS file naming conventions. Signals
-destructive operation by changing background color to Red.
-
-### Initialize Disk
-Formats a disk for Single, Enhanced or Double density.
-
-### View File / Sector / Memory
-A generic 80 byte viewer for files, sectors and memory addresses.
-
-The user is asked for the following info:
-- File - File name and starting position in hex
-- Sector - Sector number in decimal
-- Memory - Memory address in Hex
-
-Once 80 bytes are displayed on screen, there are provisions to navigate
-forward or backwards (only for Sector and Memory) or to abort.
-
-### Protect / Unprotect Files
-Performs files protect and unprotect using standard DOS file naming
-conventions
-
-### Load / Save Binary File
-Loads or saves a binary file. Load will present the option whether to execute
-the loaded program.
-Save will save a memory range and will add a run address vector.
-
-### Compare Files
-Compares two files to figure out if they are identical or not. File names
-uses standard DOS file naming conventions.
-
-### General
-The default drive can be selected using the New Drive command and all
-subsequent commands default to it unless another drive is specified, either
-in the full file name or a specific selection (as in Duplicate Disk command)
-
-A generic file naming function is available for all cases where the use needs
-to input a file name.
-D#:filename.ext, #:filename,ext, filename.ext, file*.* or any wildcard
-combination can be used.
-Prefixing with the drive number can support operations outside of the
-selected drive.
-
-## File Structure
-The project contains several files, eachone focuses on
-different parts and with extensiblity in mind.
-
-Here is a rundown of the contained files and their purpose:
-
-- EDOS.M65 - The main file: options, origin and the list of includes
-- EDOSMAIN.M65 - The main application codebase: start, menu and commands
-- EDOSVARS.M65 - Main application variables and string
-constants
-- UTILS.M65 - A set of general purpose utilities that can be
-used in other projects
-- MACROS.M65 - A set of general purpose Mac/65 macros to
-simplify development
-- SYSTEM.M65 - System wide constants and defaults
-
-## UTILS.M65 Functions List
-- DSPBIN - Display a 80 byte binary address on screen, nicely
-formatted
-- DRAW - Draw a horizontal line via special char
-- RSTSCTCNT - Resets a 4 digit sector counter
-- BNK2DEC - Convert # memory banks to display text
-- INCSCTCNT - Increment a decimal sector counter by one
-- DTCDNS - Detect inserted disk density
-- RESETFIO - Resets FSIOV address location
-- READFIO - Load fast IO code from Speedy into memory
-- RDSCT - Reads one sector
-- WRTSCT - Writes one sector
-- INLINE - Points RETADR at the parameters after a JSR and makes the routine return past them
-- DOSIO - Perform SIO operation
-- CALLSIO - Calls the actual SIOV function, uses fast SIO
-- FXSCSZ - Fix SIO sector size based on density and sector
-number
-- INP2ADDR - Convert up to 4 hex digits in INP1 to an address
-- DOCIO - Perform CIO operation
-- DISKERR - Handles error condition and display message
-- GETCHR - Gets one character from user
-- GETTEXT - Gets a line of text fromte user
-- PRNTLN / PRNTDL - Print text up to and with EOL / up to DEL
-- PRNTNL - Goes down one line
-- BIN2DEC - VALUE to decimal text at A/Y, FF->"255"
-- HEXOUT - 1 byte to two hex digits at FILE,Y, A0->"A0"
-- COPY / FILL - Copy text up to EOL / fill memory (used by @CPYMEM, @FILLMEM)
-- GETINP1 / GETADDR / GETSPEC - Read a line into INP1 / as an address / as a file spec
-- YESORMENU - Returns on Y, any other key goes back to the menu
-- TITLE - Prints a command's menu label as its title bar
-- DTXMEM - Detect number of extended memory banks
-- DEC2HEX - 4 digits decimal to HEX conversion "1234"->04C2
-
-
-## MACROS.M65 Macros List
-- @CPYMEM - Copies one memory buffer to another (2 parameters: JSR COPY)
-- @CACHECURPOS - Caches the cursor position on the stack
-- @HIDECURSOR - Hides the cursor
-- @SHOWCURSOR - Shows the cursor
-- @COLGRN - Background screen color to green
-- @COLRED - Background screen color to red
-- @COLDEF - Background screen color to black
-- @MKBOLD - Makes a char bold
-- @MKASCII - Makes a digit an ASCII one
-- @SIOSNDOFF - Turns off SIO sounds
-- @SIOSNDON - Turns on SIO sounds
-- @HIDECHR - Do not display special characters
-- @SHWCHR - Display special characters
-- @RSTCURPOS - Restor cursor position
-- @POINT2TXT - Points zero page pointer to buffer
-- @FILLMEM - Fills memory with a character (JSR FILL)
-- @INPRM - Set memory location for text input
-- @MUL16PRM - Set MUL16 input paramters
-- @DRAW - Draw function helper
-- @PRNTLN - PRNTLN function helper
-- @SETSCT - Sets sector numbe for operation
-- @DOSIO - DOSIO function helper
-- @DOCIO - DOCIO function helper
-- @CLOSEIO - Closes all open IO channels
-
-## Download
-Binaries are published on the
-[Releases](https://github.com/whomper/EDOS/releases) page, not kept in the
-repository: `EDOS.COM`, its font `EDOS.FNT`, the bootable SpartaDOS disk
-`EDOS.ATR` (with the sources and font) and the test disk `EDOSTEST.ATR`.
-
-To publish a release, set the version in the title bar (`TTL2` in
-EDOSVARS.M65), add `release-notes/vX.Y.md`, then either push a tag `vX.Y`
-or run the **release** workflow from the Actions tab with version `X.Y`.
-GitHub Actions builds, runs all tests, checks that the version matches the
-one EDOS shows, and creates the tag and the release with those files.
+**Needs:** an Atari 400, 800, XL or XE with a disk drive, and MyDOS, SpartaDOS 3.x or DOS 2.5. Copy
+Files and Duplicate Disk use 130XE-style extended memory when there is some.
 
 ## Building
-The sources can be assembled on a PC as well as with MAC/65 on the Atari.
-`tools/` holds a Python cross assembler that understands the MAC/65 syntax
-used here. Fed the February 2025 sources, it reproduces the MAC/65-built
-EDOS.COM from that time byte for byte.
 
-    pip install py65        # only needed for the unit tests
-    tools/build.sh
+```sh
+pip install py65        # for the tests
+tools/build.sh          # assembles, runs the tests and makes the disk images
+```
 
-This writes to `build/`:
-- `EDOS.COM` - the program, `EDOS.LST` - listing, `EDOS.SYM` - symbols
-- `EDOS-D2.ATR` - DOS 2/MyDOS disk image holding EDOS.COM
-- `EDOS-BOOT.ATR` - bootable disk, when a DOS 2.5 or MyDOS master is placed
-  at `tools/dos/DOS.ATR` (see `tools/dos/README.md`)
+| `tools/build.sh` writes | What it is |
+|---|---|
+| `build/EDOS.COM`, `EDOS.LST`, `EDOS.SYM` | the program, its listing and its symbols |
+| `build/EDOS.FNT` | the font, made by `tools/font.py` from `EREZ.FNT`, one pixel to the right so inverse letters show as blocks |
+| `build/EDOS.ATR` | the EDOS disk: SpartaDOS 3.2 and the utilities from `tools/disk/BASE.ATR`, with `EDOS.COM`, `EDOS.FNT` and the sources in MAC/65's tokenised form |
+| `build/EDOSTEST.ATR` | the test disk |
+| `build/EDOS-D2.ATR` | a DOS 2/MyDOS disk with `EDOS.COM` |
+| `build/EDOS-BOOT.ATR` | a bootable DOS 2.5 or MyDOS disk with `EDOS.COM`, when you put that DOS's master disk at `tools/dos/DOS.ATR` (`EDOS_AS_DUP=1` also installs EDOS as `DUP.SYS`) |
 
-On the Atari, with the sources from `EDOS.ATR` on D1:
+`tools/mac65.py` is a Python cross assembler for the MAC/65 syntax used here. Fed the February 2025
+sources, it makes the same `EDOS.COM` that MAC/65 made then, byte for byte. `build/` is what the build
+writes; it is never committed.
 
-    LOAD #D:EDOS.M65
-    ASM ,,#D:EDOS.COM
+**On the Atari**, with the sources from `EDOS.ATR` on D1:
 
-EDOS.M65 is only the list of includes; the rest is read from disk during
-the assembly, leaving about 21K free for the symbol table. Always give the
-object file: a plain `ASM` would write the program into memory at $1E00,
-where MAC/65 keeps its own work area. `ASM #D:EDOS.M65,,#D:EDOS.COM`
-works on DOS 2.5 and MyDOS but not on SpartaDOS: MAC/65 1.01 rewinds the
-main file for pass 2 with a POINT that SpartaDOS rejects, and stops with
-`ERROR -` and no number.
+```
+LOAD #D:EDOS.M65
+ASM ,,#D:EDOS.COM
+```
 
-Tests run the real EDOS machine code on an emulated 6502 (py65) with 256K of
-banked memory, a fake DOS (files on D1:/D2:), scripted keys and typed lines,
-and a fake disk drive:
-- `tools/test_commands.py` - every menu command, menu key dispatch, start,
-  RESET and the exits (Quit, Cartridge, Go To), checking files written,
-  memory loaded, sectors copied, screen text and where control goes
-- `tools/test_edos.py` - routine-level tests (conversions, error text,
-  disk copy loop in all densities, fast SIO loading, memory layout)
-- `tools/difftest.py OLD NEW` - runs 29 command scenarios on two builds and
-  reports any change in screen output, CIO/SIO calls, files or memory;
-  used to prove refactors and size reductions change nothing
+`EDOS.M65` holds only the list of includes; MAC/65 reads the rest from disk as it assembles, which
+leaves about 21K for the symbol table. Always give the object file: a plain `ASM` writes the program
+into memory at $1E00, where MAC/65 keeps its own work area. `ASM #D:EDOS.M65,,#D:EDOS.COM` works on
+DOS 2.5 and MyDOS but not on SpartaDOS: MAC/65 1.01 rewinds the main file for its second pass with a
+POINT that SpartaDOS rejects, and stops with `ERROR -` and no number.
 
-GitHub Actions runs the build and tests on every push and keeps `build/` as a downloadable artifact.
+**Versions and releases.** The version is the one in the title bar (`TTL2` in `EDOSVARS.M65`). To
+release: change it, add `release-notes/vX.Y.md`, commit and push, then run the Release workflow
+(Actions > Release > Run workflow, on main) with version `X.Y`, or push a tag `vX.Y`. GitHub Actions
+builds and tests, checks that EDOS shows that version, tags the commit and publishes `EDOS.COM`,
+`EDOS.FNT`, `EDOS.ATR` and `EDOSTEST.ATR` as a GitHub Release with the notes.
 
-Disk images (built by `tools/build.sh`):
-- `build/EDOS.ATR` - the EDOS disk: SpartaDOS 3.2, EDOS.COM and the current
-  sources in MAC/65 tokenized form (`LOAD #D:EDOS.M65` in MAC/65), plus the
-  utilities, all taken from `tools/disk/BASE.ATR`.
-- `build/EDOSTEST.ATR` - bootable SpartaDOS test disk with EDOS.COM, the
-  test files used by the automated tests, RUNME.COM and `TESTPLAN.TXT`
-  (33 manual checks for the real Atari; `TYPE TESTPLAN.TXT`).
+## Source
 
-EDOS loads its character set from `EDOS.FNT` on the current drive (`D:`)
-when it starts and puts it at the highest 1K boundary below the screen
-($9800 on a 40K+ machine). Without the file, or without room above $8000,
-it keeps the Atari ROM font. `tools/font.py` makes EDOS.FNT from
-`EREZ.FNT`, shifted one pixel right so inverse letters show as blocks; to
-use another font, put any 1,024-byte Atari character set on the disk as
-EDOS.FNT.
+```
+EDOS.M65       the main file, the one MAC/65 loads: options, origin and the includes
+EDOSMAIN.M65   start-up, the menu and every command
+EDOSVARS.M65   variables, the menu and the messages
+UTILS.M65      general routines, usable in other programs (list below)
+MACROS.M65     MAC/65 macros (list below)
+SYSTEM.M65     OS and hardware addresses, zero page
+CIOSTAT.M65    the texts for CIO error codes
+tools/         cross assembler, tokenizer, ATR tools, font, screenshot, tests
+release-notes/ what each release changed
+```
 
-`tools/screenshot.py EDOS.png` regenerates the menu picture above by
-running EDOS.COM on the emulated 6502 (needs Pillow).
+`tools/mac65tok.py` converts between these text sources and MAC/65's tokenised SAVE format, checked
+byte for byte against files MAC/65 saved. `tools/sparta.py` lists, extracts, adds, deletes and checks
+files on SpartaDOS disk images; `tools/atr.py` does the same for DOS 2 and MyDOS images.
+`tools/screenshot.py EDOS.png` draws the menu picture above by running `EDOS.COM` on the emulated 6502
+(it needs Pillow).
 
-Other tools: `tools/mac65tok.py` converts between these text sources and
-MAC/65's tokenized SAVE format (checked byte for byte against files saved
-by MAC/65); `tools/sparta.py` lists, extracts, adds, deletes and checks
-(fsck) files on SpartaDOS images; `tools/atr.py` does the same for DOS
-2/MyDOS images; `tools/mac65.py --help` for assembler options.
+**UTILS.M65**
+
+| Routine | What it does |
+|---|---|
+| `DSPBIN`, `DRWHDR` | show up to 128 bytes, 8 a row, with their addresses; draw the header line |
+| `DRAW` | draws a horizontal line in a special character |
+| `RSTSCTCNT`, `INCSCTCNT` | reset and count up a four-digit decimal sector counter |
+| `DTXMEM`, `BNK2DEC` | count the extended memory banks; show the count as text |
+| `DTCDNS` | finds the density of the disk in a drive |
+| `RESETFIO`, `READFIO` | forget the fast SIO code; read it from the drive into memory |
+| `DOSIO`, `CALLSIO` | an SIO operation; the SIOV call, with the drive's fast SIO code when loaded |
+| `WRTSCT` | writes one sector |
+| `FXSCSZ` | sets the SIO sector size from the density and the sector number |
+| `DOCIO`, `CLOSECHANNEL` | a CIO operation; close an IOCB |
+| `DISKERR`, `GETERRTXT` | handle an error and show its message; the text for a CIO error code |
+| `INLINE` | points `RETADR` at the parameters after a `JSR` and returns past them |
+| `GETCHR`, `GETTEXT`, `GETINP1` | read a key; read a line of text; read a line into `INP1` |
+| `GETADDR`, `INP2ADDR`, `A2HEX` | read an address; one to four hex digits in `INP1` to an address; one hex digit |
+| `PRNTLN`, `PRNTDL`, `PRNTNL` | print text up to and with EOL; up to DEL; go down one line |
+| `BIN2DEC` | `VALUE` to decimal text at A/Y: $FF → "255" |
+| `DEC2HEX` | four decimal digits to a number: "1234" → $04D2 |
+| `HEXOUT` | one byte to two hex digits at `FILE`,Y: $A0 → "A0" |
+| `COPY`, `FILL` | copy text up to EOL; fill memory (used by `@CPYMEM` and `@FILLMEM`) |
+| `HIDECURSOR`, `SHOWCURSOR`, `SETCOLRED` | hide and show the cursor; turn the border red |
+| `LDFONT` | loads `EDOS.FNT` below the screen, or keeps the ROM font |
+
+**MACROS.M65**
+
+| Macro | What it does |
+|---|---|
+| `@CPYMEM` | copies one buffer to another (with two parameters: `JSR COPY`) |
+| `@FILLMEM` | fills memory with a character (`JSR FILL`) |
+| `@PRNTLN` | calls `PRNTLN` or `PRNTDL` |
+| `@DRAW`, `@DOSIO`, `@DOCIO` | call `DRAW`, `DOSIO` and `DOCIO` with their parameters |
+| `@CLOSEIO` | closes an IOCB |
+| `@INPRM` | sets where text input goes |
+| `@SETSCT` | sets the sector number for an operation |
+| `@POINT2TXT` | points `INDPTR` at a buffer |
+| `@CHECURPOS`, `@RSTCURPOS` | keep the cursor position on the stack; put it back |
+| `@HIDCUR`, `@SHWCUR` | hide and show the cursor |
+| `@HIDCHR`, `@SHWCHR` | carry out control characters, or show them as characters |
+| `@COLGRN`, `@COLRED`, `@COLDEF` | border green, red, or black |
+| `@MKCAPS` | turns caps lock on |
+| `@MKASCII`, `@RMASCII` | a digit to ASCII and back |
+| `@SIOSNDOFF`, `@SIOSNDON` | turn the SIO beeps off and on |
+
+## Tests
+
+The tests run the real `EDOS.COM` on an emulated 6502 ([py65](https://github.com/mnaberez/py65)) with
+256K of banked memory, a simulated DOS (files on D1: and D2:), a simulated disk drive, and scripted
+keys and lines:
+
+```
+tools/build.sh                     # runs them all
+python3 tools/test_commands.py     # every menu command, the menu keys, start-up, RESET and the
+                                   # exits (Quit, Cartridge, Go To): files written, memory loaded,
+                                   # sectors copied, screen text and where control goes
+python3 tools/test_edos.py         # routines: conversions, error texts, the disk copy loop in
+                                   # every density, fast SIO loading, the memory layout
+python3 tools/test_mac65tok.py     # the tokenizer, and the sources as MAC/65 needs them
+python3 tools/test_sparta.py       # the disk images: files read back, fsck, the sources on the
+                                   # disk assemble to EDOS.COM
+python3 tools/difftest.py OLD NEW  # 29 command runs on two builds: any change in the screens,
+                                   # CIO and SIO calls, files or memory
+```
+
+`difftest.py` is how every size reduction was checked to change nothing. GitHub Actions runs the build
+and the tests on every push and keeps `build/` as a download. On a real Atari, boot `EDOSTEST.ATR` and
+follow `TESTPLAN.TXT` (`TYPE TESTPLAN.TXT`).
+
+## The story behind it
+
+I got my first Atari, a 600XL, in 1984, after afternoons at a friend's place programming his Atari
+400. I taught myself assembly and wrote utilities and games, and spent hours in school lessons writing
+assembly in my coding notebook.
+
+A few years ago I came across that notebook again and found I had been writing my own Disk Utility
+Package. I bought back an Atari setup, now a 1200XL with two 1050 drives, got a MAC/65 cartridge and
+picked up my teenage project where I'd left it. EDOS is that project finished, with the functions I
+missed in the others, and I use it on my Atari every day.
 
 ## Licence
 
@@ -298,5 +230,9 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See [COPYING](COPYING).
 
 Copyright (C) 2024-2026 AERA | Erez Yaary.
 
-The disk images also carry SpartaDOS and the other DOS files they boot
-with; those stay under their own authors' terms.
+The disk images also carry SpartaDOS and the other DOS files they boot with; those stay under their
+own authors' terms.
+
+---
+
+Part of **AERA** for Atari: [ECal](https://github.com/whomper/ECal) · [EContact](https://github.com/whomper/EContact) · [EMail](https://github.com/whomper/EMail) · [EFTP](https://github.com/whomper/EFTP) · [EHypView](https://github.com/whomper/EHypView) · [ClaudeST](https://github.com/whomper/ClaudeST) · 8-bit: [EDOS](https://github.com/whomper/EDOS) · [EFTP_XL](https://github.com/whomper/EFTP_XL)
