@@ -4,7 +4,8 @@
 BASE.ATR holds the SpartaDOS boot code, SpartaDOS 3.2 (X32G.DOS) and the
 utilities that go on the EDOS disk; nothing EDOS-specific.
 
-  build/EDOS.ATR      the EDOS disk: BASE.ATR's files, build/EDOS.COM and
+  build/EDOS.FNT      EDOS's character set (tools/font.py), loaded at start
+  build/EDOS.ATR      the EDOS disk: BASE.ATR's files, build/EDOS.COM, EDOS.FNT and
                       the current sources in MAC/65 tokenized form
                       (LOAD #D:EDOS.M65)
   build/EDOSTEST.ATR  bootable test disk: SpartaDOS, EDOS.COM, the test
@@ -20,6 +21,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import sparta  # noqa: E402
 import mac65tok  # noqa: E402
+from font import edos_font  # noqa: E402
 from test_commands import PROG, NORUN, TEXT, BIG, binfile  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -142,6 +144,14 @@ Expect: what you should see.
   comes back.
 31 Esc at any prompt: back to
   the menu.
+
+-- FONT --
+32 EDOS shows the EDOS.FNT font
+  (inverse hotkeys as blocks).
+  Q: DOS uses the ROM font again.
+33 RENAME EDOS.FNT X.FNT, run
+  EDOS: ROM font, no error.
+  RENAME X.FNT EDOS.FNT after.
 """
     return text.replace('\n', '\x9b').encode('latin1')
 
@@ -180,7 +190,11 @@ def main():
 
     orig = {n: (d, st) for n, d, st in originals}
     files = [(DOS,) + orig[DOS]]
+    fnt = edos_font()
+    with open(os.path.join(BUILD, 'EDOS.FNT'), 'wb') as f:
+        f.write(fnt)
     files.append(('EDOS.COM', edos))
+    files.append(('EDOS.FNT', fnt))
     files += tokenized_sources()
     for name, data, stamp in originals:
         if name in (DOS, 'EDOS.COM') or name in SOURCES:
@@ -188,7 +202,7 @@ def main():
         files.append((name, data, stamp))
     make(os.path.join(BUILD, 'EDOS.ATR'), 'EDOS', files, DOS)
 
-    test = [(DOS,) + orig[DOS], ('EDOS.COM', edos),
+    test = [(DOS,) + orig[DOS], ('EDOS.COM', edos), ('EDOS.FNT', fnt),
             ('PROG.COM', PROG), ('PROG2.COM', PROG), ('NORUN.COM', NORUN),
             ('TEXT.TXT', TEXT), ('BIG.DAT', BIG), ('RUNME.COM', RUNME),
             ('TESTPLAN.TXT', b'')]
