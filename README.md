@@ -187,8 +187,6 @@ number
 - @COLDEF - Background screen color to black
 - @MKBOLD - Makes a char bold
 - @MKASCII - Makes a digit an ASCII one
-- @GETRETADR - Get a stored return address to jump from the stack
-- @SETRETADR - Caches address to return on the stack
 - @SIOSNDOFF - Turns off SIO sounds
 - @SIOSNDON - Turns on SIO sounds
 - @HIDECHR - Do not display special characters
