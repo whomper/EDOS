@@ -1,5 +1,7 @@
 name: build
 
+# Builds and tests on every push. It publishes nothing: only the release
+# workflow's vX.Y releases leave the build machine (see CLAUDE.md).
 on:
   push:
   pull_request:
@@ -14,15 +16,12 @@ jobs:
           python-version: '3.12'
       - run: pip install py65
       - run: tools/build.sh
-      - uses: actions/upload-artifact@v4
-        with:
-          name: edos-build
-          path: build/
 
   # On main: while EDOS.COM is the latest release's, that release gets this
   # build's disks, so its EDOS.ATR always carries the current sources. A
   # changed program waits for the next release, so a release's disks never
-  # hold a program other than the one its version names.
+  # hold a program other than the one its version names. It builds again
+  # rather than take the first job's files, so CI keeps no build artifacts.
   refresh-release:
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -31,14 +30,15 @@ jobs:
       contents: write
     concurrency: refresh-release
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          name: edos-build
-          path: build
+          python-version: '3.12'
+      - run: pip install py65
+      - run: tools/build.sh
       - name: Replace the latest release's EDOS.ATR and EDOSTEST.ATR
         env:
           GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
         run: |
           tag="$(gh release view --json tagName --jq .tagName)"
           gh release download "$tag" --pattern EDOS.COM --dir released

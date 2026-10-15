@@ -116,10 +116,11 @@ POINT that SpartaDOS rejects, and stops with `ERROR -` and no number.
 release: change it, add `release-notes/vX.Y.md`, commit and push, then run the Release workflow
 (Actions > Release > Run workflow, on main) with version `X.Y`, or push a tag `vX.Y`. GitHub Actions
 builds and tests, checks that EDOS shows that version, tags the commit and publishes `EDOS.COM`,
-`EDOS.FNT`, `EDOS.ATR` and `EDOSTEST.ATR` as a GitHub Release with the notes. From then on, each
-push to main that leaves `EDOS.COM` as released replaces that release's `EDOS.ATR` and `EDOSTEST.ATR`
-with the new build, so the disk always carries the current sources; a changed program waits for the
-next release.
+`EDOS.FNT`, `EDOS.ATR` and `EDOSTEST.ATR` as a GitHub Release with the notes. From then on, each push
+to main that leaves `EDOS.COM` as released replaces that release's `EDOS.ATR` and `EDOSTEST.ATR` with
+the new build, so the disk always carries the current sources; a changed program waits for the next
+release. To try a fix on a real Atari, release it; if a release doesn't work, revert on main, release
+the next number and say in the bad release's notes that it is withdrawn.
 
 ## Source
 
@@ -208,7 +209,7 @@ python3 tools/difftest.py OLD NEW  # 29 command runs on two builds: any change i
 ```
 
 `difftest.py` is how every size reduction was checked to change nothing. GitHub Actions runs the build
-and the tests on every push and keeps `build/` as a download. On a real Atari, boot `EDOSTEST.ATR` and
+and the tests on every push; only releases are published. On a real Atari, boot `EDOSTEST.ATR` and
 follow `TESTPLAN.TXT` (`TYPE TESTPLAN.TXT`).
 
 ## The story behind it
