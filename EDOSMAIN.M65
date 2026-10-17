@@ -1,51 +1,82 @@
-;EDOSMAIN.M65, V. 3.2 | E-DOS START, MENU AND COMMANDS
-;Copyright (C) 2026 AERA | Erez Yaary
-;INCLUDED BY EDOS.M65 AFTER UTILS.M65
-;START
+;
+; EDOSMAIN.M65 - EDOS 3.2
+; Start-up, the menu and Load Binary
+; Copyright (C) 2026 AERA | Erez Yaary
+;
+; Included by EDOS.M65 after UTILS.M65
+; Also the file spec helpers.
+;
+; PRE_START - the run address: hook
+; RESET. On the first run DOSINI is
+; DOS's: keep it in DOSIN. Then put
+; DOSIN in START's JSR and point
+; DOSINI at START, so RESET runs
+; DOS's init, then EDOS
+; Exit: falls into START
+;
 PRE_START
-; HAVE WE SET DOSINI?
-         LDA DOSINI+1
+         LDA DOSINI+1       ; START's already?
          CMP # >START
-         BEQ STARTING
-; CACHE DOSINI ONLY ON 1ST RUN
-         LDA DOSINI
-         STA DOSIN
+         BEQ STARTING       ; yes: keep DOSIN
+         LDA DOSINI         ; first run: keep
+         STA DOSIN          ; DOS's init
          LDA DOSINI+1
          STA DOSIN+1
 STARTING
-         LDA DOSIN
-         STA START+1
+         LDA DOSIN          ; JSR START becomes
+         STA START+1        ; JSR DOS's init
          LDA DOSIN+1
          STA START+2
-         LDA # <START
+         LDA # <START       ; RESET: to START
          STA DOSINI
          LDA # >START
          STA DOSINI+1
 ;
+; START - DOSINI points here, so RESET
+; comes here; PRE_START falls in. Its
+; JSR runs DOS's init first: as
+; assembled it calls START itself,
+; PRE_START puts DOSIN in it. Keeps
+; SP for GETCOM and the main bank's
+; PORTB; sets the screen, drive 1
+; and the font
+; Exit: falls into GOMENU; it never
+; returns to the OS
+;
 START
-         JSR START          ;TROJAN
-         TSX                ;CACHE SP FOR GETCOM
+         JSR START          ; DOS's init (patched)
+         TSX                ; SP for GETCOM
          STX STKPTR
-         LDA #$40           ;UPRCS ONLY
+         LDA #$40           ; capitals
          STA SHFLOK
-         LDA #$02           ;SET SCR MARGINS
+         LDA #$02           ; margins 2..39
          STA LMARGN
          LDA #$27
          STA RMARGN
          LDA PORTB
-         STA BANKS          ;CACHE 1ST PLC
+         STA BANKS          ; the main bank's PORTB
          LDA #1
-         STA DSKNUM         ;INIT DEFAULT DRIVE
-; CUSTOM FONT: LOAD ONCE, SELECT ON EVERY START/RESET
+         STA DSKNUM         ; drive 1 by default
+; The font: load D:EDOS.FNT once;
+; select it on every start, as RESET
+; puts the ROM's back
          LDA FONTPG
-         BNE START_1
+         BNE START_1        ; loaded already
          JSR LDFONT
 START_1
          LDA FONTPG
-         BEQ START_2
+         BEQ START_2        ; none: ROM font
          STA CHBAS
 START_2
          @HIDCHR
+;
+; GOMENU - clear the screen, draw the
+; title, the status bar and the menu.
+; The drives and memory are checked
+; only the first time (REFDRV is 1 in
+; the file). RETURN at the prompt
+; comes here too (CMDKEY)
+; Exit: falls into NLMENU
 ;
 GOMENU
          @HIDCHR
@@ -61,20 +92,37 @@ GOMENU_1
          LDA #$00
          STA REFDRV
          @PRNTLN STAT
-         LDA #$03
+         LDA #$03           ; the menu: margin 3
          STA LMARGN
          @DRAW CHL,$00,$24
          @PRNTLN MNU1,DEL
          @PRNTLN MNU2,DEL
          LDA #$02
          STA LMARGN
-;NLMENU: NEW LINE, BACK TO THE MENU
+;
+; NLMENU - a new line, then GETCOM
+; Exit: falls into GETCOM
+;
 NLMENU
          JSR PRNTNL
+;
+; GETCOM - the command prompt. Drops
+; what an abort or error left on the
+; stack, maps the main bank, black
+; background, forgets the fast SIO
+; code, closes the IOCBs, opens K:
+; and reads a key. 1-8: COMDIG, that
+; drive's directory; a key in CMDKEY:
+; its title bar (the first NTITLE
+; only), then jumps to its command,
+; from the tables CMDLO and CMDHI
+; Exit: to the command; ESC: NLMENU;
+; any other key: GETCOM again
+;
 GETCOM
-         LDX STKPTR         ;DROP STACK LEFT BY
-         TXS                ;ABORTS/ERRORS
-         LDA BANKS          ;MAIN BANK FIRST
+         LDX STKPTR         ; drop the stack left
+         TXS                ; by aborts and errors
+         LDA BANKS          ; the main bank first
          STA PORTB
          @COLDEF
          JSR RESETFIO
@@ -84,7 +132,7 @@ GETCOM
          @SIOSNDON
          @PRNTLN ANYK,DEL
          JSR GETCHR
-;DIGITS?
+; A digit 1-8?
          CMP #'1
          BCC FINDCM
          CMP #'9
@@ -98,11 +146,11 @@ FINDCM_1
          INX
          CPX #NUMCMD
          BNE FINDCM_1
-         BEQ GETCOM         ;NOT FOUND
+         BEQ GETCOM         ; not a command
 FOUND
          CPX #NTITLE
-         BCS FOUND_1
-         JSR TITLE          ;KEEPS X
+         BCS FOUND_1        ; no title bar
+         JSR TITLE          ; keeps X
 FOUND_1
          LDA CMDLO,X
          STA INDPTR
@@ -110,141 +158,168 @@ FOUND_1
          STA INDPTR+1
          JMP (INDPTR)
 ;
-;GET A KEY: Y RETURNS (Z=1), ANYTHING ELSE GOES
-;BACK TO THE MENU (ESC TOO, IN GETCHR)
+; YESORMENU - read a key: Y returns,
+; any other goes back to GETCOM (ESC
+; to NLMENU, in GETCHR)
+; Exit: A="Y", Z=1; X and Y changed
+;
 YESORMENU
          JSR GETCHR
          CMP #'Y
          BNE GETCOM
          RTS
 ;
+; COMLOA - L, Load Binary: ask for
+; the file, and whether to run it
+; (first: EDOS may be gone after the
+; load), open it, check its $FFFF,
+; set the page-6 loader up and jump
+; to it
+; Exit: to LDR; not binary: NLMENU;
+; a CIO error: DISKERR
+;
 COMLOA
          JSR GETFILESPEC
-; ASK FIRST: EDOS MAY BE GONE AFTER THE LOAD
          @PRNTLN RUNP,DEL
          JSR GETCHR
-         PHA
+         PHA                ; the answer
          JSR PRNTNL
-; THE FILE GOES ON IOCB #1, AS IN DOS 2
+; The file goes on IOCB #1, as in
+; DOS 2; K: is on IOCB #1 too
          LDX #KBDID
          JSR CLOSECHANNEL
          @DOCIO LDRID,ICM.OP,FILE,ICAX.RD
-; READ FILE HEADER
-         LDA #$02
+         LDA #$02           ; its first 2 bytes
          STA D0
          @DOCIO LDRID,ICM.GB,BUF,ICAX.RD,D0
-; BINARY?
          LDA BUF
          AND BUF+1
          CMP #$FF
-         BEQ COMLOA_1
+         BEQ COMLOA_1       ; $FFFF: binary
          @PRNTLN NOTB
          JMP NLMENU
-; THE PAGE-6 LOADER READS THE REST
+; The page-6 loader reads the rest
 COMLOA_1
          LDY #$00
 COMLOA_2
-         LDA LDRSRC,Y
+         LDA LDRSRC,Y       ; a page to LDR
          STA LDR,Y
          INY
          BNE COMLOA_2
          PLA
          CMP #'Y
-         BNE COMLOA_3
+         BNE COMLOA_3       ; Y=0: do not run
          LDY #$80
 COMLOA_3
-         STY LR.RUN         ;$80: RUN IT
-         LDA DOSIN          ;DOS'S DOSINI, FOR RESET
+         STY LR.RUN         ; $80: run it
+         LDA DOSIN          ; DOS's DOSINI, for RESET
          STA LR.DOSI
          LDA DOSIN+1
          STA LR.DOSI+1
-         LDA MEMTOP+1       ;PAGES FROM MEMTOP UP
+         LDA MEMTOP+1       ; the pages from MEMTOP up
          STA LR.TAB+6
-         LDA FONTPG         ;FONT PAGES, IF LOADED
-         BEQ COMLOA_4
+         LDA FONTPG         ; the font's 4 pages, if
+         BEQ COMLOA_4       ; it was loaded
          STA LR.TAB+8
          CLC
          ADC #$03
          STA LR.TAB+9
 COMLOA_4
-         LDA #$00
+         LDA #$00           ; no run address yet
          STA RUNAD
          STA RUNAD+1
          @CLOSEIO DSKID2
          JMP LDR
 ;
-;BACK FROM THE LOADER, EDOS UNTOUCHED
-;Y=1 LOADED, 0 OVER THE LOADER, ELSE CIO ERROR
+; LDRBAK - back from the loader, with
+; EDOS untouched. Y: 1 loaded, 0 it
+; loads over page 6, else the CIO
+; error. Runs it if asked and it has
+; a run address
+; Exit: NLMENU or DISKERR; a program
+; that returns: PRE_START
+;
 LDRBAK
          DEY
-         BEQ LDRBAK_3
+         BEQ LDRBAK_3       ; loaded
          INY
-         BEQ LDRBAK_1
+         BEQ LDRBAK_1       ; over page 6
          JMP DISKERR
 LDRBAK_1
          @PRNTLN LDOV
 LDRBAK_2
          JMP NLMENU
-;RUN IT IF ASKED AND IT HAS A RUN ADDRESS
 LDRBAK_3
          BIT LR.RUN
-         BPL LDRBAK_2
+         BPL LDRBAK_2       ; not asked to run
          LDA RUNAD
          ORA RUNAD+1
-         BEQ LDRBAK_2
-         JSR PRPEXT
+         BEQ LDRBAK_2       ; no run address
+         JSR PRPEXT         ; ROM font, DOS's DOSINI
          JSR LDRBAK_4
-         JMP PRE_START      ;IT RETURNED: EDOS AGAIN
+         JMP PRE_START      ; it returned: EDOS again
 LDRBAK_4
          JMP (RUNAD)
 ;
-;PAGE-6 LOADER: COMLOA COPIES IT TO LDR AND JUMPS
-;THERE WITH LDRID OPEN PAST THE FIRST $FFFF.
-;IT RUNS AT LDR, SO IT REACHES ITS OWN LABELS
-;ONLY THROUGH THE LR. EQUATES BELOW.
+; LDRSRC - the page-6 loader. COMLOA
+; copies it to LDR ($0600) and jumps
+; there, IOCB #1 open past the first
+; $FFFF. Run from there, it can load
+; a program over EDOS; it reaches its
+; own labels only through the LR.
+; equates below. A segment: its start
+; (after any $FFFF), its end, the
+; LR.TAB check, the data, then INITAD
+; if the segment set it
+; Exit: LDRBAK while EDOS is still
+; there; once it is gone, RUNAD (if
+; asked) and then DOSVEC
+;
 LDRSRC
 LD.SG
-         LDA #$00
+         LDA #$00           ; no INITAD yet
          STA INITAD
          STA INITAD+1
 LD.SG1
-         LDA # <LR.H        ;START (AGAIN AFTER $FFFF)
+         LDA # <LR.H        ; the start; again if $FFFF
          JSR LR.HDR
-         BMI LD.EN1
+         BMI LD.EN1         ; EOF or an error
          LDA LR.H
          AND LR.H+1
          CMP #$FF
          BEQ LD.SG1
-         LDA # <LR.E        ;END
+         LDA # <LR.E        ; the end
          JSR LR.HDR
 LD.EN1
          BMI LD.END
-; PAGES IT MUST NOT TOUCH (LR.TAB): THIS
-; ONE IS AN ERROR, THE OTHERS END EDOS
+; The pages it must not load over
+; (LR.TAB pairs, X=8 to 0): page 6 is
+; an error; the others end EDOS, so
+; RESET and the font go back to DOS's
          LDX #$08
 LD.CK1
-         LDA LR.TAB+1,X
+         LDA LR.TAB+1,X     ; the pair's last page
          CMP LR.H+1
-         BCC LD.CK2
+         BCC LD.CK2         ; below the start
          LDA LR.E+1
          CMP LR.TAB,X
-         BCC LD.CK2
+         BCC LD.CK2         ; above the end
          LDY #$00
          TXA
-         BEQ LD.ERR
+         BEQ LD.ERR         ; page 6: Y=0
          LDA #$80
          STA LR.GONE
-         LDA LR.DOSI        ;RESET AND FONT BACK TO DOS
+         LDA LR.DOSI
          STA DOSINI
          LDA LR.DOSI+1
          STA DOSINI+1
-         LDA #$E0
+         LDA #$E0           ; the ROM font
          STA CHBAS
 LD.CK2
          DEX
          DEX
          BPL LD.CK1
-; READ END-START+1 BYTES TO START
+; Read END-START+1 bytes to START
          LDX #LDRID
          LDA LR.H
          STA ICBAL,X
@@ -265,21 +340,22 @@ LD.LD1
          STY LR.ST
          BPL LD.IN
          CPY #ICSTAT.EOF
-         BNE LD.ERR
+         BNE LD.ERR         ; EOF ends the file
 LD.IN
          LDA INITAD
          ORA INITAD+1
          BEQ LD.IN1
-         JSR LR.JINI
+         JSR LR.JINI        ; run its INITAD
 LD.IN1
          LDY LR.ST
-         BMI LD.END
-         JMP LDR            ;NEXT SEGMENT: LD.SG
+         BMI LD.END         ; it was EOF
+         JMP LDR            ; the next segment: LD.SG
 LD.END
          CPY #ICSTAT.EOF
          BNE LD.ERR
          LDY #$01
-; Y=1 LOADED, 0 OVER THIS PAGE, ELSE CIO ERROR
+; Y: 1 loaded, 0 over this page, else
+; the CIO error
 LD.ERR
          STY LR.ST
          LDA #ICM.CL
@@ -287,12 +363,12 @@ LD.ERR
          LDY LR.ST
          BIT LR.GONE
          BMI LD.GN
-         JMP LDRBAK         ;EDOS IS STILL THERE
+         JMP LDRBAK         ; EDOS is still there
 LD.GN
          DEY
-         BNE LD.EXIT
+         BNE LD.EXIT        ; not loaded
          BIT LR.RUN
-         BPL LD.EXIT
+         BPL LD.EXIT        ; not asked to run
          LDA RUNAD
          ORA RUNAD+1
          BEQ LD.EXIT
@@ -300,7 +376,13 @@ LD.GN
 LD.EXIT
          JMP (DOSVEC)
 ;
-;READ 2 BYTES TO A IN THIS PAGE | Y=STATUS
+; LD.HDR - read 2 bytes from the file
+; to LDR+A, in this page. LD.GB: get
+; bytes, the IOCB as it is set.
+; LD.CIO: command A on IOCB #1
+; Exit: Y = the status, N=1 on an
+; error or EOF; A, X changed
+;
 LD.HDR
          LDX #LDRID
          STA ICBAL,X
@@ -317,21 +399,29 @@ LD.CIO
          STA ICCOM,X
          JMP CIOV
 ;
+; For JSR: JMP (INITAD), JMP (RUNAD)
+;
 LD.JINI
          JMP (INITAD)
 LD.JRUN
          JMP (RUNAD)
 ;
-LD.H     .BYTE 0,0,0,0      ;START, END
-;PAGE PAIRS: THIS ONE, ZERO PAGE, EDOS AND ITS
-;WORK AREA, MEMTOP UP AND FONT (COMLOA SETS)
+; The segment's start and end (LR.E)
+LD.H     .BYTE 0,0,0,0
+; Page pairs (first, last) it must not
+; load over: this page, zero page,
+; EDOS and its work area, MEMTOP up
+; (COMLOA sets the first) and the
+; font (COMLOA sets it; $FF,0 is none)
 LD.TAB   .BYTE >LDR,>LDR,0,0,>START_PROG,$3F
          .BYTE 0,$FF,$FF,0
-LD.ST    .BYTE 0
-LD.RUN   .BYTE 0
-LD.GONE  .BYTE 0
-LD.DOSI  .BYTE 0,0
+LD.ST    .BYTE 0            ; the last CIO status
+LD.RUN   .BYTE 0            ; $80: run it
+LD.GONE  .BYTE 0            ; $80: EDOS is gone
+LD.DOSI  .BYTE 0,0          ; DOS's DOSINI
 LDREND
+;
+; Where it runs, and its labels there
 ;
 LDR      = $0600
 LR.HDR   = LDR+LD.HDR-LDRSRC
@@ -347,10 +437,13 @@ LR.RUN   = LDR+LD.RUN-LDRSRC
 LR.GONE  = LDR+LD.GONE-LDRSRC
 LR.DOSI  = LDR+LD.DOSI-LDRSRC
          .IF LDREND-LDRSRC>$100
-         JMP LOADER_LONGER_THAN_A_PAGE ;UNDEFINED: STOPS ASSEMBLY
+         JMP LOADER_LONGER_THAN_A_PAGE ; undefined: stops assembly
          .ENDIF
 ;
-;FILLEN=FILEND-FILPOS+1 (16 BIT)
+; CALCLEN - set FILLEN to
+; FILEND-FILPOS+1 (16 bits)
+; Exit: FILLEN set; A changed
+;
 CALCLEN
          SEC
          LDA FILEND
@@ -365,44 +458,55 @@ CALCLEN
 CALCLEN_1
          RTS
 ;
+; GETFILESPEC - ask "File Spec: ",
+; then GETSPEC
+; Exit: falls into GETSPEC
+;
 GETFILESPEC
          @PRNTLN FSPC,DEL
-GETSPEC                     ;READ INP1, MAKE FILE SPEC
-         JSR GETINP1
-;FALL INTO PROCFILESPEC
 ;
-;IN-INP1,OUT-FILE
+; GETSPEC - read a line into INP1,
+; then PROCFILESPEC (falls in)
+; Exit: as PROCFILESPEC; BREAK:
+; GETCOM; an error: DISKERR
+;
+GETSPEC
+         JSR GETINP1
+;
+; PROCFILESPEC - the file spec FILE
+; from INP1 (ending in EOL). Empty:
+; DISK, "Dn:*.*" for the drive in use.
+; "Dn:..." as it is; "n:..." gets a D
+; in front; a name alone gets DISK's
+; "Dn:". A device with no name gets
+; the name ARGS, "*.*"
+; Exit: FILE set; A, X, Y changed
+;
 PROCFILESPEC
-; EMPTY INP? USE DEF
          LDA INP1
-         CMP #EOL           ;EMPTY?
-         BEQ DEFDSKID       ;USE DEF
-; 3RD CHAR ':'? FND ARGS
+         CMP #EOL
+         BEQ DEFDSKID       ; empty: DISK
          LDA INP1+2
          CMP #':
-         BEQ CMPLTSTRCT     ;YES
-; 2ND CHR :?->NO D, INSRT
+         BEQ CMPLTSTRCT     ; "Dn:"
          LDA INP1+1
          CMP #':
-         BEQ CMPLTSTRCT     ;YES
-;
-; INP IS JST ARGS? D#+INP ARGS
-         @CPYMEM DISK,FILE  ;DEF D#
-         @CPYMEM INP1,FILE+3 ;ADD
+         BEQ CMPLTSTRCT     ; "n:"
+; A name alone: DISK's "Dn:" + INP1
+         @CPYMEM DISK,FILE
+         @CPYMEM INP1,FILE+3
          RTS
-;INP GOOD, USE IT
 CMPLTSTRCT
-; 1ST CHR NO D? INSRT IT
          LDX #$00
          LDY #$00
          LDA INP1+1
          CMP #':
          BNE CONTPROC
-         LDY #$01
+         LDY #$01           ; "n:": a D in front
          LDA #'D
          STA FILE
 CONTPROC
-         LDA INP1,X
+         LDA INP1,X         ; copy it, with its EOL
          STA FILE,Y
          INX
          INY
@@ -410,8 +514,8 @@ CONTPROC
          BNE CONTPROC
 ;
          LDA FILE+3
-         CMP #EOL           ;HAVE ARGS?
-         BNE PREPRTN        ;YES, RETURN
+         CMP #EOL
+         BNE PREPRTN        ; it has a name
          @CPYMEM ARGS,FILE+3
          RTS
 DEFDSKID
@@ -419,1228 +523,3 @@ DEFDSKID
 PREPRTN
          RTS
 ;
-COMVIE
-         @FILLMEM BUF,$FF,$20
-         JSR GETFILESPEC
-; GET START
-         @PRNTLN FLST,DEL
-         JSR GETADDR
-         @DOCIO DSKID1,ICM.OP,FILE,ICAX.RD
-; READ FILE TILL POS
-         LDA FILPOS+1
-         BEQ COMVIE_1       ;NO HI BYTE
-         LDA #$00
-         STA D0
-         LDA #$01
-         STA D1
-         LDX FILPOS+1
-COMVIE_0
-         @DOCIO DSKID1,ICM.GB,BUF,ICAX.RD,D0,D1
-         CPY #ICSTAT.EOF
-         BEQ COMVIE_3
-         DEX
-         BNE COMVIE_0
-COMVIE_1
-         LDA FILPOS
-         STA D0
-         BEQ COMVIE_2       ;NO LO BYTE
-         @DOCIO DSKID1,ICM.GB,BUF,ICAX.RD,D0
-         CPY #ICSTAT.EOF
-         BEQ COMVIE_3
-;READ AND DSP
-COMVIE_2
-         JSR PRNTNL
-         LDA #$80
-         STA D0
-         @DOCIO DSKID1,ICM.GB,BUF,ICAX.RD,D0
-         LDA #$00
-         STA ABORT          ;CLR FLG
-         LDX #DSKID1
-         LDA ICBLL,X        ;BYTES READ?
-         BEQ COMVIE_3       ;NONE LEFT
-         STA BYTRD
-         JSR DSPBIN
-         JSR PRNTNL
-         LDA ABORT
-         BNE COMVIE_3
-; VIEW MORE?
-         @PRNTLN VIMR,DEL
-         JSR YESORMENU
-         BEQ COMVIE_2       ;Y
-COMVIE_3
-         @PRNTLN REOF
-         JMP GETCOM
-;
-COMANA
-         JSR DTCDNS
-         STA DENSITY
-         @PRNTLN SCNM,DEL
-         @INPRM SCTR,5      ;4 DGT+EOL
-         JSR GETTEXT
-         @CPYMEM SCTR,BUF+1
-         DEY
-         STY BUF
-         @INPRM BUF
-         JSR DEC2HEX
-         JSR PRNTNL
-; NOT @SETSCT: VALUE IS ZP (<256)
-         LDA VALUE
-         STA DAUX1
-         LDA VALUE+1
-         STA DAUX2
-         @FILLMEM BUF,$FF,$00
-COMANA_0
-         @DOSIO SIO.RD,SIOST.RD,BUF,$07,$00,$00
-;
-         LDA DAUX1
-         STA VALUE
-         LDA DAUX2
-         STA VALUE+1
-         LDA # <SCTR
-         LDY # >SCTR
-         JSR BIN2DEC
-         LDA #$00
-         STA D0
-         @FILLMEM SECT+$08,$04,$20
-         @CPYMEM SCTR+1,SECT+$08,1,D0,SCTR
-         @PRNTLN SECT
-         LDA #$00
-         STA FILPOS
-         STA FILPOS+1
-         LDA #$80
-         STA BYTRD
-         JSR DSPBIN
-         JSR PRNTNL
-;SHOW MORE/LESS?
-COMANA_1
-         @PRNTLN VINP,DEL
-         JSR GETCHR
-         CMP #'+
-         BEQ COMANA_2
-         CMP #'-
-         BEQ COMANA_3
-         JMP GETCOM
-COMANA_2
-         INC DAUX1
-         BNE COMANA_5
-         INC DAUX2
-         JMP COMANA_5
-COMANA_3
-         LDA DAUX1
-         BNE COMANA_4
-         LDA DAUX2
-         BEQ COMANA_1
-         DEC DAUX2
-COMANA_4
-         DEC DAUX1
-COMANA_5
-         JSR PRNTNL
-         JSR PRNTNL
-         JMP COMANA_0
-;
-COMCMP
-         LDA #$00
-         STA ABORT
-         LDA #$FF
-         STA BYTRD
-;GET 1ST
-         @PRNTLN BCMF,DEL
-         JSR GETSPEC
-         @CPYMEM FILE,BUF
-;GET 2ND
-         @PRNTLN BCMS,DEL
-         JSR GETSPEC
-;OPEN FILES
-         @DOCIO DSKID1,ICM.OP,BUF,ICAX.RD
-         @DOCIO DSKID2,ICM.OP,FILE,ICAX.RD
-;LOOP & CMPR BLOCKS OF $FF
-COMCMP_1
-         LDA #$00
-         STA D1
-         LDA #$FF
-         STA D0
-         @DOCIO DSKID1,ICM.GB,M4000,ICAX.RD,D0,D1
-         LDX #DSKID1
-         JSR CHKEOF
-         @DOCIO DSKID2,ICM.GB,M5000,ICAX.RD,D0,D1
-         LDX #DSKID2
-         JSR CHKEOF
-;CMPR 2 BUFS
-         LDX #$00
-COMCMP_2
-         LDA M4000,X
-         CMP M5000,X
-         BNE COMCMP_3
-         INX
-         CPX BYTRD          ;ACTUAL READ
-         BNE COMCMP_2
-;ABORT?
-         LDA ABORT
-         BEQ COMCMP_1       ;READ NXT
-;SAME
-COMCMP_4
-         @PRNTLN BSAM
-         JMP GETCOM
-;DIFFERENT
-COMCMP_3
-         @PRNTLN BDIF
-         JMP GETCOM
-;
-CHKEOF
-         CPY #ICSTAT.EOF
-         BNE CHKEOF_1
-         LDA #$01
-         STA ABORT
-CHKEOF_1
-         LDA ICBLL,X
-         CMP BYTRD          ;MIN BYTES 2 CPR
-         BCS CHKEOF_2
-         STA BYTRD
-CHKEOF_2
-         RTS
-;
-COMMEM
-;"LOW: XXXX  HIGH: XXXX" IN FILE
-         @CPYMEM MEMS,FILE
-         LDY #$04
-         LDA MEMLO+1
-         JSR HEXOUT
-         LDA MEMLO
-         JSR HEXOUT
-         LDY #$0F
-         LDA MEMTOP+1
-         JSR HEXOUT
-         LDA MEMTOP
-         JSR HEXOUT
-;GET ADDRESS
-         @PRNTLN GOTA,DEL
-         JSR GETADDR
-;
-         @PRNTLN FILE
-         JSR PRNTNL
-;COPY MEMORY
-COMMEM_1
-         LDA #$80           ;FULL BLOCK: BYTE COMPARE LEAVES LESS IN BYTRD
-         STA BYTRD
-         LDY #$00
-         LDA FILPOS
-         STA INDPTR
-         LDA FILPOS+1
-         STA INDPTR+1
-COMMEM_2
-         LDA (INDPTR),Y
-         STA BUF,Y
-         INY
-         BPL COMMEM_2
-;
-         JSR DSPBIN
-;SHW MORE/LESS?
-         @PRNTLN VINP,DEL
-         JSR GETCHR
-         CMP #'+
-         BEQ COMMEM_6
-         CMP #'-
-         BEQ COMMEM_4
-         JMP GETCOM
-COMMEM_4
-         LDA FILPOS+1
-         BNE COMMEM_5
-         LDA #$00
-         STA FILPOS
-         BEQ COMMEM_6
-COMMEM_5
-         DEC FILPOS+1
-COMMEM_6
-         JSR PRNTNL
-         JSR PRNTNL
-         JMP COMMEM_1
-;
-COMNEW
-         JSR CHKANDUPDSTATBAR
-         @PRNTLN DRVN,DEL
-         JSR GETCHR         ;GET DRV #
-;DRV AVAIL?
-         STA D0             ;CACHE
-         SEC
-         SBC #$30           ;CNVRT TO INDEX
-         TAX
-         LDA #$00
-         SEC
-COMNEW_1
-         ROL A
-         DEX
-         CLC
-         BNE COMNEW_1
-         AND DRIVES
-         BEQ COMNEWERR
-         LDA D0
-         STA DISK+1         ;UPD CMD
-         @RMASCII
-         STA DSKNUM
-         JSR UPDSTATBAR
-         JMP GETCOM
-COMNEWERR
-         JMP NLMENU
-;
-PRPEXT
-         LDA #$E0           ;ROM FONT FOR DOS/PROGRAM
-         STA CHBAS
-         LDA DOSIN
-         STA DOSINI
-         LDA DOSIN+1
-         STA DOSINI+1
-         JMP CLOSEIO
-;
-COMQIT
-         JSR PRNTNL
-         JSR PRPEXT
-         JMP (DOSVEC)
-COMDIG
-         STA INP1
-         LDA #':
-         STA INP1+1
-         LDA #EOL
-         STA INP1+2
-         JSR PROCFILESPEC
-         JSR PRNTNL
-         JMP COMDIR_1
-;
-COMDIR
-         JSR GETFILESPEC
-COMDIR_1
-         @DOCIO DSKID1,ICM.OP,FILE,ICAX.DR
-         JSR READIR
-         JSR PRNTNL
-; DSP TOT FIL CNT
-         LDA COUNT
-         STA VALUE
-         LDA #$00
-         STA VALUE+1
-         LDA # <INP1
-         LDY # >INP1
-         JSR BIN2DEC
-         @CPYMEM INP1+1,NUMF+$11
-;
-         @PRNTLN NUMF
-         JMP NLMENU
-;
-COMCAR
-;
-         LDA TRAMSZ         ;HAVE A?
-         CMP #$01
-         BEQ CAR.A
-         JMP GETCOM         ;NO CARTRIDGE
-CAR.A
-         JSR PRPEXT
-         JMP ($BFFA)
-;
-COMCPY
-         LDA DSKNUM         ; DEF DSK
-         @MKASCII
-         STA TMPDSK
-;
-         JSR GETFILESPEC
-         LDA FILE+1         ;CACHE SRC DRV
-         STA NUM2CNV
-         @PRNTLN INST,DEL
-         JSR GETCHR
-         CMP #'Y
-         BNE COMCPY_0
-         LDA NUM2CNV        ;Y=SAME AS SOURCE
-         BNE COMCPY_1       ;ALWAYS
-COMCPY_0
-         CMP #'1
-         BCC COMCPY_4
-         CMP #'9
-         BCS COMCPY_4
-COMCPY_1
-         STA TMPDSK
-COMCPY_2
-         JSR PRNTNL
-         JSR PRNTNL
-         @DOCIO DSKID1,ICM.OP,FILE,ICAX.DR
-COMCPY_3
-         LDA #$12
-         STA D0
-         @DOCIO DSKID1,ICM.GB,FILE,ICAX.DR,D0
-         CPY #$80
-         BCS COMCPY_4
-         LDA #$00
-         STA D0
-         LDA #$08
-         STA D1
-         @CPYMEM FILE+$02,INP1,0,D0,D1
-         LDA #'.
-         STA INP1+$08
-         LDA #$09
-         STA D0
-         LDA #$03
-         STA D1
-         @CPYMEM FILE+$0A,INP1,0,D0,D1
-         LDA #EOL
-         STA INP1+$0C
-         JSR PROCFILESPEC
-         LDA NUM2CNV        ;RESTORE DRV
-         STA FILE+1
-;
-         JSR TRIMSP
-         JSR FILCPY
-         JMP COMCPY_3
-COMCPY_4
-         JMP NLMENU
-;
-;A - READ/WRITE
-FILCPY
-; NEED XTD MEM TO COPY
-         LDA NUMBKS
-         BNE FILCPY_0
-         JMP FILCPY_NM
-FILCPY_0
-         @COLGRN
-         LDA #$01
-         STA ACVMEM
-         TAX
-         LDA BANKS,X        ; 1ST BANK
-         STA PORTB
-;
-         LDA #'-
-         STA BUF
-         @CPYMEM FILE,BUF+1
-         LDA #DEL
-         STA BUF,Y
-         @PRNTLN BUF,DEL
-         @DOCIO DSKID2,ICM.OP,FILE,ICAX.RD
-FILCPY_1
-; READ 16K BLCKS
-; INTO XTD MEM
-         LDA #$00
-         STA D0
-         LDA #$40
-         STA D1
-;
-         @DOCIO DSKID2,ICM.GB,M4000,ICAX.RD,D0,D1
-; FULL BANK READ?
-         LDX #DSKID2
-         LDA ICBLL,X
-         BNE FILCPY_4
-         LDA ICBLH,X
-         CMP #$40
-         BNE FILCPY_4
-;SWTCH BNK IF WE HAVE ONE
-         INC ACVMEM
-         LDX ACVMEM
-         CPX #$11           ;BANKS TBL END
-         BCS FILCPY_2
-         CPX NUMBKS
-         BEQ FILCPY_3
-         BCC FILCPY_3
-FILCPY_2
-         JMP FILCPY_NM      ;TOO BIG
-FILCPY_3
-         LDA BANKS,X
-         STA PORTB
-         BNE FILCPY_1       ;ALWAYS
-FILCPY_4
-; CACHE # BYTES READ
-         LDA ICBLL,X
-         STA VALUE
-         LDA ICBLH,X
-         STA VALUE+1
-;
-         @CLOSEIO DSKID2
-         LDA BANKS
-         STA PORTB          ;MAIN FOR PROMPTS
-; SAME DRV? SWAP TO TARGET
-         LDA TMPDSK
-         CMP NUM2CNV
-         BNE FILCPY_4_5
-         @PRNTLN WFTR,DEL
-         JSR YESORMENU
-         JSR PRNTNL
-FILCPY_4_5
-; OPEN NEW FILE FOR SAVE
-         @COLRED
-         LDA ACVMEM
-         STA COUNT          ; # TTL BNKS
-         LDA TMPDSK
-         STA FILE+1         ;UPD DRV NUM
-;
-         @DOCIO DSKID2,ICM.OP,FILE,ICAX.WT
-         LDA #$01
-         STA ACVMEM
-FILCPY_5
-         LDX ACVMEM
-         LDA BANKS,X
-         STA PORTB
-; FULL BNK, CACHED LEN FOR THE LAST
-         LDA #$00
-         STA D0
-         LDA #$40
-         STA D1
-         CPX COUNT          ; LST BNK?
-         BNE FILCPY_7
-         LDA VALUE
-         STA D0
-         LDA VALUE+1
-         STA D1
-FILCPY_7
-         @DOCIO DSKID2,ICM.PB,M4000,ICAX.WT,D0,D1
-         LDA ACVMEM
-         CMP COUNT
-         BEQ FILCPY_8
-         INC ACVMEM
-         BNE FILCPY_5       ;ALWAYS
-FILCPY_8
-         @CLOSEIO DSKID2
-         LDA BANKS
-         STA PORTB          ; RESTORE
-         JSR PRNTNL
-; SAME DRV? SWAP BACK TO SOURCE
-         LDA TMPDSK
-         CMP NUM2CNV
-         BNE FILCPY_9
-         @PRNTLN INSS,DEL
-         JSR YESORMENU
-         JSR PRNTNL
-FILCPY_9
-         RTS
-;FILE TOO BIG FOR XTD MEM
-FILCPY_NM
-         LDA BANKS
-         STA PORTB
-         @PRNTLN NOMM
-         JMP GETCOM
-;
-TRIMSP
-         LDX #$00
-         LDY #$00
-TRIMSP_1
-         LDA FILE,X
-         CMP #$20
-         BEQ TRIMSP_2
-         STA INP1,Y
-         INY
-TRIMSP_2
-         INX
-         CMP #EOL
-         BNE TRIMSP_1
-         @CPYMEM INP1,FILE
-         RTS
-;
-COMDUP
-         @COLGRN
-         @PRNTLN INSS,DEL
-         JSR YESORMENU
-         @PRNTLN DLLN,DEL
-; DENSITY? ITS NAME INTO DUPS+$0B, # BANKS NEEDED IN A
-         JSR DTCDNS
-         STA DENSITY
-         ASL A
-         ASL A
-         ASL A              ;NAMES ARE 8 APART
-         TAY
-         LDX #$00
-COMDUP_1
-         LDA DSNG-8,Y
-         STA DUPS+$0B,X
-         INY
-         INX
-         CPX #$07
-         BNE COMDUP_1
-         LDX DENSITY
-         LDA DUPBNK-1,X
-;HAVE ENOUGH MEM?
-COMDUP_3
-         CMP NUMBKS
-         BEQ COMDUP_3_5     ;EXACT FIT OK
-         BCC COMDUP_3_5
-         JMP COMDUP_7       ;NOT ENOUGH MEMORY
-COMDUP_3_5
-         @PRNTLN DUPS,DEL
-         JSR RSTSCTCNT
-; READ
-         LDA DSKNUM
-         STA TMPDSK
-         LDA #$04
-         STA COLCRS
-         @PRNTLN MODR,DEL
-         LDA #SIO.RD
-         JSR DSKCPY
-; ASK
-         @COLRED
-         JSR PRNTNL
-         JSR PRNTNL
-         @PRNTLN INST,DEL
-         JSR GETCHR
-         CMP #'Y
-         BEQ COMDUP_5
-         CMP #'1
-         BCC COMDUP_6
-         CMP #'9
-         BCS COMDUP_6
-; UPD DSK #
-         STA DISK+1
-         @RMASCII
-         STA DSKNUM
-;SAME DNSTY?
-COMDUP_5
-         @HIDCUR
-         @PRNTLN DELL,DEL
-         JSR RESETFIO
-         JSR DTCDNS
-         CMP DENSITY
-         BEQ COMDUP_4
-; FORMAT IF NEEDED
-         LDA #$04
-         STA COLCRS
-         @PRNTLN MODF,DEL
-         JSR CLRDUPDSP
-         JSR DOINIT
-;WRITE
-COMDUP_4
-         JSR RSTSCTCNT
-         LDA #$04
-         STA COLCRS
-         @PRNTLN MODW,DEL
-         LDA #SIO.WT
-         JSR DSKCPY
-COMDUP_6
-; RSTR DSK #
-         LDA TMPDSK
-         STA DSKNUM
-         @MKASCII
-         STA DISK+1
-;
-         @SHWCUR
-         @COLDEF
-         JMP NLMENU
-COMDUP_7
-         @PRNTLN NOMM
-         JMP NLMENU
-;
-;A - READ/WRITE
-DSKCPY
-         STA D2             ;CACHE: SIO.RD OR SIO.WT
-;PREP XTD MEM
-         @HIDCUR
-         LDA #$01
-         STA ACVMEM
-         JSR BNK2DEC
-         LDX #$01
-         LDA BANKS,X        ;1ST BANK
-         STA PORTB
-; PREP DRV
-         JSR READFIO
-         LDA #$31
-         STA DDEVIC
-         LDA D2
-         STA DCOMND
-         LDA DSKNUM
-         STA DUNIT
-         LDA # <M4000
-         STA DBUFLO
-         LDA # >M4000
-         STA DBUFHI
-         LDA #$07
-         STA DTIMLO
-         @SETSCT $01,$00
-;READ OR WRITE?
-DSKCPY_2
-         LDA DCOMND
-         CMP #SIO.RD
-         BEQ DSKCPY_3
-         LDA #SIOST.WT
-         BNE DSKCPY_4       ;ALWAYS
-DSKCPY_3
-         LDA #SIOST.RD
-;OPERATION
-DSKCPY_4
-         STA DSTATS
-         JSR CALLSIO
-         JSR UPDDUPDSP
-         JSR INCSCTCNT
-; ADVANCE
-; DBL: 1 PAGE PER SCTR (INCL 1-3)
-; SO NO SCTR CROSSES $8000
-         LDA DENSITY
-         CMP #$03
-         BNE DSKCPY_SD
-         INC DBUFHI
-         LDA DBUFHI
-         BNE DSKCPY_CHK     ;ALWAYS
-DSKCPY_SD
-         CLC
-         LDA DBUFLO
-         ADC DBYTLO
-         STA DBUFLO
-         LDA DBUFHI
-         ADC DBYTHI
-         STA DBUFHI
-DSKCPY_CHK
-         CMP #$80
-         BNE DSKCPY_5
-; RST BUF AND INC BNK
-         LDA # >M4000
-         STA DBUFHI
-         INC ACVMEM         ;NXT BNK
-         LDA ACVMEM
-         JSR BNK2DEC
-         LDA ACVMEM
-         TAX
-         LDA BANKS,X
-         STA PORTB
-;NEXT SECTOR
-DSKCPY_5
-         INC DAUX1
-         BNE DSKCPY_6
-         INC DAUX2
-DSKCPY_6
-; DONE? STOP AT SECTOR 721 ($2D1), ENHANCED 1041 ($411)
-         LDX #$02
-         LDY #$D1
-         LDA DENSITY
-         CMP #$02
-         BNE DSKCPY_7
-         LDX #$04
-         LDY #$11
-DSKCPY_7
-         CPX DAUX2
-         BNE DSKCPY_9
-         CPY DAUX1
-         BNE DSKCPY_9
-DSKCPY_8
-         @SHWCUR
-         LDA BANKS
-         STA PORTB          ; RESTORE
-         RTS
-DSKCPY_9
-         JMP DSKCPY_2
-;
-CLRDUPDSP
-         LDA #$17
-         STA COLCRS
-         @PRNTLN DUPE,DEL
-         LDA #$1E
-         STA COLCRS
-         @PRNTLN DUPE,DEL
-         RTS
-;
-UPDDUPDSP
-         LDA #$17
-         STA COLCRS
-         @PRNTLN SCTR,DEL
-         LDA #$1E
-         STA COLCRS
-         @PRNTLN MEMD+1,DEL
-         RTS
-;
-;A 1-SNGL,2-ENHA,3-DBLE
-SETDRVSTAT
-         TAX
-         DEX
-         CPX #$03
-         BCS SETDRVSTAT_2   ;NOT 1-3
-         LDA PERCOFS,X
-         TAX
-         LDY #$00
-SETDRVSTAT_1
-         LDA SNGL,X         ;$12 BYTES FROM ITS BLOCK
-         STA BUF,Y
-         INX
-         INY
-         CPY #$12
-         BNE SETDRVSTAT_1
-         @DOSIO SIO.WP,SIOST.WT,BUF,$07,$0B,$00
-SETDRVSTAT_2
-         RTS
-;
-;A 2-ENH, BUF-RSLT
-FRMTDRV
-         CMP #$02
-         BNE FRMTDRV_1
-         @DOSIO SIO.FH,SIOST.RD,BUF,$E0,$80,$00
-         RTS
-FRMTDRV_1
-         @DOSIO SIO.FT,SIOST.RD,BUF,$E0,$80,$00
-         RTS
-;
-COMERA
-;
-         JSR GETFILESPEC
-         JSR AREYOUSURE     ;RETURNS ON Y
-         JSR PRNTNL
-         @DOCIO DSKID1,ICM.ER,FILE,0
-         JMP GETCOM
-;
-COMINI
-         @PRNTLN FMTD,DEL
-         JSR GETCHR
-         @RMASCII
-         STA DENSITY
-         JSR PRNTNL
-         JSR PRNTNL
-;
-         @COLRED
-         LDA DSKNUM
-         @MKASCII
-         STA FRMT+$0C
-         @PRNTLN FRMT,DEL
-         @PRNTLN ARYS,DEL
-         JSR YESORMENU
-         JSR DOINIT
-         JMP NLMENU
-;
-;1-SNG,2-ENH,3-DBL
-DOINIT
-         LDA DENSITY
-         CMP #$02
-         BEQ DOINIT_1
-; SNGL/DBLE
-         JSR SETDRVSTAT
-         @DOCIO DSKID1,ICM.FT,DISK,0
-         RTS
-DOINIT_1
-         LDA #$02           ;ENHA
-         JSR FRMTDRV
-;FALL INTO WRTVTOC
-;
-WRTVTOC
-; VTOC
-         @CPYMEM VTOC,BUF
-         @FILLMEM BUF+11,$58,$FF
-         LDA #$00
-         STA BUF+55
-         LDA #$7F
-         STA BUF+56
-         @FILLMEM BUF+$64,$1C,$00
-         LDA #$68
-         LDY #$01
-         JSR WRTSCT
-; VTOC II
-         @FILLMEM BUF,$80,$FF
-         LDA #$00
-         STA BUF+39
-         LDA #$7F
-         STA BUF+40
-         STA BUF+84
-         LDA #$2F
-         STA BUF+122
-         LDA #$01
-         STA BUF+123
-         LDA #$00
-         STA BUF+124
-         STA BUF+125
-         STA BUF+126
-         STA BUF+127
-;
-         LDA #$00
-         LDY #$04
-         JMP WRTSCT
-;
-COMPRC
-         JSR GETFILESPEC
-         @DOCIO DSKID1,ICM.PC,FILE,0
-         JMP GETCOM
-;
-COMUNP
-         JSR GETFILESPEC
-         @DOCIO DSKID1,ICM.UP,FILE,0
-         JMP GETCOM
-;
-COMREN
-; GET OLD FILE SPEC
-         @PRNTLN RENO,DEL
-         JSR GETSPEC
-         @CPYMEM FILE,BUF
-         DEY
-         LDA #',
-         STA BUF,Y
-         INY
-         STY D2
-; GET NEW FILE SPEC
-         @PRNTLN RENN,DEL
-         JSR GETINP1
-         @CPYMEM INP1,BUF,0,D2
-         JSR AREYOUSURE     ;RETURNS ON Y
-         JSR PRNTNL
-         @PRNTLN BUF
-; EXECUTE COMMAND
-         @DOCIO DSKID1,ICM.RN,BUF,0
-         JMP GETCOM
-;
-COMWRT
-         JSR AREYOUSURE     ;RETURNS ON Y
-         @CPYMEM EDOS,INP1
-         JSR PROCFILESPEC
-         LDA # <START_PROG
-         STA FILPOS
-         LDA # >START_PROG
-         STA FILPOS+1
-         LDA # <END_PROG
-         STA FILEND
-         LDA # >END_PROG
-         STA FILEND+1
-         DEC FILEND
-         LDA # <PRE_START
-         STA RUNADR
-         LDA # >PRE_START
-         STA RUNADR+1
-         JMP DOSAVE
-;
-COMSAV
-         JSR GETFILESPEC
-; GET START - BUF
-         @PRNTLN FLST,DEL
-         @INPRM BUF
-         JSR GETTEXT
-         STY SAVLEN         ;START LEN
-; GET END - INP1
-         @PRNTLN FLED,DEL
-         JSR GETINP1
-         STY SAVLEN+1       ;END LEN
-         JSR INP2ADDR
-         LDA FILPOS
-         STA FILEND
-         LDA FILPOS+1
-         STA FILEND+1
-; GET RUN - INP1
-         @PRNTLN FLRN,DEL
-         @INPRM INP1,7
-         JSR GETTEXT
-         JSR INP2ADDR
-         LDA FILPOS
-         STA RUNADR
-         LDA FILPOS+1
-         STA RUNADR+1
-; START/END NEED 2-4 HEX
-         LDA SAVLEN
-         CMP #$02
-         BCC COMSAV_1
-         LDA SAVLEN+1
-         CMP #$02
-         BCC COMSAV_1
-; CNVRT STRT TO ADDR
-         @CPYMEM BUF,INP1
-         LDY SAVLEN
-         JSR INP2ADDR
-; END >= START?
-         LDA FILEND
-         CMP FILPOS
-         LDA FILEND+1
-         SBC FILPOS+1
-         BCS DOSAVE
-COMSAV_1
-         @PRNTLN BADR
-         JMP GETCOM
-DOSAVE
-; SAVE HEADER
-         LDA #$FF
-         STA BUF
-         STA BUF+1
-         LDA FILPOS
-         STA BUF+2
-         LDA FILPOS+1
-         STA BUF+3
-         LDA FILEND
-         STA BUF+4
-         LDA FILEND+1
-         STA BUF+5
-         @DOCIO DSKID1,ICM.OP,FILE,ICAX.WT
-         LDA #$06
-         STA D0
-         @DOCIO DSKID1,ICM.PB,BUF,ICAX.WT,D0
-;SAVE BIN DATA, CALC LEN
-         JSR CALCLEN
-; SAVE
-         @DOCIO DSKID1,ICM.PB,FILPOS,ICAX.WT,FILLEN,FILLEN+1,1
-; WRITE RUNAD IF GIVEN
-         LDA RUNADR
-         ORA RUNADR+1
-         BEQ DOSAVE_1       ;NO RUN ADDR
-         LDA #$E0
-         STA BUF
-         LDA #$02
-         STA BUF+1
-         LDA #$E1
-         STA BUF+2
-         LDA #$02
-         STA BUF+3
-         LDA RUNADR
-         STA BUF+4
-         LDA RUNADR+1
-         STA BUF+5
-         LDA #$06
-         STA D0
-         @DOCIO DSKID1,ICM.PB,BUF,ICAX.WT,D0
-DOSAVE_1
-         JMP GETCOM
-;
-COMGOT
-         @PRNTLN GOTA,DEL
-         JSR GETADDR
-         JSR PRPEXT
-         JMP (FILPOS)       ;GOTO ADDR
-;
-AREYOUSURE
-         @COLRED
-         @PRNTLN ARYS,DEL
-         JMP YESORMENU
-;
-READIR
-         LDA #0
-         STA COUNT          ;ZERO COUNTER
-         STA FILPOS         ;1ST FILE
-;READ LOOP
-READLOOP
-         LDA #$12
-         STA D0
-         @DOCIO DSKID1,ICM.GB,FILE,ICAX.DR,D0
-         INC COUNT
-         BMI FINALIZE       ;HANDLE END DIR
-; FREE SECTORS OR FILE?
-         LDA FILE+1         ;FREE SECTORS?
-         CMP #$20           ;SPACE MEANS NO
-         BEQ NRMLFILE       ;FILE ENTRY
-;FREE SECTORS
-FREESEC
-         DEC COUNT          ;REMOVE FREE SEC
-; IF POS 0, BUF PRINTED, RD FILE
-         LDA FILPOS
-         BEQ PRNTFREESEC    ;DONT PRINT
-         LDA #EOL
-         STA BUF+$12
-         @PRNTLN BUF
-;DISPLAY FREE SECTORS
-PRNTFREESEC
-         @PRNTLN FILE
-         RTS
-;USE 2 COLUMNS
-NRMLFILE
-         @CPYMEM FILE,BUF,0,FILPOS
-         LDA FILPOS         ;0 MEANS FILE 1
-         BEQ ADD2ND
-         LDA #0             ;RESET LINE
-         STA FILPOS
-         @PRNTLN BUF
-         JMP READLOOP       ;NEXT FILE
-ADD2ND
-         LDA #$20           ;ADD SPACE
-         STA BUF+$11        ;BETWEEN CLMNS
-         LDA #$12           ;2ND TXT POS
-         STA FILPOS
-         BNE READLOOP       ;ADD 2ND FILE
-FINALIZE
-         CPY #ICSTAT.EOF
-         BEQ FREESEC
-         JMP DISKERR
-;
-CLOSEIO
-         @CLOSEIO DSKID1
-         @CLOSEIO DSKID2
-         LDX #KBDID
-         JMP CLOSECHANNEL
-;
-DISPLAYCHECKING
-         @HIDCUR
-         @CHECURPOS
-         LDA #$03
-         STA ROWCRS
-         LDA #$02
-         STA COLCRS
-         @PRNTLN UPDT,DEL
-         @RSTCURPOS
-         JMP SHOWCURSOR
-;
-;DRVS WE HAVE? HS?
-CHKDRVS
-; UPD MSG
-         @SIOSNDOFF
-         STA DRIVES         ;ZERO BITS
-         STA DRVHS
-         LDA #$01
-         STA BITWISE        ;1ST DRV
-         STA DUNIT
-CHKDRV_0
-         @DOSIO SIO.ST,SIOST.RD,BUF,$07,$04,$00,CNGDSK
-         CPY #$01
-         BNE CHKDRV_3       ;EMPTY->NEXT
-; SPEEDY DRV?
-         @DOSIO SIO.HS,SIOST.RD,BUF,$01,$01,$00,CNGDSK
-         LDA BUF
-         CMP #$09
-         BEQ CHKDRV_1
-         CMP #$0A
-         BNE CHKDRV_2
-CHKDRV_1
-         LDA DRVHS
-         ORA BITWISE
-         STA DRVHS
-;1 BIT FOR CONN DRV
-CHKDRV_2
-         LDA DRIVES
-         ORA BITWISE
-         STA DRIVES
-CHKDRV_3
-         ASL BITWISE        ;NXT DRV BIT
-         INC DUNIT
-         LDA DUNIT
-         CMP #$09
-         BNE CHKDRV_0
-         @SIOSNDON
-         RTS
-;
-UPDDRVSPD
-         LDY DSKNUM
-         SEC
-         LDA #$00
-UPDRVSPD_0
-         ROL A
-         DEY
-         BNE UPDRVSPD_0
-; IS IT HS? "HIGH" OR "NORM" INTO STAT+$0E
-         LDX #DRGN-DRSP
-         AND DRVHS
-         BEQ UPDRVSPD_1
-         LDX #$00
-UPDRVSPD_1
-         LDY #$00
-UPDRVSPD_2
-         LDA DRSP,X
-         STA STAT+$0E,Y
-         INX
-         INY
-         CPY #$04
-         BNE UPDRVSPD_2
-         RTS
-;
-UPDDRVS
-         LDX #$03           ;POS IN DRVS TXT
-         LDA #$01
-         STA D0             ;DRV INDX
-         LDA DRIVES
-         STA D1             ;TEMP
-UPTDRV_0
-         LDA #$20           ;SPACE: NO DRV
-         LSR D1
-         BCC UPTDRV_5
-         LDA D0
-         CMP DSKNUM
-         BNE UPTDRV_4
-         ORA #$80           ;ACTV DRV: INVERSE
-UPTDRV_4
-         ORA #'0            ;DRV DIGIT
-UPTDRV_5
-         STA STAT,X
-         INX
-         INC D0
-         CPX #$0B           ;8 DRVS DONE?
-         BNE UPTDRV_0
-         RTS
-;
-UPDMEM
-         JSR DTXMEM
-         JSR BNK2DEC
-         LDA #$19
-         STA D0
-         LDX MEMD
-         INX
-         STX D1
-         @CPYMEM MEMD+1,STAT,0,D0,D1
-         RTS
-;
-;CHKANDUPDATESTATBAR
-CHKANDUPDSTATBAR
-         JSR DISPLAYCHECKING
-         JSR CHKDRVS
-         JSR UPDMEM
-;
-UPDSTATBAR
-         JSR UPDDRVS
-         JSR UPDDRVSPD
-         @HIDCUR
-         @CHECURPOS
-         LDA #$03
-         STA ROWCRS
-         LDA #$02
-         STA COLCRS
-         @PRNTLN STAT
-         @SHWCUR
-         @RSTCURPOS
-         RTS
-;
-;PRINT THE TITLE BAR OF COMMAND X (X<NTITLE): ITS MENU LABEL IN
-;INVERSE CAPITALS. LABEL X HAS THE (X+1)TH INVERSE HOTKEY AFTER
-;MNUL (MENU ORDER: LEFT, THEN RIGHT COLUMN) | X KEPT
-TITLE
-         STX D2
-         LDA # <MNUL
-         STA CIOPTR
-         LDA # >MNUL
-         STA CIOPTR+1
-         LDY #$00
-TITLE_1
-         LDA (CIOPTR),Y
-         SEC
-         SBC #$A0
-         CMP #$40           ;INVERSE CHARACTER: A HOTKEY
-         BCS TITLE_2
-         DEX
-         BMI TITLE_3        ;LABEL X FOUND
-TITLE_2
-         INC CIOPTR
-         BNE TITLE_1
-         INC CIOPTR+1
-         BNE TITLE_1        ;ALWAYS
-;INP1: DLN, INVERSE SPACE, LABEL, INVERSE SPACE, EOL
-TITLE_3
-         LDA #DLN
-         STA INP1
-         LDX #$01
-         LDA #$A0           ;INVERSE SPACE
-TITLE_4
-         STA INP1,X
-         INX
-         LDA (CIOPTR),Y
-         CMP #EOL
-         BEQ TITLE_6        ;END OF A RIGHT COLUMN LABEL
-         INY
-         CMP #$20
-         BNE TITLE_5
-         CMP (CIOPTR),Y
-         BEQ TITLE_6        ;2 SPACES: END OF A LEFT COLUMN LABEL
-TITLE_5
-         AND #$7F           ;HOTKEY: NOT INVERSE
-         CMP #$61
-         BCC TITLE_5_5
-         AND #$DF           ;LOWER CASE -> UPPER
-TITLE_5_5
-         ORA #$80           ;INVERSE
-         BNE TITLE_4        ;ALWAYS
-TITLE_6
-         LDA #$A0
-         STA INP1,X
-         LDA #EOL
-         STA INP1+1,X
-         @PRNTLN INP1
-         LDX D2
-         RTS
-;
-;MENU COMMANDS IN MENU ORDER: THE FIRST NTITLE GET
-;THEIR MENU LABEL AS TITLE BAR (SEE TITLE)
-NTITLE   = 18
-NUMCMD   = 20
-CMDKEY   .BYTE "WFPTUCRDSELIGVNABMQ",EOL
-CMDLO    .BYTE <COMWRT,<COMDIR,<COMPRC,<COMCAR,<COMUNP
-         .BYTE <COMCPY,<COMREN,<COMDUP,<COMSAV,<COMERA
-         .BYTE <COMLOA,<COMINI,<COMGOT,<COMVIE,<COMNEW
-         .BYTE <COMANA,<COMCMP,<COMMEM,<COMQIT,<GOMENU
-CMDHI    .BYTE >COMWRT,>COMDIR,>COMPRC,>COMCAR,>COMUNP
-         .BYTE >COMCPY,>COMREN,>COMDUP,>COMSAV,>COMERA
-         .BYTE >COMLOA,>COMINI,>COMGOT,>COMVIE,>COMNEW
-         .BYTE >COMANA,>COMCMP,>COMMEM,>COMQIT,>GOMENU
-         .IF CMDLO-CMDKEY-NUMCMD
-         JMP CMDKEY_NEEDS_NUMCMD_KEYS ;UNDEFINED: STOPS ASSEMBLY
-         .ENDIF
-         .IF CMDHI-CMDLO-NUMCMD
-         JMP CMDLO_NEEDS_NUMCMD_ADDRESSES
-         .ENDIF

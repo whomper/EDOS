@@ -85,15 +85,16 @@ Files and Duplicate Disk use 130XE-style extended memory when there is some.
 ## Building
 
 ```sh
-pip install py65        # for the tests
-tools/build.sh          # assembles, runs the tests and makes the disk images
+pip install -r xl/requirements.txt   # py65, for the tests
+make                                 # assembles and makes the disk images
+make test                            # and runs every test
 ```
 
-| `tools/build.sh` writes | What it is |
+| `make` writes | What it is |
 |---|---|
 | `build/EDOS.COM`, `EDOS.LST`, `EDOS.SYM` | the program, its listing and its symbols |
 | `build/EDOS.FNT` | the font: the family's AERA.FNT (`xl/tools/font.py`), `EREZ.FNT` moved one pixel right so inverse letters show as blocks |
-| `build/EDOS.ATR` | the EDOS disk: SpartaDOS 3.2 and the utilities from `tools/disk/BASE.ATR`, with `EDOS.COM`, `EDOS.FNT` and the sources in MAC/65's tokenised form |
+| `build/EDOS.ATR` | the EDOS disk: SpartaDOS 3.2 and the utilities from `tools/disk/BASE.ATR`, with `EDOS.COM`, `EDOS.FNT` and the sources numbered and tokenised as MAC/65 saves them; `make` checks they assemble to the same `EDOS.COM` |
 | `build/EDOSTEST.ATR` | the test disk |
 | `build/EDOS-D2.ATR` | a DOS 2/MyDOS disk with `EDOS.COM` |
 | `build/EDOS-BOOT.ATR` | a bootable DOS 2.5 or MyDOS disk with `EDOS.COM`, when you put that DOS's master disk at `tools/dos/DOS.ATR` (`EDOS_AS_DUP=1` also installs EDOS as `DUP.SYS`) |
@@ -116,11 +117,13 @@ into memory at $1E00, where MAC/65 keeps its own work area. `ASM #D:EDOS.M65,,#D
 DOS 2.5 and MyDOS but not on SpartaDOS: MAC/65 1.01 rewinds the main file for its second pass with a
 POINT that SpartaDOS rejects, and stops with `ERROR -` and no number.
 
-**Versions and releases.** The version is the one in the title bar (`TTL2` in `EDOSVARS.M65`). To
-release: change it, add `release-notes/vX.Y.md`, commit and push, then run the Release workflow
-(Actions > Release > Run workflow, on main) with version `X.Y`, or push a tag `vX.Y`. GitHub Actions
-builds and tests, checks that EDOS shows that version, tags the commit and publishes `EDOS.COM`,
-`EDOS.FNT`, `EDOS.ATR` and `EDOSTEST.ATR` as a GitHub Release with the notes. From then on, each push
+**Versions and releases.** The version is the one in the title bar (`TTL2` in `EDOSVARS.M65`), and
+every source file's header repeats it; the build fails when they differ. To release: change them, add
+`release-notes/vX.Y.md`, commit and push, then run the Release workflow (Actions > Release > Run
+workflow, on main; the family's, from `xl/`), or push a tag `vX.Y` made with `git tag -a`. GitHub
+Actions runs `make test` and `make dist`, checks the tag against `make version`, tags the commit and
+publishes `EDOS.COM`, `EDOS.FNT`, `EDOS.ATR` and `EDOSTEST.ATR` as a GitHub Release with the notes.
+The Withdraw workflow marks a bad release as withdrawn. From then on, each push
 to main that leaves `EDOS.COM` as released replaces that release's `EDOS.ATR` and `EDOSTEST.ATR` with
 the new build, so the disk always carries the current sources; a changed program waits for the next
 release. To try a fix on a real Atari, release it; if a release doesn't work, revert on main, release
@@ -201,7 +204,7 @@ The tests run the real `EDOS.COM` on an emulated 6502 ([py65](https://github.com
 keys and lines:
 
 ```
-tools/build.sh                     # runs them all
+make test                          # runs them all, and xl/'s own
 python3 tools/test_commands.py     # every menu command, the menu keys, start-up, RESET and the
                                    # exits (Quit, Cartridge, Go To): files written, memory loaded,
                                    # sectors copied, screen text and where control goes

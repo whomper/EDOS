@@ -14,8 +14,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install py65
-      - run: tools/build.sh
+      - run: pip install -r xl/requirements.txt
+      - run: make test
 
   # On main: while EDOS.COM is the latest release's, that release gets this
   # build's disks, so its EDOS.ATR always carries the current sources. A
@@ -34,8 +34,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install py65
-      - run: tools/build.sh
+      - run: pip install -r xl/requirements.txt
+      - run: make all
       - name: Replace the latest release's EDOS.ATR and EDOSTEST.ATR
         env:
           GH_TOKEN: ${{ github.token }}

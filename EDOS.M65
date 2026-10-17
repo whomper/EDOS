@@ -1,19 +1,30 @@
-         .OPT OBJ,NO LIST
 ;
-; EDOS.M65 - EDOS 3.2 | MAIN FILE: THE INCLUDES
+; EDOS.M65 - EDOS 3.2
+; Options, origin and the includes
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
-; MAC/65: LOAD #D:EDOS.M65 THEN
-; ASM ,,#D:EDOS.COM
-; ONLY THIS SHORT FILE IS HELD IN
-; MEMORY; THE REST IS READ FROM DISK
-; *= 0
-; PASS .= PASS+1
-; .IF PASS=1
+; To assemble it on the Atari, in
+; MAC/65: LOAD #D:EDOS.M65, then
+; ASM ,,#D:EDOS.COM writes EDOS.COM
+; Only this short file is held in
+; the editor's memory; .INCLUDE reads
+; the rest from the disk as it goes.
+;
+         .OPT OBJ,NO LIST
+;
+; The macros first: each must be
+; defined before it is used
+;
          .INCLUDE #D:MACROS.M65
-; .ENDIF
+;
+; EDOS loads and runs at $1E00
 ;
          *= $1E00
+;
+; START_PROG - the first byte of EDOS
+; (COMWRT saves it from here): a jump
+; to PRE_START, the run address
+; Exit: to PRE_START
 ;
 START_PROG
          JMP PRE_START
@@ -21,11 +32,21 @@ START_PROG
          .INCLUDE #D:CIOSTAT.M65
          .INCLUDE #D:UTILS.M65
          .INCLUDE #D:EDOSMAIN.M65
+         .INCLUDE #D:EDOSCMD.M65
+         .INCLUDE #D:EDOSDISK.M65
+         .INCLUDE #D:EDOSSCRN.M65
          .INCLUDE #D:EDOSVARS.M65
 ;
-; END_PROG AND VAREND: SEE THE END OF EDOSVARS.M65
+; END_PROG and VAREND: see the end of
+; EDOSVARS.M65. EDOS and its reserved
+; variables must end below WRKBEG,
+; the work area (UTILS.M65)
+;
          .IF VAREND>WRKBEG
-         JMP EDOS_OVERLAPS_WORK_AREA ;UNDEFINED: STOPS ASSEMBLY
+         JMP EDOS_OVERLAPS_WORK_AREA ; undefined: stops assembly
          .ENDIF
+;
+; The run address: PRE_START
+;
          *= RUNAD
          .WORD PRE_START

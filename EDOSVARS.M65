@@ -1,26 +1,44 @@
 ;
 ; EDOSVARS.M65 - EDOS 3.2
+; Variables, menu texts and messages
 ; Copyright (C) 2026 AERA | Erez Yaary
-; VARIABLES
 ;
-REFDRV   .BYTE 1            ;REFRESH DRVS?
-SNGL     .BYTE $28,1,0,$12,0,0,0,$80,$FF
-ENHA     .BYTE $28,1,0,$1A,0,0,0,$80,$FF
-DBLE     .BYTE $28,1,0,$12,0,4,0,$FF,$FF
+REFDRV   .BYTE 1            ; 1: GOMENU checks drives
+; PERCOM blocks, 9 bytes each
+SNGL     .BYTE $28,1,0,$12,0,0,0,$80,$FF ; single
+ENHA     .BYTE $28,1,0,$1A,0,0,0,$80,$FF ; enhanced
+DBLE     .BYTE $28,1,0,$12,0,4,0,$FF,$FF ; double
+; WRTVTOC: the enhanced VTOC's first
+; 11 bytes; the EOL ends the copy
 VTOC     .BYTE 2,$F2,3,$F2,3,0,0,0,0,0,$0F,EOL
-PERCOFS  .BYTE 0,ENHA-SNGL,DBLE-SNGL ;SETDRVSTAT (NOT BEFORE VTOC:
-; DBLE IS SENT WITH THE 2 BYTES AFTER IT)
-DISK     .BYTE "D1:*.*",EOL ;DEF DISK
-EDOS     .BYTE "EDOS.COM",EOL
-ARGS     .BYTE "*.*",EOL    ;DEF ARGS
-KYBD     .BYTE "K:"         ;KEYBOARD
-EOLB     .BYTE EOL          ;ENDS KYBD; PRNTNL PRINTS IT
-DELL     .BYTE DLN,CUP,CUP,DEL
-DLLN     .BYTE DLN,DEL
-TTL1     .BYTE CLS,DEL
+; SETDRVSTAT: each block's offset
+; from SNGL. It sends 11 bytes, a
+; block and the 2 after it, so DBLE
+; goes with VTOC's first 2: keep
+; PERCOFS after VTOC
+PERCOFS  .BYTE 0,ENHA-SNGL,DBLE-SNGL
+DISK     .BYTE "D1:*.*",EOL ; DISK+1: the drive
+EDOS     .BYTE "EDOS.COM",EOL ; Write EDOS's file
+ARGS     .BYTE "*.*",EOL    ; the default file names
+KYBD     .BYTE "K:"         ; the keyboard
+EOLB     .BYTE EOL          ; ends KYBD; PRNTNL's
+; Screen controls, ending in DEL
+DELL     .BYTE DLN,CUP,CUP,DEL ; delete the line, up 2
+DLLN     .BYTE DLN,DEL      ; delete the line
+TTL1     .BYTE CLS,DEL      ; clear the screen
+; The title bar, inverse
 TTL2     .BYTE "",EOL
+; The status line: the drives at
+; +3, the speed at +$0E, the
+; extended memory at +$19
 STAT     .BYTE " D:                 XMEM:      ",EOL
-MNU1     .BYTE ""        ;"1-8": NO TITLE BAR
+; The menu: 2 columns, the inverse
+; letter is the key; each half ends
+; in DEL. MNU1, "1-8", is before
+; MNUL, so it has no title bar:
+; TITLE takes command X's from the
+; (X+1)th inverse letter after MNUL
+MNU1     .BYTE ""
 MNUL     .BYTE " Dir D1-D8      ","rite EDOS",EOL
          .BYTE "iles on Disk      ","rotect Files",EOL
          .BYTE "o Cartridge       ","nprotect Files",EOL
@@ -31,6 +49,10 @@ MNU2     .BYTE "rase Files        ","oad Binary",EOL
          .BYTE "iew File          ","ew Drive",EOL
          .BYTE "nalyze Sector     ","yte Compare",EOL
          .BYTE "emory Status      ","uit to DOS",EOL,DEL
+;
+; Prompts end in DEL (the cursor
+; stays after them), messages in EOL
+;
 FSPC     .BYTE "File Spec: ",DEL
 NUMF     .BYTE "Number of files: ",EOL
 RENO     .BYTE "Old File: ",DEL
@@ -39,7 +61,7 @@ BCMF     .BYTE "File 1: ",DEL
 BCMS     .BYTE "File 2: ",DEL
 DRVN     .BYTE "Drive #: ",DEL
 FMTD     .BYTE "1-Single, 2-Enhance, 3-Double: ",DEL
-FRMT     .BYTE "Formatting D , ",DEL
+FRMT     .BYTE "Formatting D , ",DEL ; drive at +$0C
 GOTA     .BYTE "Address: ",DEL
 FLST     .BYTE "Start: ",DEL
 FLED     .BYTE " End: ",DEL
@@ -61,38 +83,53 @@ RUNP     .BYTE "Run Program [Y/N]? ",DEL
 UPDT     .BYTE " Updating... ",DEL
 NOMM     .BYTE "Not enough memory!",EOL
 BADR     .BYTE "Invalid address!",EOL
+; The density names for COMDUP, 8
+; apart
 DSNG     .BYTE "Single ",DEL
 DENH     .BYTE "Enhance",DEL
 DDBL     .BYTE "Double ",DEL
-DUPBNK   .BYTE 6,9,12       ;BANKS TO DUPLICATE
+DUPBNK   .BYTE 6,9,12       ; banks to duplicate a disk
          .IF DENH-DSNG-8
-         JMP DENSITY_NAMES_MUST_BE_8_APART ;UNDEFINED
+         JMP DENSITY_NAMES_MUST_BE_8_APART ; undefined: stops assembly
          .ENDIF
          .IF DDBL-DENH-8
          JMP DENSITY_NAMES_MUST_BE_8_APART
          .ENDIF
-SECT     .BYTE "Sector:     ",EOL ;4 DIGITS AT SECT+8
+; Analyze Sector's line
+SECT     .BYTE "Sector:     ",EOL ; 4 digits at +8
+; COMDUP's line: O: the mode (MODR,
+; MODW, MODF), D: the density at
+; +$0B, S: the sector (SCTR), M: the
+; memory used (MEMD). DUPE blanks
+; S: and M:
 DUPE     .BYTE "    ",DEL
 DUPS     .BYTE ":       :        :     :     ",DEL
 MODR     .BYTE "Read ",DEL
 MODW     .BYTE "Write ",DEL
 MODF     .BYTE "Format",DEL
+; The drive speeds for the status
+; line
 DRSP     .BYTE "HIGH",DEL
 DRGN     .BYTE "NORM",DEL
-MEMS     .BYTE ":      :    ",EOL ;HEX AT +4, +$0F
-; TITLE BARS ARE THE MENU LABELS, SEE TITLE IN EDOS.M65
+; COMMEM's line
+MEMS     .BYTE ":      :    ",EOL ; hex at +4, +$0F
 ;
-; EDOS.COM ENDS HERE. THE VARIABLES BELOW ARE RESERVED
-; AFTER IT AND NOT IN THE FILE. MORE IN ZERO PAGE.
+; EDOS.COM ends here. The variables
+; below are reserved after it, not
+; in the file; more in zero page
+;
 END_PROG
-FILLEN   *= *+2             ;FILE LEN
-DRIVES   *= *+1             ;CONNECTED DRVS
-BITWISE  *= *+1             ;FOCUS DRIVE
-DRVHS    *= *+1             ;SPEEDY DRIVE?
-SAVLEN   *= *+2             ;SAVE STRT/END LEN
-NUM2CNV  *= *+1             ;COPY SOURCE DRV
-STKPTR   *= *+1             ;SP AT START (<$4000)
-ABORT    *= *+1             ;ABRT ACTV COM
-MEMD     *= *+7             ;MEM
-DOSIN    *= *+2             ;DOSINI CACHE
+FILLEN   *= *+2             ; SAVE: the bytes to write
+DRIVES   *= *+1             ; a bit per drive, D1 bit 0
+BITWISE  *= *+1             ; CHKDRVS: the drive's bit
+DRVHS    *= *+1             ; a bit per high speed drive
+SAVLEN   *= *+2             ; SAVE: address text lengths
+NUM2CNV  *= *+1             ; COPY: source drive digit
+; GETCOM reads STKPTR before it
+; puts the main bank back, so it must
+; be below $4000
+STKPTR   *= *+1             ; SP at START, for GETCOM
+ABORT    *= *+1             ; 1: stop the command
+MEMD     *= *+7             ; number text (BNK2DEC)
+DOSIN    *= *+2             ; DOS's DOSINI, kept
 VAREND

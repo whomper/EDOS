@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Unit tests that run real EDOS machine code (build/EDOS.COM) under py65.
 
-Run tools/build.sh first (it runs these tests too), or:
+Run make first (make test runs these tests too), or:
     python3 tools/test_edos.py -v
 """
 import os

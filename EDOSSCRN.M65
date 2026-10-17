@@ -1,0 +1,320 @@
+;
+; EDOSSCRN.M65 - EDOS 3.2
+; Directory, status line, title bars
+; Copyright (C) 2026 AERA | Erez Yaary
+;
+; Also the command table
+;
+; READIR - list the directory open on
+; DSKID1, 2 files a line, then the
+; free sectors line
+; Exit: COUNT the files; BUF, FILE,
+; FILPOS changed; an error goes to
+; DISKERR (in DOCIO)
+;
+READIR
+         LDA #0
+         STA COUNT
+         STA FILPOS         ; left column next
+READLOOP
+         LDA #$12
+         STA D0
+         @DOCIO DSKID1,ICM.GB,FILE,ICAX.DR,D0 ; an entry
+         INC COUNT
+         BMI FINALIZE       ; N is COUNT's, not CIO's
+         LDA FILE+1
+         CMP #$20           ; a space: a file
+         BEQ NRMLFILE
+FREESEC
+         DEC COUNT          ; not a file
+; a left column file still in BUF:
+; print it on its own line
+         LDA FILPOS
+         BEQ PRNTFREESEC
+         LDA #EOL
+         STA BUF+$12
+         @PRNTLN BUF
+PRNTFREESEC
+         @PRNTLN FILE
+         RTS
+; a file into its column of BUF
+NRMLFILE
+         @CPYMEM FILE,BUF,0,FILPOS
+         LDA FILPOS         ; 0: it went left
+         BEQ ADD2ND
+         LDA #0             ; right: print the line
+         STA FILPOS
+         @PRNTLN BUF
+         JMP READLOOP
+ADD2ND
+         LDA #$20           ; a space, not its EOL
+         STA BUF+$11
+         LDA #$12           ; the right column next
+         STA FILPOS
+         BNE READLOOP       ; always
+; only at 128 entries: EOF ends the
+; list, else DISKERR
+FINALIZE
+         CPY #ICSTAT.EOF
+         BEQ FREESEC
+         JMP DISKERR
+;
+; CLOSEIO - close IOCBs 2 and 3 (the
+; disk) and 1 (the keyboard)
+; Exit: X=KBDID, Y the status
+;
+CLOSEIO
+         @CLOSEIO DSKID1
+         @CLOSEIO DSKID2
+         LDX #KBDID
+         JMP CLOSECHANNEL
+;
+; DISPLAYCHECKING - " Updating... "
+; on the status line (row 3, column
+; 2); the cursor goes back where it
+; was
+; Exit: A=0, cursor shown; X, Y kept
+;
+DISPLAYCHECKING
+         @HIDCUR
+         @CHECURPOS
+         LDA #$03
+         STA ROWCRS
+         LDA #$02
+         STA COLCRS
+         @PRNTLN UPDT,DEL
+         @RSTCURPOS
+         JMP SHOWCURSOR
+;
+; CHKDRVS - ask drives 1-8 for their
+; status, with SIO quiet: DRIVES gets
+; a bit for each that answers, DRVHS
+; for each whose high speed index is
+; $09 or $0A
+; Exit: A=1, DUNIT=9, BITWISE=0; BUF
+; changed
+;
+CHKDRVS
+         @SIOSNDOFF
+         STA DRIVES         ; A=0
+         STA DRVHS
+         LDA #$01
+         STA BITWISE        ; drive 1's bit
+         STA DUNIT
+CHKDRV_0
+         @DOSIO SIO.ST,SIOST.RD,BUF,$07,$04,$00,CNGDSK
+         CPY #$01
+         BNE CHKDRV_3       ; no answer: the next
+         @DOSIO SIO.HS,SIOST.RD,BUF,$01,$01,$00,CNGDSK
+         LDA BUF            ; the high speed index
+         CMP #$09
+         BEQ CHKDRV_1
+         CMP #$0A
+         BNE CHKDRV_2
+CHKDRV_1
+         LDA DRVHS
+         ORA BITWISE
+         STA DRVHS
+CHKDRV_2
+         LDA DRIVES
+         ORA BITWISE
+         STA DRIVES
+CHKDRV_3
+         ASL BITWISE        ; the next drive's bit
+         INC DUNIT
+         LDA DUNIT
+         CMP #$09
+         BNE CHKDRV_0
+         @SIOSNDON
+         RTS
+;
+; UPDDRVSPD - "HIGH" or "NORM" at
+; STAT+$0E: drive DSKNUM's (1-8) bit
+; in DRVHS
+; Exit: A, X, Y changed
+;
+UPDDRVSPD
+         LDY DSKNUM
+         SEC
+         LDA #$00
+UPDRVSPD_0
+         ROL A              ; A: DSKNUM's bit
+         DEY
+         BNE UPDRVSPD_0
+         LDX #DRGN-DRSP     ; "NORM", the default
+         AND DRVHS
+         BEQ UPDRVSPD_1
+         LDX #$00           ; "HIGH": set in DRVHS
+UPDRVSPD_1
+         LDY #$00
+UPDRVSPD_2
+         LDA DRSP,X
+         STA STAT+$0E,Y
+         INX
+         INY
+         CPY #$04
+         BNE UPDRVSPD_2
+         RTS
+;
+; UPDDRVS - the drives at STAT+3 to
+; +10: a digit for each in DRIVES,
+; DSKNUM's inverse, else a space
+; Exit: A, X, D0, D1 changed
+;
+UPDDRVS
+         LDX #$03           ; drive 1's place in STAT
+         LDA #$01
+         STA D0             ; the drive
+         LDA DRIVES
+         STA D1             ; its bits, shifted out
+UPTDRV_0
+         LDA #$20           ; a space: not there
+         LSR D1
+         BCC UPTDRV_5
+         LDA D0
+         CMP DSKNUM
+         BNE UPTDRV_4
+         ORA #$80           ; the drive in use: inverse
+UPTDRV_4
+         ORA #'0            ; its digit
+UPTDRV_5
+         STA STAT,X
+         INX
+         INC D0
+         CPX #$0B           ; 8 drives done?
+         BNE UPTDRV_0
+         RTS
+;
+; UPDMEM - count the extended RAM and
+; put its size in K at STAT+$19
+; Exit: A, X, Y, NUMBKS, MEMD, BUF,
+; D0, D1 changed
+;
+UPDMEM
+         JSR DTXMEM
+         JSR BNK2DEC
+         LDA #$19
+         STA D0
+         LDX MEMD
+         INX
+         STX D1             ; the digits and the K
+         @CPYMEM MEMD+1,STAT,0,D0,D1
+         RTS
+;
+; CHKANDUPDSTATBAR - show "Updating",
+; look for the drives and memory,
+; then fall into UPDSTATBAR
+; Exit: as UPDSTATBAR
+;
+CHKANDUPDSTATBAR
+         JSR DISPLAYCHECKING
+         JSR CHKDRVS
+         JSR UPDMEM
+;
+; UPDSTATBAR - the drives and speed
+; into STAT, then print it on row 3,
+; column 2; the cursor goes back
+; where it was
+; Exit: A, X, Y changed; cursor shown
+;
+UPDSTATBAR
+         JSR UPDDRVS
+         JSR UPDDRVSPD
+         @HIDCUR
+         @CHECURPOS
+         LDA #$03
+         STA ROWCRS
+         LDA #$02
+         STA COLCRS
+         @PRNTLN STAT
+         @SHWCUR
+         @RSTCURPOS
+         RTS
+;
+; TITLE - print the title bar of
+; command X (X<NTITLE) over the
+; prompt's line (DLN): its menu label
+; in inverse capitals. Label X has
+; the (X+1)th inverse letter after
+; MNUL, row by row, left then right
+; Exit: X kept; A, Y, D2, CIOPTR and
+; INP1 changed
+;
+TITLE
+         STX D2
+         LDA # <MNUL
+         STA CIOPTR
+         LDA # >MNUL
+         STA CIOPTR+1
+         LDY #$00
+TITLE_1
+         LDA (CIOPTR),Y
+         SEC
+         SBC #$A0
+         CMP #$40           ; $A0-$DF, inverse: a key
+         BCS TITLE_2
+         DEX
+         BMI TITLE_3        ; label X found
+TITLE_2
+         INC CIOPTR
+         BNE TITLE_1
+         INC CIOPTR+1
+         BNE TITLE_1        ; always
+; INP1: DLN, inverse space, the
+; label, inverse space, EOL
+TITLE_3
+         LDA #DLN
+         STA INP1
+         LDX #$01
+         LDA #$A0           ; inverse space
+TITLE_4
+         STA INP1,X
+         INX
+         LDA (CIOPTR),Y
+         CMP #EOL
+         BEQ TITLE_6        ; the end of a right label
+         INY
+         CMP #$20
+         BNE TITLE_5
+         CMP (CIOPTR),Y
+         BEQ TITLE_6        ; 2 spaces end a left one
+TITLE_5
+         AND #$7F           ; the key: not inverse
+         CMP #$61
+         BCC TITLE_5_5
+         AND #$DF           ; lower case to capital
+TITLE_5_5
+         ORA #$80           ; inverse
+         BNE TITLE_4        ; always
+TITLE_6
+         LDA #$A0
+         STA INP1,X
+         LDA #EOL
+         STA INP1+1,X
+         @PRNTLN INP1
+         LDX D2
+         RTS
+;
+; The commands in menu order: a key
+; each in CMDKEY, the address in
+; CMDLO and CMDHI. The first NTITLE
+; get a title bar (TITLE); RETURN
+; (the EOL) draws the menu again
+;
+NTITLE   = 18
+NUMCMD   = 20
+CMDKEY   .BYTE "WFPTUCRDSELIGVNABMQ",EOL
+CMDLO    .BYTE <COMWRT,<COMDIR,<COMPRC,<COMCAR,<COMUNP
+         .BYTE <COMCPY,<COMREN,<COMDUP,<COMSAV,<COMERA
+         .BYTE <COMLOA,<COMINI,<COMGOT,<COMVIE,<COMNEW
+         .BYTE <COMANA,<COMCMP,<COMMEM,<COMQIT,<GOMENU
+CMDHI    .BYTE >COMWRT,>COMDIR,>COMPRC,>COMCAR,>COMUNP
+         .BYTE >COMCPY,>COMREN,>COMDUP,>COMSAV,>COMERA
+         .BYTE >COMLOA,>COMINI,>COMGOT,>COMVIE,>COMNEW
+         .BYTE >COMANA,>COMCMP,>COMMEM,>COMQIT,>GOMENU
+         .IF CMDLO-CMDKEY-NUMCMD
+         JMP CMDKEY_NEEDS_NUMCMD_KEYS ; undefined: stops assembly
+         .ENDIF
+         .IF CMDHI-CMDLO-NUMCMD
+         JMP CMDLO_NEEDS_NUMCMD_ADDRESSES
+         .ENDIF

@@ -1,53 +1,56 @@
 ;
-; SYSTEM.M65 - V. 3.2
+; SYSTEM.M65 - EDOS 3.2
+; The OS, hardware and zero page
 ; Copyright (C) 2026 AERA | Erez Yaary
-; CONSTANTS
 ;
-RTN      = $7B              ;RTN KEY
-SCRID    = $00              ;DEF SCR ID
-KBDID    = $10              ;KBD IO
-DSKID1   = $20              ;DSK IO
-LDRID    = $10              ;LOAD BINARY: IOCB #1, AS DOS 2
-DSKID2   = $30              ;2ND DSK ID
-CUP      = $1C              ;CUR UP
-CLS      = $7D              ;CLR SCR
-EOL      = $9B              ;E-LINE
-DLN      = $9C              ;DEL LINE
-DEL      = $FF              ;DELIMITER
-CHL      = $12              ; CHAR
-INDPTR   = $CE              ;INDIRECT PNT
+; EDOS's constants
 ;
-; ZERO PAGE - HOT SCRATCH VARS (RELOCATED FROM PROGRAM SPACE)
+RTN      = $7B              ; RTN key (not used)
+SCRID    = $00              ; IOCB 0, the screen
+KBDID    = $10              ; IOCB 1, the keyboard
+DSKID1   = $20              ; IOCB 2, the disk
+LDRID    = $10              ; IOCB 1 loads, as in DOS 2
+DSKID2   = $30              ; IOCB 3, a 2nd disk file
+CUP      = $1C              ; cursor up
+CLS      = $7D              ; clear the screen
+EOL      = $9B              ; end of line
+DLN      = $9C              ; delete the line
+DEL      = $FF              ; ends a text, not printed
+CHL      = $12              ; the line character
+INDPTR   = $CE              ; a pointer
 ;
-D0       = $B0              ;TEMPORARY
-D1       = $B1              ;TEMPORARY
-FILPOS   = $B2              ;POS POINTER (2B)
+; Zero page: EDOS's busiest variables
+; (moved there from the program)
+;
+D0       = $B0              ; scratch
+D1       = $B1              ; scratch
+FILPOS   = $B2              ; a position or address (2)
 TMP      = $B4
-VALUE    = $B5              ;(2B)
-RUNADR   = VALUE            ;SAVE BINARY RUN ADDRESS (2B)
-D2       = $B7              ;TEMPORARY
-DSKNUM   = $B8              ;DRIVE
-BYTRD    = $B9              ;BYTES READ
-DENSITY  = $BA              ;DSK DNSTY
-SCTR     = $BB              ;SCTR DSP (5B)
-NUMBKS   = $C0              ;NUM OF BANKS
-FILEND   = $C1              ;FILE END (2B)
-RETADR   = $C3              ;(2B)
-MOD10    = $C5              ;(2B)
-CPYSRC   = MOD10            ;COPY: SOURCE (2B)
-CIOPTR   = $C7              ;DOCIO PTR (2B)
-CPYDST   = CIOPTR           ;COPY: DESTINATION (2B), AFTER CPYSRC
-DOCFLG   = $C9              ;DOCIO FLAGS
-ACVMEM   = $CA              ;ACTIVE MEM BANK
-TXTLEN   = $CB              ;GETTEXT MAX LEN
-COUNT    = $CC              ;FILES COUNT
-TMPDSK   = $CD              ;TMP DSK NUM
+VALUE    = $B5              ; a number (2)
+RUNADR   = VALUE            ; SAVE's run address (2)
+D2       = $B7              ; scratch
+DSKNUM   = $B8              ; the drive, 1-8
+BYTRD    = $B9              ; bytes read
+DENSITY  = $BA              ; 1 single, 2 enhanced, 3 double
+SCTR     = $BB              ; sector count, as text (5)
+NUMBKS   = $C0              ; extended RAM banks
+FILEND   = $C1              ; end address (2)
+RETADR   = $C3              ; INLINE's pointer (2)
+MOD10    = $C5              ; GETCHR's echo (2)
+CPYSRC   = MOD10            ; COPY: from (2)
+CIOPTR   = $C7              ; DOCIO's pointer (2)
+CPYDST   = CIOPTR           ; COPY: to (2), after CPYSRC
+DOCFLG   = $C9              ; DOCIO's flags
+ACVMEM   = $CA              ; the bank in use
+TXTLEN   = $CB              ; GETTEXT's most bytes
+COUNT    = $CC              ; files or banks counted
+TMPDSK   = $CD              ; a drive kept for later
 ;
-MAXBUF   = $80              ;MAX TEXT INPUT (INP1)
+MAXBUF   = $80              ; longest text input (INP1)
 NMIEN_DLI = $80
 NMIEN_VBI = $40
 ;
-; MEMORY LOCATIONS
+; OS and hardware addresses
 ;
 TRAMSZ   = $06
 DOSVEC   = $0A
@@ -55,13 +58,13 @@ POKMSK   = $10
 BRKKEY   = $11
 DOSINI   = $0C
 RAMTOP   = $6A
-SOUNDR   = $41
+SOUNDR   = $41              ; 0: quiet SIO
 ROWCRS   = $54
 LMARGN   = $52
 RMARGN   = $53
 COLCRS   = $55
 FR0      = $D4
-FR1      = $D5
+FR1      = $D5              ; FR0+1; the OS's FR1 is $E0
 CIX      = $F2
 INBUFF   = $F3
 VDSLST   = $0200
@@ -70,17 +73,17 @@ STICK0   = $0278
 STICK1   = $0279
 STRIG0   = $0285
 STRIG1   = $0286
-SHFLOK   = $02BE
-COLOR4   = $02C8
+SHFLOK   = $02BE            ; $40: capitals
+COLOR4   = $02C8            ; background
 RUNAD    = $02E0
 INITAD   = $02E2
 RAMSIZ   = $02E4
 MEMTOP   = $02E5
 MEMLO    = $02E7
 DVSTAT   = $02EA
-CRSINH   = $02F0
-CHBAS    = $02F4
-DSPFLG   = $02FE
+CRSINH   = $02F0            ; 1: no cursor
+CHBAS    = $02F4            ; the font's page
+DSPFLG   = $02FE            ; 1: show control codes
 LBUFF    = $0580
 COLPF0   = $D016
 COLPF1   = $D017
@@ -91,19 +94,20 @@ HSCROL   = $D404
 VSCROL   = $D405
 WSYNC    = $D40A
 NMIEN    = $D40E
-PORTB    = $D301            ;PIA
+PORTB    = $D301            ; PIA: the RAM banks
 AFP      = $D800
 FASC     = $D8E6
 IFP      = $D9AA
 FPI      = $D9D2
-M4000    = $4000
+M4000    = $4000            ; the bank window
 M5000    = $5000
 ;
-; SIOV AND CIOV
+; SIO and CIO: DOSIO's flags in
+; DUNUSE, the DCB, the IOCB
 ;
-CNGDSK   = $01
-SKPERR   = $02
-SIOERR   = $80
+CNGDSK   = $01              ; keep DUNIT, not DSKNUM
+SKPERR   = $02              ; on error: SIOERR, no DISKERR
+SIOERR   = $80              ; DUNUSE: an error skipped
 DDEVIC   = $0300
 DUNIT    = DDEVIC+1
 DCOMND   = DUNIT+1
@@ -132,53 +136,55 @@ ICBLH    = ICBLL+1
 ICAX1    = ICBLH+1
 ICAX2    = ICAX1+1
 CIOV     = $E456
-; SD TIME VECTORS
-VGETTD   = $FFC0            ; GET TD
-VSETTD   = $FFC3            ; SET TD
-VTDON    = $FFC6            ; TD ON/OFF
-VFMTTD   = $FFC9            ; GET TD FMT
 ;
-; SIOV COMMANDS
+; SD time vectors
 ;
-SIO.FT   = $21              ;FORMAT
-SIO.FH   = $22              ;FORMAT ENHA
-SIO.HS   = $3F              ;GET HISPEED
-SIO.RP   = $4E              ;READ PERCOM
-SIO.WP   = $4F              ;WRITE PERCOM
-SIO.PT   = $50              ;PUT
-SIO.RD   = $52              ;READ
-SIO.ST   = $53              ;STATUS
-SIO.WT   = $57              ;WRITE(VERIFY)
-SIO.SL   = $68              ;GET SIO LEN
-SIO.SR   = $69              ;GET SIO ADDR
+VGETTD   = $FFC0            ; get TD
+VSETTD   = $FFC3            ; set TD
+VTDON    = $FFC6            ; TD on or off
+VFMTTD   = $FFC9            ; get TD's format
 ;
-; SIOV FLAGS
+; SIO commands
 ;
-SIOST.RD = $40              ;READ
-SIOST.WT = $80              ;WRITE
+SIO.FT   = $21              ; format
+SIO.FH   = $22              ; format enhanced
+SIO.HS   = $3F              ; get the high speed index
+SIO.RP   = $4E              ; read PERCOM
+SIO.WP   = $4F              ; write PERCOM
+SIO.PT   = $50              ; write, not verified
+SIO.RD   = $52              ; read
+SIO.ST   = $53              ; status
+SIO.WT   = $57              ; write, verified
+SIO.SL   = $68              ; drive's SIO code: length
+SIO.SR   = $69              ; drive's SIO code, at DAUX
 ;
-; ICCOM COMMANDS
+; DSTATS: the data's direction
 ;
-ICM.OP   = $03              ;OPEN
-ICM.GT   = $05              ;GET TEXT
-ICM.GB   = $07              ;GET BINARY
-ICM.PT   = $09              ;PUT TEXT
-ICM.PB   = $0B              ;PUT BINARY
-ICM.CL   = $0C              ;CLOSE
-ICM.RN   = $20              ;RENAME
-ICM.ER   = $21              ;ERASE
-ICM.PC   = $23              ;PROTECT
-ICM.UP   = $24              ;UNPROTECT
-ICM.FD   = $FD              ;FORMAT SINGLE
-ICM.FT   = $FE              ;FORMAT
+SIOST.RD = $40              ; from the drive
+SIOST.WT = $80              ; to the drive
 ;
-; ICAX1 OPTIONS
+; ICCOM commands
 ;
-ICAX.RD  = $04              ;READ
-ICAX.DR  = $06              ;DIRECTORY
-ICAX.WT  = $08              ;WRITE
+ICM.OP   = $03              ; open
+ICM.GT   = $05              ; get a line
+ICM.GB   = $07              ; get bytes
+ICM.PT   = $09              ; put a line
+ICM.PB   = $0B              ; put bytes
+ICM.CL   = $0C              ; close
+ICM.RN   = $20              ; rename
+ICM.ER   = $21              ; erase
+ICM.PC   = $23              ; protect
+ICM.UP   = $24              ; unprotect
+ICM.FD   = $FD              ; format single
+ICM.FT   = $FE              ; format
 ;
-; STATUS CODES
+; ICAX1 modes
 ;
-BREAK    = $80              ;BREAK KEY
-ICSTAT.EOF = $88            ;END OF FILE
+ICAX.RD  = $04              ; read
+ICAX.DR  = $06              ; directory
+ICAX.WT  = $08              ; write
+;
+; Status codes
+;
+BREAK    = $80              ; BREAK key
+ICSTAT.EOF = $88            ; end of file

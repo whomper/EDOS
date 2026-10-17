@@ -1,19 +1,15 @@
 #!/usr/bin/env python3
-"""Build SpartaDOS disk images from tools/disk/BASE.ATR.
+"""Build build/EDOSTEST.ATR, the test disk, from tools/disk/BASE.ATR.
 
 BASE.ATR holds the SpartaDOS boot code, SpartaDOS 3.2 (X32G.DOS) and the
-utilities that go on the EDOS disk; nothing EDOS-specific.
+utilities that go on the EDOS disk; nothing EDOS-specific. The test disk
+gets SpartaDOS, build/EDOS.COM and build/EDOS.FNT (the Makefile makes
+both), the test files used by tools/test_commands.py, RUNME.COM and
+TESTPLAN.TXT (manual test steps for the real Atari).
 
-  build/EDOS.FNT      EDOS's character set (xl/tools/font.py), loaded at start
-  build/EDOS.ATR      the EDOS disk: BASE.ATR's files, build/EDOS.COM, EDOS.FNT and
-                      the current sources in MAC/65 tokenized form
-                      (LOAD #D:EDOS.M65)
-  build/EDOSTEST.ATR  bootable test disk: SpartaDOS, EDOS.COM, the test
-                      files used by tools/test_commands.py, RUNME.COM and
-                      TESTPLAN.TXT (manual test steps for the real Atari)
-
-Both are written as fresh file systems (xl/tools/sparta.py) and checked with
-fsck; every file is read back and compared.
+It is written as a fresh file system (xl/tools/sparta.py) and checked with
+fsck; every file is read back and compared. The Makefile makes
+build/EDOS.ATR (xl/tools/atari_src.py disk).
 """
 import os
 import sys
@@ -22,24 +18,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, '..', 'xl', 'tools'))
 import sparta  # noqa: E402
-import mac65tok  # noqa: E402
-from atari_src import numbered  # noqa: E402
-from font import aera_font  # noqa: E402
 from test_commands import PROG, NORUN, TEXT, BIG, binfile  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD = os.path.join(ROOT, 'build')
 SOURCE = os.path.join(ROOT, 'tools', 'disk', 'BASE.ATR')
 DOS = 'X32G.DOS'
-SOURCES = ['EDOS.M65', 'EDOSMAIN.M65', 'EDOSVARS.M65', 'MACROS.M65', 'SYSTEM.M65', 'UTILS.M65', 'CIOSTAT.M65']
-
-
-def tokenized_sources():
-    out = []
-    for name in SOURCES:
-        with open(os.path.join(ROOT, name), encoding='utf-8') as f:
-            out.append((name, mac65tok.tokenize(numbered(f.read()))))
-    return out
 
 # RUNME.COM: INIT stores $5A at $5300; RUN sets the background colour
 # (COLOR4) to red and returns to DOS through DOSVEC.
@@ -210,19 +194,7 @@ def main():
         raise SystemExit(f"{SOURCE}: {DOS} not found")
 
     orig = {n: (d, st) for n, d, st in originals}
-    files = [(DOS,) + orig[DOS]]
-    fnt = aera_font()
-    with open(os.path.join(BUILD, 'EDOS.FNT'), 'wb') as f:
-        f.write(fnt)
-    files.append(('EDOS.COM', edos))
-    files.append(('EDOS.FNT', fnt))
-    files += tokenized_sources()
-    for name, data, stamp in originals:
-        if name in (DOS, 'EDOS.COM') or name in SOURCES:
-            continue
-        files.append((name, data, stamp))
-    make(os.path.join(BUILD, 'EDOS.ATR'), 'EDOS', files, DOS)
-
+    fnt = sparta._read(os.path.join(BUILD, 'EDOS.FNT'))
     test = [(DOS,) + orig[DOS], ('EDOS.COM', edos), ('EDOS.FNT', fnt),
             ('PROG.COM', PROG), ('PROG2.COM', PROG), ('NORUN.COM', NORUN),
             ('TEXT.TXT', TEXT), ('BIG.DAT', BIG), ('RUNME.COM', RUNME),

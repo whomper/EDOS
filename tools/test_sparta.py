@@ -49,18 +49,21 @@ class TestBuiltDisks(unittest.TestCase):
                 self.assertEqual(content(new, n), content(old, n), n)
 
     def test_sources_on_disk_assemble_to_edos_com(self):
-        import make_disks
-        import mac65tok
+        # what MAC/65 LOADs from the disk, taken home again by atari_src.py
+        # check, assembles to EDOS.COM (the Makefile checks it too)
         import subprocess
-        from atari_src import numbered
-        d = sparta.Disk(os.path.join(BUILD, 'EDOS.ATR'))
+        from test_sources import SOURCES, text
+        from atari_src import to_disk, files_of
+        version = subprocess.run([sys.executable, os.path.join(HERE, 'version.py'), '--source'],
+                                 capture_output=True, text=True, check=True).stdout.strip()
+        disk = os.path.join(BUILD, 'EDOS.ATR')
+        on_disk = files_of(disk)
+        for n in SOURCES:
+            self.assertEqual(on_disk[n], to_disk(text(n), n, 'EDOS', version), n)
         with tempfile.TemporaryDirectory() as tmp:
-            for n in make_disks.SOURCES:
-                with open(os.path.join(ROOT, n), encoding='utf-8') as f:
-                    self.assertEqual(content(d, n), mac65tok.tokenize(numbered(f.read())), n)
-                with open(os.path.join(tmp, n), 'w', encoding='utf-8') as f:
-                    f.write(mac65tok.detokenize(content(d, n)))
-            out = os.path.join(tmp, 'EDOS.COM')
+            subprocess.run([sys.executable, '-I', os.path.join(ROOT, 'xl', 'tools', 'atari_src.py'),
+                            'check', disk, '--to', tmp], check=True, capture_output=True)
+            out = os.path.join(tmp, 'CHECK.COM')
             subprocess.run([sys.executable, '-I', os.path.join(ROOT, 'xl', 'tools', 'mac65.py'),
                             os.path.join(tmp, 'EDOS.M65'), '-o', out], check=True,
                            capture_output=True)

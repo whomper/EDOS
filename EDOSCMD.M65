@@ -1,0 +1,613 @@
+;
+; EDOSCMD.M65 - EDOS 3.2
+; Nine commands, View to Copy Files
+; Copyright (C) 2026 AERA | Erez Yaary
+;
+; COMVIE - View File: ask for a file
+; and a hex start offset, then show
+; it $80 bytes at a time from there
+; Exit: JMP GETCOM; FILPOS, BYTRD,
+; ABORT, D0, D1, BUF, FILE changed
+;
+COMVIE
+         @FILLMEM BUF,$FF,$20 ; 255 spaces
+         JSR GETFILESPEC
+; the start offset into FILPOS
+         @PRNTLN FLST,DEL
+         JSR GETADDR
+         @DOCIO DSKID1,ICM.OP,FILE,ICAX.RD
+; read up to the start: FILPOS+1
+; blocks of $100, then FILPOS bytes
+         LDA FILPOS+1
+         BEQ COMVIE_1       ; under $100
+         LDA #$00
+         STA D0
+         LDA #$01
+         STA D1             ; D0/D1 = $0100
+         LDX FILPOS+1
+COMVIE_0
+         @DOCIO DSKID1,ICM.GB,BUF,ICAX.RD,D0,D1 ; X kept
+         CPY #ICSTAT.EOF
+         BEQ COMVIE_3       ; the file is shorter
+         DEX
+         BNE COMVIE_0
+COMVIE_1
+         LDA FILPOS
+         STA D0
+         BEQ COMVIE_2       ; nothing more to skip
+         @DOCIO DSKID1,ICM.GB,BUF,ICAX.RD,D0
+         CPY #ICSTAT.EOF
+         BEQ COMVIE_3
+; read $80 bytes and show them
+COMVIE_2
+         JSR PRNTNL
+         LDA #$80
+         STA D0
+         @DOCIO DSKID1,ICM.GB,BUF,ICAX.RD,D0
+         LDA #$00
+         STA ABORT          ; DSPBIN sets it at EOF
+         LDX #DSKID1
+         LDA ICBLL,X        ; bytes read
+         BEQ COMVIE_3       ; none left
+         STA BYTRD
+         JSR DSPBIN         ; addresses from FILPOS
+         JSR PRNTNL
+         LDA ABORT
+         BNE COMVIE_3       ; under $80: the end
+; view more?
+         @PRNTLN VIMR,DEL
+         JSR YESORMENU      ; not Y: to the menu
+         BEQ COMVIE_2       ; Y
+COMVIE_3
+         @PRNTLN REOF
+         JMP GETCOM
+;
+; COMANA - Analyze Sector: ask for a
+; sector # (decimal) on DSKNUM, show
+; it in hex and text, then + or - for
+; the next or the previous one
+; Exit: JMP GETCOM, or DISKERR on a
+; read error; DENSITY, DAUX1/2, VALUE,
+; SCTR, FILPOS, BYTRD, BUF changed
+;
+COMANA
+         JSR DTCDNS
+         STA DENSITY        ; for the sector size
+         @PRNTLN SCNM,DEL
+         @INPRM SCTR,5      ; 4 digits and EOL
+         JSR GETTEXT
+; BUF = length, digits, EOL; DEC2HEX
+; reads the digits from BUF+1
+         @CPYMEM SCTR,BUF+1
+         DEY
+         STY BUF
+         @INPRM BUF         ; A/Y: BUF, for DEC2HEX
+         JSR DEC2HEX        ; to VALUE
+         JSR PRNTNL
+; not @SETSCT: VALUE is in zero page
+; (<256), which it takes as a literal
+         LDA VALUE
+         STA DAUX1
+         LDA VALUE+1
+         STA DAUX2
+         @FILLMEM BUF,$FF,$00 ; 255 zeros
+COMANA_0
+; size 0: FXSCSZ sets it by DENSITY
+         @DOSIO SIO.RD,SIOST.RD,BUF,$07,$00,$00
+; "Sector: nnnn", the number inverse
+         LDA DAUX1          ; DOSIO makes 0 into 1
+         STA VALUE
+         LDA DAUX2
+         STA VALUE+1
+         LDA # <SCTR
+         LDY # >SCTR
+         JSR BIN2DEC        ; length, digits, EOL
+         LDA #$00
+         STA D0
+         @FILLMEM SECT+$08,$04,$20
+         @CPYMEM SCTR+1,SECT+$08,1,D0,SCTR
+         @PRNTLN SECT
+; its first $80 bytes, addresses from
+; 0
+         LDA #$00
+         STA FILPOS
+         STA FILPOS+1
+         LDA #$80
+         STA BYTRD
+         JSR DSPBIN
+         JSR PRNTNL
+; next (+), previous (-) or the menu?
+COMANA_1
+         @PRNTLN VINP,DEL
+         JSR GETCHR
+         CMP #'+
+         BEQ COMANA_2
+         CMP #'-
+         BEQ COMANA_3
+         JMP GETCOM
+COMANA_2
+         INC DAUX1          ; the next sector
+         BNE COMANA_5
+         INC DAUX2
+         JMP COMANA_5
+COMANA_3
+         LDA DAUX1          ; the previous one
+         BNE COMANA_4
+         LDA DAUX2
+         BEQ COMANA_1       ; sector 0: ask again
+         DEC DAUX2
+COMANA_4
+         DEC DAUX1
+COMANA_5
+         JSR PRNTNL
+         JSR PRNTNL
+         JMP COMANA_0
+;
+; COMCMP - Byte Compare: ask for two
+; files, read both $FF bytes at a
+; time (to M4000, M5000), compare
+; Exit: JMP GETCOM; ABORT, BYTRD, D0,
+; D1, BUF, FILE changed
+;
+COMCMP
+         LDA #$00
+         STA ABORT          ; CHKEOF sets it
+         LDA #$FF
+         STA BYTRD          ; bytes to compare
+; the first file spec into BUF
+         @PRNTLN BCMF,DEL
+         JSR GETSPEC
+         @CPYMEM FILE,BUF
+; the second one stays in FILE
+         @PRNTLN BCMS,DEL
+         JSR GETSPEC
+; open both
+         @DOCIO DSKID1,ICM.OP,BUF,ICAX.RD
+         @DOCIO DSKID2,ICM.OP,FILE,ICAX.RD
+; read $FF bytes of each
+COMCMP_1
+         LDA #$00
+         STA D1
+         LDA #$FF
+         STA D0
+         @DOCIO DSKID1,ICM.GB,M4000,ICAX.RD,D0,D1
+         LDX #DSKID1
+         JSR CHKEOF
+         @DOCIO DSKID2,ICM.GB,M5000,ICAX.RD,D0,D1
+         LDX #DSKID2
+         JSR CHKEOF
+; compare the BYTRD bytes both read
+         LDX #$00
+COMCMP_2
+         LDA M4000,X
+         CMP M5000,X
+         BNE COMCMP_3
+         INX
+         CPX BYTRD
+         BNE COMCMP_2
+         LDA ABORT
+         BEQ COMCMP_1       ; no EOF: the next block
+COMCMP_4
+         @PRNTLN BSAM       ; the same
+         JMP GETCOM
+COMCMP_3
+         @PRNTLN BDIF       ; different
+         JMP GETCOM
+;
+; CHKEOF - after a Byte Compare read:
+; ABORT = 1 at EOF, BYTRD = the bytes
+; read if fewer
+; X: the IOCB, Y: the CIO status
+; Exit: RTS; A, ABORT, BYTRD changed
+;
+CHKEOF
+         CPY #ICSTAT.EOF
+         BNE CHKEOF_1
+         LDA #$01
+         STA ABORT
+CHKEOF_1
+         LDA ICBLL,X
+         CMP BYTRD          ; the fewest bytes read
+         BCS CHKEOF_2
+         STA BYTRD
+CHKEOF_2
+         RTS
+;
+; COMMEM - Memory Status: show MEMLO
+; and MEMTOP, ask for an address, then
+; show memory $80 bytes at a time, +
+; or - for the next or previous ones
+; Exit: JMP GETCOM; FILPOS, BYTRD,
+; INDPTR, BUF, FILE changed
+;
+COMMEM
+; "LOW: xxxx  HIGH: xxxx" in FILE
+         @CPYMEM MEMS,FILE
+         LDY #$04           ; MEMLO at FILE+4
+         LDA MEMLO+1
+         JSR HEXOUT
+         LDA MEMLO
+         JSR HEXOUT
+         LDY #$0F           ; MEMTOP at FILE+$0F
+         LDA MEMTOP+1
+         JSR HEXOUT
+         LDA MEMTOP
+         JSR HEXOUT
+; the address to show, in FILPOS
+         @PRNTLN GOTA,DEL
+         JSR GETADDR
+;
+         @PRNTLN FILE
+         JSR PRNTNL
+; $80 bytes from FILPOS to BUF; BYTRD
+; set each time, as DSPBIN (and Byte
+; Compare) leave less in it
+COMMEM_1
+         LDA #$80
+         STA BYTRD
+         LDY #$00
+         LDA FILPOS
+         STA INDPTR
+         LDA FILPOS+1
+         STA INDPTR+1
+COMMEM_2
+         LDA (INDPTR),Y
+         STA BUF,Y
+         INY
+         BPL COMMEM_2
+;
+         JSR DSPBIN         ; FILPOS moves on $80
+; next (+), previous (-) or the menu?
+         @PRNTLN VINP,DEL
+         JSR GETCHR
+         CMP #'+
+         BEQ COMMEM_6
+         CMP #'-
+         BEQ COMMEM_4
+         JMP GETCOM
+COMMEM_4
+         LDA FILPOS+1       ; previous: back $100
+         BNE COMMEM_5
+         LDA #$00           ; under $100: from 0
+         STA FILPOS
+         BEQ COMMEM_6       ; always
+COMMEM_5
+         DEC FILPOS+1
+COMMEM_6
+         JSR PRNTNL
+         JSR PRNTNL
+         JMP COMMEM_1
+;
+; COMNEW - New Drive: check the drives
+; and ask for a drive #; a connected
+; one becomes the default drive
+; Exit: JMP GETCOM, or NLMENU if it is
+; not there; DSKNUM, DISK+1, D0
+; changed
+;
+COMNEW
+         JSR CHKANDUPDSTATBAR
+         @PRNTLN DRVN,DEL
+         JSR GETCHR         ; the drive # key
+; in DRIVES? bit n-1 is drive n
+         STA D0
+         SEC
+         SBC #$30           ; key to drive #
+         TAX
+         LDA #$00
+         SEC
+COMNEW_1
+         ROL A              ; C=1 the first time
+         DEX
+         CLC
+         BNE COMNEW_1
+         AND DRIVES
+         BEQ COMNEWERR      ; not connected
+         LDA D0
+         STA DISK+1         ; the default spec's Dn:
+         @RMASCII
+         STA DSKNUM
+         JSR UPDSTATBAR
+         JMP GETCOM
+COMNEWERR
+         JMP NLMENU
+;
+; PRPEXT - before leaving EDOS: the
+; ROM font, DOS's DOSINI back from
+; DOSIN, the IOCBs closed
+; Exit: RTS (from CLOSEIO); A, X, Y
+; changed
+;
+PRPEXT
+         LDA #$E0           ; ROM font, for DOS/program
+         STA CHBAS
+         LDA DOSIN
+         STA DOSINI
+         LDA DOSIN+1
+         STA DOSINI+1
+         JMP CLOSEIO
+;
+; COMQIT - Quit to DOS
+; Exit: JMP (DOSVEC), after PRPEXT
+;
+COMQIT
+         JSR PRNTNL
+         JSR PRPEXT
+         JMP (DOSVEC)
+;
+; COMDIG - digit key 1-8 at the menu:
+; the directory of that drive
+; A: the key (an ASCII digit)
+; Exit: on to COMDIR_1; INP1, FILE
+; changed
+;
+COMDIG
+         STA INP1           ; "n:" in INP1
+         LDA #':
+         STA INP1+1
+         LDA #EOL
+         STA INP1+2
+         JSR PROCFILESPEC   ; FILE = Dn: and ARGS
+         JSR PRNTNL
+         JMP COMDIR_1
+;
+; COMDIR - Files on Disk: ask for a
+; spec, list its directory in two
+; columns, then the number of files
+; Exit: JMP NLMENU; FILE, INP1, BUF,
+; COUNT, VALUE, NUMF+$11 on changed
+;
+COMDIR
+         JSR GETFILESPEC
+COMDIR_1
+         @DOCIO DSKID1,ICM.OP,FILE,ICAX.DR
+         JSR READIR
+         JSR PRNTNL
+; COUNT in decimal after "Number of
+; files: "
+         LDA COUNT
+         STA VALUE
+         LDA #$00
+         STA VALUE+1
+         LDA # <INP1
+         LDY # >INP1
+         JSR BIN2DEC        ; length, digits, EOL
+         @CPYMEM INP1+1,NUMF+$11 ; over its EOL
+;
+         @PRNTLN NUMF
+         JMP NLMENU
+;
+; COMCAR - To Cartridge: run the left
+; cartridge, if there is one
+; Exit: JMP ($BFFA) after PRPEXT, or
+; JMP GETCOM if there is none
+;
+COMCAR
+         LDA TRAMSZ         ; 1: the OS found one
+         CMP #$01
+         BEQ CAR.A
+         JMP GETCOM         ; no cartridge
+CAR.A
+         JSR PRPEXT
+         JMP ($BFFA)
+;
+; COMCPY - Copy Files: ask for a spec
+; and a target drive (1-8, or Y for
+; the source drive), then FILCPY each
+; file in the spec's directory
+; Exit: JMP NLMENU at the end of the
+; directory or on any other key;
+; TMPDSK, NUM2CNV, FILE, INP1, D0 and
+; D1 changed
+;
+COMCPY
+         LDA DSKNUM         ; the default drive
+         @MKASCII
+         STA TMPDSK
+;
+         JSR GETFILESPEC
+         LDA FILE+1         ; keep the source drive
+         STA NUM2CNV
+         @PRNTLN INST,DEL
+         JSR GETCHR
+         CMP #'Y
+         BNE COMCPY_0
+         LDA NUM2CNV        ; Y: the source drive
+         BNE COMCPY_1       ; always
+COMCPY_0
+         CMP #'1
+         BCC COMCPY_4       ; not 1-8: the menu
+         CMP #'9
+         BCS COMCPY_4
+COMCPY_1
+         STA TMPDSK         ; the target drive
+COMCPY_2
+         JSR PRNTNL
+         JSR PRNTNL
+         @DOCIO DSKID1,ICM.OP,FILE,ICAX.DR
+; a directory line: lock, space, name
+; (8), ext (3), sectors, EOL ($12)
+COMCPY_3
+         LDA #$12
+         STA D0
+         @DOCIO DSKID1,ICM.GB,FILE,ICAX.DR,D0
+         CPY #$80
+         BCS COMCPY_4       ; EOF: done
+; "NAME    .EXT" in INP1
+         LDA #$00
+         STA D0
+         LDA #$08
+         STA D1
+         @CPYMEM FILE+$02,INP1,0,D0,D1
+         LDA #'.
+         STA INP1+$08
+         LDA #$09
+         STA D0
+         LDA #$03
+         STA D1
+         @CPYMEM FILE+$0A,INP1,0,D0,D1
+         LDA #EOL
+         STA INP1+$0C
+         JSR PROCFILESPEC   ; FILE = Dn: and INP1
+         LDA NUM2CNV        ; the source drive back
+         STA FILE+1
+;
+         JSR TRIMSP
+         JSR FILCPY
+         JMP COMCPY_3
+COMCPY_4
+         JMP NLMENU
+;
+; FILCPY - copy the file FILE to drive
+; TMPDSK: read it into the extended
+; banks, 16K each (green), then write
+; them out (red). One drive (TMPDSK =
+; NUM2CNV): asks for each disk
+; Exit: RTS, the main bank in; ACVMEM,
+; COUNT, VALUE, BUF, FILE+1 changed.
+; No extended memory, or too big:
+; FILCPY_NM, to GETCOM
+;
+FILCPY
+; needs extended memory to copy
+         LDA NUMBKS
+         BNE FILCPY_0
+         JMP FILCPY_NM
+FILCPY_0
+         @COLGRN
+         LDA #$01
+         STA ACVMEM
+         TAX
+         LDA BANKS,X        ; the first extended bank
+         STA PORTB
+; "-" and the file name
+         LDA #'-
+         STA BUF
+         @CPYMEM FILE,BUF+1
+         LDA #DEL
+         STA BUF,Y          ; over its EOL
+         @PRNTLN BUF,DEL
+         @DOCIO DSKID2,ICM.OP,FILE,ICAX.RD
+; read 16K blocks into the banks
+FILCPY_1
+         LDA #$00
+         STA D0
+         LDA #$40
+         STA D1             ; D0/D1 = $4000
+;
+         @DOCIO DSKID2,ICM.GB,M4000,ICAX.RD,D0,D1
+; a full bank read?
+         LDX #DSKID2
+         LDA ICBLL,X
+         BNE FILCPY_4
+         LDA ICBLH,X
+         CMP #$40
+         BNE FILCPY_4
+; then the next bank, if we have one
+         INC ACVMEM
+         LDX ACVMEM
+         CPX #$11           ; the end of BANKS
+         BCS FILCPY_2
+         CPX NUMBKS
+         BEQ FILCPY_3
+         BCC FILCPY_3
+FILCPY_2
+         JMP FILCPY_NM      ; too big
+FILCPY_3
+         LDA BANKS,X
+         STA PORTB
+         BNE FILCPY_1       ; always
+FILCPY_4
+; keep the bytes read into the last
+         LDA ICBLL,X
+         STA VALUE
+         LDA ICBLH,X
+         STA VALUE+1
+;
+         @CLOSEIO DSKID2
+         LDA BANKS
+         STA PORTB          ; main bank for the prompts
+; one drive? ask for the target disk
+         LDA TMPDSK
+         CMP NUM2CNV
+         BNE FILCPY_4_5
+         @PRNTLN WFTR,DEL
+         JSR YESORMENU      ; not Y: to the menu
+         JSR PRNTNL
+FILCPY_4_5
+; open the copy for writing
+         @COLRED
+         LDA ACVMEM
+         STA COUNT          ; banks used
+         LDA TMPDSK
+         STA FILE+1         ; on the target drive
+;
+         @DOCIO DSKID2,ICM.OP,FILE,ICAX.WT
+         LDA #$01
+         STA ACVMEM
+FILCPY_5
+         LDX ACVMEM
+         LDA BANKS,X
+         STA PORTB
+; a full bank, the kept length for the
+; last one
+         LDA #$00
+         STA D0
+         LDA #$40
+         STA D1
+         CPX COUNT          ; the last bank?
+         BNE FILCPY_7
+         LDA VALUE
+         STA D0
+         LDA VALUE+1
+         STA D1
+FILCPY_7
+         @DOCIO DSKID2,ICM.PB,M4000,ICAX.WT,D0,D1
+         LDA ACVMEM
+         CMP COUNT
+         BEQ FILCPY_8
+         INC ACVMEM
+         BNE FILCPY_5       ; always
+FILCPY_8
+         @CLOSEIO DSKID2
+         LDA BANKS
+         STA PORTB          ; the main bank back
+         JSR PRNTNL
+; one drive? ask for the source disk
+         LDA TMPDSK
+         CMP NUM2CNV
+         BNE FILCPY_9
+         @PRNTLN INSS,DEL
+         JSR YESORMENU
+         JSR PRNTNL
+FILCPY_9
+         RTS
+; no extended memory, or the file is
+; too big for it
+FILCPY_NM
+         LDA BANKS
+         STA PORTB
+         @PRNTLN NOMM
+         JMP GETCOM
+;
+; TRIMSP - take the spaces out of the
+; spec in FILE (through INP1)
+; Exit: RTS; FILE trimmed, INP1, A, X
+; changed; Y: its length with the EOL
+;
+TRIMSP
+         LDX #$00
+         LDY #$00
+TRIMSP_1
+         LDA FILE,X
+         CMP #$20
+         BEQ TRIMSP_2
+         STA INP1,Y
+         INY
+TRIMSP_2
+         INX
+         CMP #EOL
+         BNE TRIMSP_1
+         @CPYMEM INP1,FILE
+         RTS
+;

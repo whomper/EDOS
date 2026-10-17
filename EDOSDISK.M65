@@ -1,0 +1,602 @@
+;
+; EDOSDISK.M65 - EDOS 3.2
+; The disk commands, Save and Go To
+; Copyright (C) 2026 AERA | Erez Yaary
+;
+; Duplicate Disk, Erase, Initialize,
+; Protect, Unprotect, Rename, Write
+; EDOS, Save Binary and Go To Address
+;
+; COMDUP - Duplicate Disk: read the
+; whole source disk (DSKNUM) into the
+; extended banks, then write it to a
+; target drive, the same or another,
+; formatting the target first if its
+; density is not the source's
+; Exit: to NLMENU, back on the source
+; drive (DSKNUM and DISK restored)
+;
+COMDUP
+         @COLGRN
+         @PRNTLN INSS,DEL
+         JSR YESORMENU      ; only Y goes on
+         @PRNTLN DLLN,DEL
+; The source density into DENSITY,
+; its name into DUPS+$0B and the
+; number of banks it needs into A
+         JSR DTCDNS
+         STA DENSITY
+         ASL A
+         ASL A
+         ASL A              ; names are 8 apart
+         TAY
+         LDX #$00
+COMDUP_1
+         LDA DSNG-8,Y
+         STA DUPS+$0B,X
+         INY
+         INX
+         CPX #$07           ; 7 characters
+         BNE COMDUP_1
+         LDX DENSITY
+         LDA DUPBNK-1,X
+; Enough extended memory?
+COMDUP_3
+         CMP NUMBKS
+         BEQ COMDUP_3_5     ; an exact fit is fine
+         BCC COMDUP_3_5
+         JMP COMDUP_7       ; not enough memory
+COMDUP_3_5
+         @PRNTLN DUPS,DEL
+         JSR RSTSCTCNT
+; Read the source
+         LDA DSKNUM
+         STA TMPDSK         ; keep the source drive
+         LDA #$04
+         STA COLCRS
+         @PRNTLN MODR,DEL
+         LDA #SIO.RD
+         JSR DSKCPY
+; Ask for the target drive
+         @COLRED
+         JSR PRNTNL
+         JSR PRNTNL
+         @PRNTLN INST,DEL
+         JSR GETCHR
+         CMP #'Y
+         BEQ COMDUP_5       ; Y: the same drive
+         CMP #'1
+         BCC COMDUP_6       ; not 1-8: no write
+         CMP #'9
+         BCS COMDUP_6
+; 1-8: the target becomes the drive
+         STA DISK+1
+         @RMASCII
+         STA DSKNUM
+; Same density as the source?
+COMDUP_5
+         @HIDCUR
+         @PRNTLN DELL,DEL
+         JSR RESETFIO       ; target's fast SIO
+         JSR DTCDNS
+         CMP DENSITY
+         BEQ COMDUP_4
+; No: format it to the source density
+         LDA #$04
+         STA COLCRS
+         @PRNTLN MODF,DEL
+         JSR CLRDUPDSP
+         JSR DOINIT
+; Write the target
+COMDUP_4
+         JSR RSTSCTCNT
+         LDA #$04
+         STA COLCRS
+         @PRNTLN MODW,DEL
+         LDA #SIO.WT
+         JSR DSKCPY
+COMDUP_6
+; Back to the source drive
+         LDA TMPDSK
+         STA DSKNUM
+         @MKASCII
+         STA DISK+1
+;
+         @SHWCUR
+         @COLDEF
+         JMP NLMENU
+COMDUP_7
+         @PRNTLN NOMM
+         JMP NLMENU
+;
+; DSKCPY - copy the whole disk in
+; DSKNUM to or from the extended
+; banks, sector by sector from sector
+; 1, at $4000 in bank 1 on, showing
+; the sector count and memory used
+; A: SIO.RD (disk to memory) or SIO.WT
+; (memory to disk). DENSITY: 1-3
+; Exit: PORTB back on the main bank
+; (BANKS), cursor shown; A, X, Y, D2,
+; ACVMEM, the DCB, SCTR and MEMD
+; changed. A disk error goes to
+; DISKERR (in CALLSIO)
+;
+DSKCPY
+         STA D2             ; SIO.RD or SIO.WT
+; Extended memory: start at bank 1
+         @HIDCUR
+         LDA #$01
+         STA ACVMEM
+         JSR BNK2DEC        ; 16K into MEMD
+         LDX #$01
+         LDA BANKS,X        ; the first bank
+         STA PORTB
+; The drive: its fast SIO code, if it
+; has one, then the DCB for sector 1
+         JSR READFIO
+         LDA #$31           ; disk drive
+         STA DDEVIC
+         LDA D2
+         STA DCOMND
+         LDA DSKNUM
+         STA DUNIT
+         LDA # <M4000       ; the bank window
+         STA DBUFLO
+         LDA # >M4000
+         STA DBUFHI
+         LDA #$07
+         STA DTIMLO
+         @SETSCT $01,$00
+; Read or write?
+DSKCPY_2
+         LDA DCOMND
+         CMP #SIO.RD
+         BEQ DSKCPY_3
+         LDA #SIOST.WT
+         BNE DSKCPY_4       ; always
+DSKCPY_3
+         LDA #SIOST.RD
+; One sector
+DSKCPY_4
+         STA DSTATS
+         JSR CALLSIO        ; sets its size
+         JSR UPDDUPDSP
+         JSR INCSCTCNT
+; Move the buffer on. Double: a page
+; per sector (sectors 1-3 too), so no
+; sector crosses $8000
+         LDA DENSITY
+         CMP #$03
+         BNE DSKCPY_SD
+         INC DBUFHI
+         LDA DBUFHI
+         BNE DSKCPY_CHK     ; always
+DSKCPY_SD
+         CLC                ; + the sector size
+         LDA DBUFLO
+         ADC DBYTLO
+         STA DBUFLO
+         LDA DBUFHI
+         ADC DBYTHI
+         STA DBUFHI
+DSKCPY_CHK
+         CMP #$80
+         BNE DSKCPY_5       ; still in the window
+; The window is full: back to $4000 in
+; the next bank
+         LDA # >M4000
+         STA DBUFHI
+         INC ACVMEM
+         LDA ACVMEM
+         JSR BNK2DEC        ; MEMD: banks x 16K
+         LDA ACVMEM
+         TAX
+         LDA BANKS,X
+         STA PORTB
+; Next sector
+DSKCPY_5
+         INC DAUX1
+         BNE DSKCPY_6
+         INC DAUX2
+DSKCPY_6
+; Done? Stop at sector 721 ($2D1),
+; enhanced at 1041 ($411)
+         LDX #$02
+         LDY #$D1
+         LDA DENSITY
+         CMP #$02
+         BNE DSKCPY_7
+         LDX #$04
+         LDY #$11
+DSKCPY_7
+         CPX DAUX2
+         BNE DSKCPY_9
+         CPY DAUX1
+         BNE DSKCPY_9
+DSKCPY_8
+         @SHWCUR
+         LDA BANKS
+         STA PORTB          ; the main bank
+         RTS
+DSKCPY_9
+         JMP DSKCPY_2
+;
+; CLRDUPDSP - blank the sector count
+; and memory fields of the Duplicate
+; line (columns $17 and $1E)
+; Exit: A and COLCRS changed
+;
+CLRDUPDSP
+         LDA #$17
+         STA COLCRS
+         @PRNTLN DUPE,DEL
+         LDA #$1E
+         STA COLCRS
+         @PRNTLN DUPE,DEL
+         RTS
+;
+; UPDDUPDSP - show the sector count
+; (SCTR) and the memory used (MEMD)
+; on the Duplicate line
+; Exit: A and COLCRS changed
+;
+UPDDUPDSP
+         LDA #$17
+         STA COLCRS
+         @PRNTLN SCTR,DEL
+         LDA #$1E
+         STA COLCRS
+         @PRNTLN MEMD+1,DEL
+         RTS
+;
+; SETDRVSTAT - set the drive in DSKNUM
+; to a density: send its block from
+; SNGL, ENHA or DBLE with SIO.WP
+; (errors are let pass, in CALLSIO)
+; A: 1 single, 2 enhanced, 3 double;
+; anything else does nothing
+; Exit: BUF holds the block; A, X, Y
+; and the DCB changed
+;
+SETDRVSTAT
+         TAX
+         DEX
+         CPX #$03
+         BCS SETDRVSTAT_2   ; not 1-3
+         LDA PERCOFS,X      ; offset from SNGL
+         TAX
+         LDY #$00
+SETDRVSTAT_1
+         LDA SNGL,X         ; $12 bytes from it
+         STA BUF,Y
+         INX
+         INY
+         CPY #$12
+         BNE SETDRVSTAT_1
+         @DOSIO SIO.WP,SIOST.WT,BUF,$07,$0B,$00
+SETDRVSTAT_2
+         RTS
+;
+; FRMTDRV - format the disk in DSKNUM
+; with SIO
+; A: 2 enhanced (SIO.FH), else the
+; drive's density (SIO.FT)
+; Exit: BUF holds the drive's reply
+; (the bad sector list); A = DSTATS.
+; An error goes to DISKERR
+;
+FRMTDRV
+         CMP #$02
+         BNE FRMTDRV_1
+         @DOSIO SIO.FH,SIOST.RD,BUF,$E0,$80,$00
+         RTS
+FRMTDRV_1
+         @DOSIO SIO.FT,SIOST.RD,BUF,$E0,$80,$00
+         RTS
+;
+; COMERA - Erase Files: ask for a file
+; spec, confirm, erase it with CIO
+; Exit: to GETCOM
+;
+COMERA
+         JSR GETFILESPEC
+         JSR AREYOUSURE     ; returns only on Y
+         JSR PRNTNL
+         @DOCIO DSKID1,ICM.ER,FILE,0
+         JMP GETCOM
+;
+; COMINI - Initialize Disk: ask for
+; the density, confirm, then format
+; the disk in DSKNUM (DOINIT)
+; Exit: to NLMENU
+;
+COMINI
+         @PRNTLN FMTD,DEL
+         JSR GETCHR
+         @RMASCII
+         STA DENSITY        ; not checked
+         JSR PRNTNL
+         JSR PRNTNL
+;
+         @COLRED
+         LDA DSKNUM
+         @MKASCII
+         STA FRMT+$0C       ; the drive digit
+         @PRNTLN FRMT,DEL
+         @PRNTLN ARYS,DEL
+         JSR YESORMENU
+         JSR DOINIT
+         JMP NLMENU
+;
+; DOINIT - format the disk in DSKNUM
+; Single or double: set the drive
+; (SETDRVSTAT), then DOS formats it
+; with CIO. Enhanced: the drive
+; formats it with SIO, and WRTVTOC
+; writes the DOS 2.5 VTOCs
+; DENSITY: 1 single, 2 enhanced,
+; 3 double
+; Exit: A, X, Y, BUF and the DCB
+; changed. An error goes to DISKERR
+;
+DOINIT
+         LDA DENSITY
+         CMP #$02
+         BEQ DOINIT_1
+; Single or double
+         JSR SETDRVSTAT
+         @DOCIO DSKID1,ICM.FT,DISK,0
+         RTS
+DOINIT_1
+         LDA #$02           ; enhanced
+         JSR FRMTDRV
+; Fall into WRTVTOC
+;
+; WRTVTOC - write the VTOC (sector
+; 360) and VTOC2 (sector 1024) of an
+; empty enhanced disk to DSKNUM: 1010
+; sectors free; 0-3, 360-368 and 720
+; in use
+; Exit: A, X, Y, BUF and the DCB
+; changed
+;
+WRTVTOC
+; The VTOC: VTOC gives type 2, 1010
+; sectors, 1010 free, and the bitmap
+; byte of sectors 0-7; then the map
+         @CPYMEM VTOC,BUF
+         @FILLMEM BUF+11,$58,$FF
+         LDA #$00
+         STA BUF+55         ; 360-367 in use
+         LDA #$7F
+         STA BUF+56         ; and 368
+         @FILLMEM BUF+$64,$1C,$00
+         LDA #$68
+         LDY #$01
+         JSR WRTSCT         ; sector $168
+; VTOC2: bytes 0-83 repeat the map of
+; sectors 48-719, bytes 84-121 map
+; sectors 720-1023
+         @FILLMEM BUF,$80,$FF
+         LDA #$00
+         STA BUF+39         ; 360-367 in use
+         LDA #$7F
+         STA BUF+40         ; and 368
+         STA BUF+84         ; and 720
+         LDA #$2F
+         STA BUF+122        ; $12F (303) free
+         LDA #$01
+         STA BUF+123        ; above sector 719
+         LDA #$00
+         STA BUF+124
+         STA BUF+125
+         STA BUF+126
+         STA BUF+127
+;
+         LDA #$00
+         LDY #$04
+         JMP WRTSCT         ; sector $400
+;
+; COMPRC - Protect Files: ask for a
+; file spec, lock it with CIO
+; Exit: to GETCOM
+;
+COMPRC
+         JSR GETFILESPEC
+         @DOCIO DSKID1,ICM.PC,FILE,0
+         JMP GETCOM
+;
+; COMUNP - Unprotect Files: ask for a
+; file spec, unlock it with CIO
+; Exit: to GETCOM
+;
+COMUNP
+         JSR GETFILESPEC
+         @DOCIO DSKID1,ICM.UP,FILE,0
+         JMP GETCOM
+;
+; COMREN - Rename Files: ask for the
+; old file spec and the new name,
+; confirm, then rename with CIO; BUF
+; holds "Dn:OLD,NEW"
+; Exit: to GETCOM
+;
+COMREN
+; The old spec into BUF, a comma over
+; its EOL
+         @PRNTLN RENO,DEL
+         JSR GETSPEC
+         @CPYMEM FILE,BUF   ; Y: length with EOL
+         DEY
+         LDA #',
+         STA BUF,Y
+         INY
+         STY D2             ; the new name goes here
+; The new name after it
+         @PRNTLN RENN,DEL
+         JSR GETINP1
+         @CPYMEM INP1,BUF,0,D2
+         JSR AREYOUSURE     ; returns only on Y
+         JSR PRNTNL
+         @PRNTLN BUF
+; Rename
+         @DOCIO DSKID1,ICM.RN,BUF,0
+         JMP GETCOM
+;
+; COMWRT - Write EDOS: confirm, then
+; save EDOS itself (START_PROG to
+; END_PROG-1, run at PRE_START) as
+; EDOS.COM on the current drive
+; Exit: to GETCOM, through DOSAVE
+;
+COMWRT
+         JSR AREYOUSURE     ; returns only on Y
+         @CPYMEM EDOS,INP1
+         JSR PROCFILESPEC
+         LDA # <START_PROG
+         STA FILPOS
+         LDA # >START_PROG
+         STA FILPOS+1
+         LDA # <END_PROG
+         STA FILEND
+         LDA # >END_PROG
+         STA FILEND+1
+         DEC FILEND         ; last byte: END_PROG-1
+         LDA # <PRE_START
+         STA RUNADR
+         LDA # >PRE_START
+         STA RUNADR+1
+         JMP DOSAVE
+;
+; COMSAV - Save Binary: ask for a file
+; spec and the start, end and run
+; addresses in hex, check them, then
+; save (DOSAVE)
+; Exit: to GETCOM, through DOSAVE or
+; after "Invalid address!"
+;
+COMSAV
+         JSR GETFILESPEC
+; The start: its text into BUF, its
+; length into SAVLEN
+         @PRNTLN FLST,DEL
+         @INPRM BUF
+         JSR GETTEXT
+         STY SAVLEN         ; start's length
+; The end into FILEND
+         @PRNTLN FLED,DEL
+         JSR GETINP1
+         STY SAVLEN+1       ; end's length
+         JSR INP2ADDR
+         LDA FILPOS
+         STA FILEND
+         LDA FILPOS+1
+         STA FILEND+1
+; The run address into RUNADR (none:
+; 0)
+         @PRNTLN FLRN,DEL
+         @INPRM INP1,7
+         JSR GETTEXT
+         JSR INP2ADDR
+         LDA FILPOS
+         STA RUNADR
+         LDA FILPOS+1
+         STA RUNADR+1
+; Start and end need 2 hex digits or
+; more
+         LDA SAVLEN
+         CMP #$02
+         BCC COMSAV_1
+         LDA SAVLEN+1
+         CMP #$02
+         BCC COMSAV_1
+; The start into FILPOS
+         @CPYMEM BUF,INP1
+         LDY SAVLEN
+         JSR INP2ADDR
+; End >= start?
+         LDA FILEND
+         CMP FILPOS
+         LDA FILEND+1
+         SBC FILPOS+1
+         BCS DOSAVE         ; yes: save
+COMSAV_1
+         @PRNTLN BADR
+         JMP GETCOM
+;
+; DOSAVE - save memory as a binary
+; file: the $FFFF header, the data,
+; and a RUNAD segment if there is a
+; run address
+; FILE: the file spec. FILPOS: start,
+; FILEND: end (included). RUNADR: run
+; address, 0 for none
+; Exit: to GETCOM, which closes the
+; file. An error goes to DISKERR
+;
+DOSAVE
+; The header: $FF $FF, start, end
+         LDA #$FF
+         STA BUF
+         STA BUF+1
+         LDA FILPOS
+         STA BUF+2
+         LDA FILPOS+1
+         STA BUF+3
+         LDA FILEND
+         STA BUF+4
+         LDA FILEND+1
+         STA BUF+5
+         @DOCIO DSKID1,ICM.OP,FILE,ICAX.WT
+         LDA #$06
+         STA D0             ; 6 bytes
+         @DOCIO DSKID1,ICM.PB,BUF,ICAX.WT,D0
+; The data: FILLEN bytes from FILPOS
+         JSR CALCLEN
+         @DOCIO DSKID1,ICM.PB,FILPOS,ICAX.WT,FILLEN,FILLEN+1,1
+; A run address? Then a segment that
+; loads it into RUNAD ($02E0-$02E1)
+         LDA RUNADR
+         ORA RUNADR+1
+         BEQ DOSAVE_1       ; no run address
+         LDA #$E0
+         STA BUF
+         LDA #$02
+         STA BUF+1
+         LDA #$E1
+         STA BUF+2
+         LDA #$02
+         STA BUF+3
+         LDA RUNADR
+         STA BUF+4
+         LDA RUNADR+1
+         STA BUF+5
+         LDA #$06
+         STA D0             ; 6 bytes
+         @DOCIO DSKID1,ICM.PB,BUF,ICAX.WT,D0
+DOSAVE_1
+         JMP GETCOM
+;
+; COMGOT - Go To Address: ask for a
+; hex address, put the system back as
+; for a program (PRPEXT: ROM font,
+; DOSINI, IOCBs closed), jump there
+; Exit: JMP to the address
+;
+COMGOT
+         @PRNTLN GOTA,DEL
+         JSR GETADDR
+         JSR PRPEXT
+         JMP (FILPOS)
+;
+; AREYOUSURE - red screen, ask "Are
+; You Sure?", then YESORMENU
+; Exit: only on Y (A = 'Y', Z = 1);
+; any other key goes to the menu
+;
+AREYOUSURE
+         @COLRED
+         @PRNTLN ARYS,DEL
+         JMP YESORMENU
+;

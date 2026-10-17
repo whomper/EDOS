@@ -1,29 +1,38 @@
-;UTILS.M65, V. 3.2 | UTILITIES | DISPLAYS BYTRD ($80 MAX) BYTES OF BUF
-;Copyright (C) 2026 AERA | Erez Yaary
-;8 PER ROW FROM ADDRESS FILPOS | FILE-PRINTED LINE | ABORT=1 IF <$80
+;
+; UTILS.M65 - EDOS 3.2
+; Screen, input, SIO and CIO routines
+; Copyright (C) 2026 AERA | Erez Yaary
+;
+; DSPBIN - show BYTRD bytes of BUF (up
+; to $80), 8 a row with the address
+; (FILPOS), under DRWHDR's header
+; Exit: FILPOS past them; ABORT = 1 if
+; BYTRD was under $80 (end of file);
+; A, X, Y, D0-D2, BYTRD, FILE changed
+;
 DSPBIN
          @SHWCHR
          LDA BYTRD
-         BMI DSPBIN_0       ;$80: A FULL BLOCK
-         LDA #$01           ;EOF REACHED
+         BMI DSPBIN_0       ;$80: a full block
+         LDA #$01           ;fewer: end of file
          STA ABORT
 DSPBIN_0
          JSR DRWHDR
          LDX #$00
 DSPBIN_1
-         @FILLMEM FILE,$28,$20 ;CLEAR LINE
+         @FILLMEM FILE,$28,$20
          LDA #EOL
          STA FILE+$25
-; LOCATION
          LDY #$00
-         STY D2             ;CHAR COLUMN
+         STY D2             ;character column
          LDA FILPOS+1
          JSR HEXOUT
          LDA FILPOS
          JSR HEXOUT
          LDA #'-
          STA FILE,Y
-;8 BYTES: HEX AT FILE+5+3*N, CHAR AT FILE+$1D+N
+; a byte: hex at FILE+5+3*N, the
+; character at FILE+$1D+N
 DSPBIN_2
          INY
          LDA BUF,X
@@ -33,24 +42,23 @@ DSPBIN_2
          LDA BUF,X
          CMP #EOL
          BNE DSPBIN_3
-         LDA #$00           ;EOL->ZERO
+         LDA #$00           ;EOL would end the row
 DSPBIN_3
-         STA FILE+$1D,Y     ;CHAR
+         STA FILE+$1D,Y
          INY
          STY D2
          LDY D1
          INX
-         INC FILPOS         ;NEXT ADDRESS
+         INC FILPOS
          BNE DSPBIN_3_5
          INC FILPOS+1
 DSPBIN_3_5
          DEC BYTRD
-         BEQ DSPBIN_4       ;MXD READ CHRS?
+         BEQ DSPBIN_4       ;all shown
          TXA
-         AND #$07           ;ROW FULL?
+         AND #$07           ;row full?
          BNE DSPBIN_2
          @PRNTLN FILE
-; NEW ROW?
          CPX #$80
          BNE DSPBIN_1
          BEQ DSPBIN_5
@@ -60,7 +68,11 @@ DSPBIN_5
          @HIDCHR
          RTS
 ;
-;DRAW HEADER LINE USING FILPOS
+; DRWHDR - print the column header, 00
+; to 07 over the hex columns, and a
+; line under it (into DRAW)
+; Exit: as DRAW; FILE changed
+;
 DRWHDR
          @FILLMEM FILE,$28,$20
          LDX #$00
@@ -75,16 +87,19 @@ DRWHDR_1
          LDA #EOL
          STA FILE,Y
          @PRNTLN FILE
-;
          LDA #CHL
          LDX #$05
-         LDY #$17           ;FALL INTO DRAW
+         LDY #$17           ;into DRAW
 ;
-;DRAWS A LINE | A-CHAR, INP1-BUF | X-POS, Y-LEN | SPACES BEFORE X-POS
+; DRAW - print a line in INP1: X
+; spaces, then Y (1 or more) times the
+; character in A (@DRAW)
+; Exit: Y kept; A, X, D0 changed
+;
 DRAW
          PHA
          STX D0
-         LDA #$20           ;BLANK 0..POS-1
+         LDA #$20           ;spaces 0..X-1
          LDX #$00
 DRAW_0
          CPX D0
@@ -108,7 +123,10 @@ DRAW_1
          @PRNTLN INP1
          RTS
 ;
-;RESETS A 4 DIGITS | DECIMAL COUNTER
+; RSTSCTCNT - set the sector counter
+; SCTR to "0001" and a DEL
+; Exit: A = DEL
+;
 RSTSCTCNT
          LDA #'1
          STA SCTR+3
@@ -120,24 +138,27 @@ RSTSCTCNT
          STA SCTR+4
          RTS
 ;
-;CONVERT # BANKS TO MEM IN K | A-# BANKS | MEMD-TEXT DECIMAL
+; BNK2DEC - memory in K as text at
+; MEMD: the count, digits, "K ", DEL.
+; A: number of 16K banks. MEMD has
+; room for 3 digits (under 63 banks)
+; Exit: VALUE = K; A, X, Y changed
+;
 BNK2DEC
-; # BANKS * 16 = K -> VALUE
          STA VALUE
          LDA #$00
          STA VALUE+1
-         LDX #$04
+         LDX #$04           ;banks * 16
 BNK2DEC_1
          ASL VALUE
          ROL VALUE+1
          DEX
          BNE BNK2DEC_1
-; TO DECIMAL
          LDA # <MEMD
          LDY # >MEMD
          JSR BIN2DEC
          LDX MEMD
-         LDA #'K
+         LDA #'K            ;over the EOL
          STA MEMD+1,X
          LDA #$20
          STA MEMD+2,X
@@ -145,26 +166,34 @@ BNK2DEC_1
          STA MEMD+3,X
          RTS
 ;
-;INCREMENT SECTOR COUNTER BY 1
+; INCSCTCNT - add 1 to the 4 decimal
+; digits at SCTR ("9999" -> "0000")
+; Exit: A, X changed
+;
 INCSCTCNT
-         LDX #$03           ;LAST DIGIT
+         LDX #$03
 INCSCTCNT_1
          INC SCTR,X
          LDA SCTR,X
-         CMP #$3A           ;PAST '9?
+         CMP #$3A           ;past '9?
          BNE INCSCTCNT_2
          LDA #'0
          STA SCTR,X
-         DEX                ;CARRY TO NEXT DIGIT
+         DEX
          BPL INCSCTCNT_1
 INCSCTCNT_2
          RTS
 ;
-;DETECT INSERTED DISK DENSITY | A - 1-SNG,2-ENH,3-DBL
+; DTCDNS - the density of the disk in
+; drive DSKNUM: read sector $10 (the
+; result is not checked), then the
+; drive's status. SIO beeps off
+; Exit: A = X = 1 single, 2 enhanced,
+; 3 double; BUF changed; beeps on
+;
 DTCDNS
          @SIOSNDOFF
          @SETSCT $10,$00
-; READ SECTOR AND GET STAT
          LDA #SIO.RD
          STA DCOMND
          LDA DSKNUM
@@ -182,22 +211,15 @@ DTCDNS
          LDA #$00
          STA DBYTHI
          JSR SIOV
-; @DOSIO SIO.RD,SIOST.RD,BUF,$07,$80,$00,SKPERR
-; JSR DOSIO
-; LDA DUNUSE
-; CMP #SIOERR
-; BEQ DTCDNS_3
-;
          LDA #SIO.ST
          STA DCOMND
-         JSR DSKINV
-; X=3 DOUBLE, 2 ENHANCED, 1 SINGLE
+         JSR DSKINV         ;status to DVSTAT
          LDX #$03
          LDA DVSTAT
-         AND #$20
+         AND #$20           ;bit 5: double
          BNE DTCDNS_4
          DEX
-         BIT DVSTAT         ;BIT 7: ENHANCED
+         BIT DVSTAT         ;bit 7: enhanced
          BMI DTCDNS_4
          DEX
 DTCDNS_4
@@ -205,19 +227,27 @@ DTCDNS_4
          TXA
          RTS
 ;
-;RESETS HS SIO MEM LOCATION
+; RESETFIO - forget the fast SIO code:
+; zero its first 2 bytes at FSIOV
+; Exit: A = 0
+;
 RESETFIO
          LDA #$00
          STA FSIOV
          STA FSIOV+1
          RTS
 ;
-;READ HS SIO CODE FROM DRIVE | AND PLACE IN FSIOV
+; READFIO - unless it is there, load
+; drive DSKNUM's fast SIO code into
+; FSIOV: command $68 gives its length,
+; $69 the code, made to run at DAUX
+; Exit: A, Y changed; none loaded on
+; an error or if over FSIOMAX
+;
 READFIO
          LDA FSIOV
          ORA FSIOV+1
          BNE READFIO_1
-;
          LDA #$31
          STA DDEVIC
          LDA DSKNUM
@@ -226,7 +256,7 @@ READFIO
          STA DCOMND
          LDA #SIOST.RD
          STA DSTATS
-         LDA #$08
+         LDA #$08           ;to DBYTLO/HI ($0308)
          STA DBUFLO
          STA DTIMLO
          LDA #$03
@@ -237,17 +267,16 @@ READFIO
          STA DBYTHI
          JSR SIOV
          BMI READFIO_1
-; CODE MUST FIT FSIOV..WRKBEG-1 (FSIOMAX BYTES)
+; it must fit FSIOV..FILE-1 (FSIOMAX)
          LDA # <FSIOMAX
          CMP DBYTLO
          LDA # >FSIOMAX
-         SBC DBYTHI         ;C=0: LONGER THAN FSIOMAX
+         SBC DBYTHI         ;C=0: too long
          BCC READFIO_1
-;
-         INC DCOMND
+         INC DCOMND         ;$69: the code
          LDA # <FSIOV
          STA DBUFLO
-         STA DAUX1
+         STA DAUX1          ;where it runs
          LDA # >FSIOV
          STA DBUFHI
          STA DAUX2
@@ -257,42 +286,59 @@ READFIO
 READFIO_1
          RTS
 ;
-;HIDECURSOR / SHOWCURSOR / SETCOLRED / CLOSECHANNEL
-;SHARED SUBROUTINES FOR FORMERLY-INLINE MACROS
+; HIDECURSOR - cursor off (@HIDCUR)
+; Exit: A = 1
+;
 HIDECURSOR
          LDA #$01
          STA CRSINH
          RTS
+;
+; SHOWCURSOR - cursor on (@SHWCUR)
+; Exit: A = 0
 ;
 SHOWCURSOR
          LDA #$00
          STA CRSINH
          RTS
 ;
+; SETCOLRED - border red (@COLRED)
+; Exit: A = $40
+;
 SETCOLRED
          LDA #$40
          STA COLOR4
          RTS
 ;
-;CLOSECHANNEL - X = IOCB INDEX (SET BY CALLER)
+; CLOSECHANNEL - close IOCB X (IOCB
+; * 16), for @CLOSEIO
+; Exit: Y = CIO status, N=1 on error
+;
 CLOSECHANNEL
          LDA #ICM.CL
          STA ICCOM,X
          JMP CIOV
 ;
-;WRITE A SINGLE SECTOR | BUF - BUFFER | A - SCTR LO | Y - SCTR HI
+; WRTSCT - write BUF to sector A/Y
+; (lo/hi), with verify; size: FXSCSZ
+; Exit: A = DSTATS; errors to DISKERR
+;
 WRTSCT
          STA DAUX1
          STY DAUX2
          @DOSIO SIO.WT,SIOST.WT,BUF,$07,$80,$00
          RTS
 ;
-;INLINE: FOR A ROUTINE WITH Y PARAMETER BYTES AFTER ITS JSR. CALL IT
-;BEFORE PUSHING ANYTHING: RETADR -> THE BYTE BEFORE THE PARAMETERS
-;AND THE ROUTINE'S OWN RTS RETURNS PAST THEM | Y KEPT, X CHANGED
+; INLINE - called first (before any
+; push) by a routine with Y bytes
+; after its JSR: RETADR -> the byte
+; before them, (RETADR),Y=1.. reads
+; them; its RTS returns past them
+; Exit: Y kept; A, X, C changed
+;
 INLINE
          TSX
-         LDA $0103,X        ;THE ROUTINE'S RETURN ADDRESS
+         LDA $0103,X        ;the routine's return
          STA RETADR
          LDA $0104,X
          STA RETADR+1
@@ -305,65 +351,67 @@ INLINE
 INLINE_1
          RTS
 ;
-;EXECUTE AN SIO COMMAND | INLINE AFTER JSR (SEE @DOSIO): COMND,STAT,
-;BUF,TIME,FLAG,SIZE - COPIED TO DCOMND-DBYTHI | DUNUSE - BITS 1,2
+; DOSIO - an SIO operation (@DOSIO):
+; 8 bytes after the JSR to DCOMND..
+; DBYTHI: command, DSTATS, buffer,
+; time, flags (DUNUSE), size. Flags:
+; CNGDSK - keep DUNIT, else DSKNUM;
+; SKPERR - see CALLSIO. DAUX: the
+; sector (0 is taken as 1)
+; Exit: A = DSTATS, Y = status
+;
 DOSIO
          LDY #$08
          JSR INLINE
          LDA #$31
          STA DDEVIC
-;INLINE PARAMS -> DCOMND..DBYTHI (Y=8)
 DOSIO_1
          LDA (RETADR),Y
          STA DCOMND-1,Y
          DEY
          BNE DOSIO_1
-;
          LDA DUNUSE
          AND #CNGDSK
          BNE DOSIO_2
          LDA DSKNUM
          STA DUNIT
-;POINT TO VALID SECTOR?
 DOSIO_2
-         LDA DAUX1          ;BOTH 0?
+         LDA DAUX1
          ORA DAUX2
          BNE DOSIO_3
-         INC DAUX1          ;DEF SCTR 1
+         INC DAUX1
 DOSIO_3
          JSR CALLSIO
          LDA DSTATS
          RTS
 ;
-;THE ACTUAL SIO CALL ROUTINE
+; CALLSIO - call SIO with the DCB set.
+; Read and write: size from FXSCSZ,
+; the fast SIO code if loaded. Errors
+; (not Break, SIO.HS, ST, WP) go to
+; DISKERR, or return with SKPERR
+; Exit: Y = status; DUNUSE = SIOERR
+; for an error with SKPERR
+;
 CALLSIO
-; FAST SIO ONLY ON READ/WRITE
          LDA DCOMND
          CMP #SIO.RD
          BEQ CALLSIO_1
          CMP #SIO.WT
          BNE CALLSIO_2
-;READ/WRITE
 CALLSIO_1
-; USE THE CORRECT SECTOR SIZE
          JSR FXSCSZ
-; HAVE FAST SIO?
          LDA FSIOV
          ORA FSIOV+1
-         BEQ CALLSIO_2      ;NOT FSIOV?
+         BEQ CALLSIO_2
          JSR FSIOV
-         JMP CALLSIO_6      ;N=ERROR
-;OTHER
+         JMP CALLSIO_6      ;N=1: an error
 CALLSIO_2
          JSR SIOV
 CALLSIO_6
          BPL CALLSIO_5
-;ERROR FOR READ/WRITE ONLY
 CALLSIO_3
-; $8B MAYBE OK (MyDos)
-; CPY #$8B
-; BEQ CALLSIO_5
-         CPY #BREAK         ;BRK KEY
+         CPY #BREAK
          BEQ CALLSIO_5
          LDA DCOMND
          CMP #SIO.HS
@@ -375,8 +423,6 @@ CALLSIO_3
          LDA DUNUSE
          AND #SKPERR
          BNE CALLSIO_4
-;
-; PLP
          JMP DISKERR
 CALLSIO_4
          LDA #SIOERR
@@ -384,8 +430,12 @@ CALLSIO_4
 CALLSIO_5
          RTS
 ;
-;READ DAUX SECTOR NUMBER | FIX DBUFLO/HI FOR RIGHT SIZE
-;USE SINGLE FOR SECTORS 1-3
+; FXSCSZ - DBYTLO/HI = the size of
+; sector DAUX: 256 if DENSITY is 3
+; (double) and the sector 4 or more,
+; else 128
+; Exit: A changed
+;
 FXSCSZ
          LDA DAUX2
          BNE FXSCSZ_1
@@ -396,40 +446,46 @@ FXSCSZ_1
          LDA DENSITY
          CMP #$03
          BEQ FXSCSZ_3
-;SINGLE
 FXSCSZ_2
-         LDA #$00
+         LDA #$00           ;128
          STA DBYTHI
          LDA #$80
-         BNE FXSCSZ_4       ;ALWAYS
-;DOUBLE
+         BNE FXSCSZ_4       ;always
 FXSCSZ_3
-         LDA #$01
+         LDA #$01           ;256
          STA DBYTHI
          LDA #$00
 FXSCSZ_4
          STA DBYTLO
          RTS
 ;
-;GETADDR: READ A LINE INTO INP1, THEN INP2ADDR
+; GETADDR - read a line into INP1
+; (GETINP1), then INP2ADDR
+; Exit: as INP2ADDR
+;
 GETADDR
          JSR GETINP1
-;CONVERT TEXT INPUT TO BINARY | Y-LEN, INP1-IN
-;UP TO 4 HEX DIGITS: "600"->$0600, "12345"->$1234
+;
+; INP2ADDR - the address in INP1: up
+; to 4 hex digits, "600" -> $0600,
+; "12345" -> $1234. Y: characters.
+; The digits are not checked
+; Exit: FILPOS; A, X, Y, TMP changed
+;
 INP2ADDR
          LDA #$00
          STA FILPOS
          STA FILPOS+1
          CPY #$05
          BCC INP2ADDR_0
-         LDY #$04           ;FIRST 4 DIGITS ONLY
+         LDY #$04
 INP2ADDR_0
-         STY TMP            ;DIGITS LEFT
+         STY TMP            ;digits left
          LDX #$00
 INP2ADDR_1
          DEC TMP
          BMI INP2ADDR_3
-; FILPOS = FILPOS*16 + DIGIT
+; FILPOS = FILPOS * 16 + the digit
          LDY #$04
 INP2ADDR_2
          ASL FILPOS
@@ -441,11 +497,14 @@ INP2ADDR_2
          ORA FILPOS
          STA FILPOS
          INX
-         BNE INP2ADDR_1     ;ALWAYS
+         BNE INP2ADDR_1     ;always
 INP2ADDR_3
          RTS
 ;
-;CONVERT ASCII TO HEX NIBBLE | HELPER TO INP2ADDR
+; A2HEX - a hex digit ('0'-'9', 'A'-
+; 'F') in A to its value, 0-15
+; Exit: A; C changed
+;
 A2HEX
          SEC
          SBC #'0
@@ -455,21 +514,28 @@ A2HEX
 A2HEX1
          RTS
 ;
-;EXECUTE A CIO COMMAND | INLINE AFTER JSR (SEE @DOCIO):
-;.BYTE IOCB+FLAGS,CMD | .WORD BUF | .BYTE ICAX1 | [.WORD LEN ADDR]
-;FLAGS: 1-LEN AT LEN ADDR | 2-LEN IS A WORD | 4-BUF HOLDS A POINTER
+; DOCIO - a CIO operation (@DOCIO);
+; after the JSR: IOCB*16 + flags,
+; command, .WORD buffer, ICAX1, with
+; flag 1 .WORD the length's address
+; (flag 2: a word, else a byte), else
+; the length is 0. Flag 4: the buffer
+; holds the data's address. ICAX2 = 0
+; Exit: X kept, Y = status; errors but
+; EOF go to DISKERR
+;
 DOCIO
-         STX TMP            ;CACHE X
+         STX TMP
          LDY #$00
-         JSR INLINE         ;RETADR ONLY
+         JSR INLINE         ;RETADR only
          INY
          LDA (RETADR),Y
          STA DOCFLG
-         AND #$01           ;LEN ADDR: 7 BYTES, ELSE 5
+         AND #$01           ;length: 7 bytes
          ASL A
          ADC #$05
          TAY
-         JSR INLINE         ;RETURN PAST THEM
+         JSR INLINE         ;return past them
          LDA DOCFLG
          AND #$F0
          TAX
@@ -491,9 +557,8 @@ DOCIO
          STA ICAX2,X
          STA ICBLL,X
          STA ICBLH,X
-;BUF HOLDS A POINTER?
          LDA DOCFLG
-         AND #$04
+         AND #$04           ;buffer a pointer?
          BEQ DOCIO_2
          LDY #$00
          LDA (CIOPTR),Y
@@ -502,9 +567,8 @@ DOCIO
          LDA (CIOPTR),Y
          STA ICBAH,X
 DOCIO_2
-;LENGTH GIVEN?
          LDA DOCFLG
-         LSR A
+         LSR A              ;a length?
          BCC DOCIO_4
          LDY #$06
          LDA (RETADR),Y
@@ -516,7 +580,7 @@ DOCIO_2
          LDA (CIOPTR),Y
          STA ICBLL,X
          LDA DOCFLG
-         AND #$02
+         AND #$02           ;a word?
          BEQ DOCIO_4
          INY
          LDA (CIOPTR),Y
@@ -524,12 +588,17 @@ DOCIO_2
 DOCIO_4
          JSR CIOV
          BPL DOCIO_1
-         CPY #ICSTAT.EOF    ;EOF IS NOT AN ERROR
+         CPY #ICSTAT.EOF    ;EOF is no error
          BNE DISKERR
 DOCIO_1
          LDX TMP
          RTS
-;GENERIC ERROR HANDLER
+;
+; DISKERR - the error handler: print
+; "* Error NNN" and the text, then the
+; menu. Y: the error code
+; Exit: never returns; to NLMENU
+;
 DISKERR
          STY VALUE
          JSR GETERRTXT
@@ -538,9 +607,9 @@ DISKERR
          LDA # <INP1
          LDY # >INP1
          JSR BIN2DEC
-; PRINT "* Error ", THE CODE (128-255: 3 DIGITS) AND TEXT
+; codes 128-255: 3 digits, then EOL
          LDA #$20
-         STA INP1+4         ;SPACE INSTEAD OF EOL
+         STA INP1+4         ;a space for EOL
          LDA #DEL
          STA INP1+5
          JSR PRNTNL
@@ -549,8 +618,12 @@ DISKERR
          @PRNTLN FILE
          JMP NLMENU
 ;
-;RETURN CIO ERROR TEXT | Y-CODE,FILE-TEXT (EMPTY IF UNKNOWN)
-;CIO_MSG: CODE, TEXT, EOL, ... , $FF
+; GETERRTXT - the text of CIO error Y
+; into FILE, with EOL; only an EOL if
+; CIO_MSG (CIOSTAT.M65: code, text,
+; EOL, ... $FF) does not have it
+; Exit: A = EOL; Y, TMP, INDPTR
+;
 GETERRTXT
          STY TMP
          LDA # <CIO_MSG
@@ -560,12 +633,11 @@ GETERRTXT
 GETERRTXT_1
          LDY #$00
          LDA (INDPTR),Y
-         CMP #$FF           ;END OF LIST?
+         CMP #$FF           ;end of the list?
          BEQ GETERRTXT_4
          CMP TMP
          BEQ GETERRTXT_2
-;SKIP THIS MESSAGE
-GETERRTXT_5
+GETERRTXT_5                 ;skip this one
          INY
          LDA (INDPTR),Y
          CMP #EOL
@@ -578,8 +650,7 @@ GETERRTXT_5
          BCC GETERRTXT_1
          INC INDPTR+1
          BCS GETERRTXT_1
-;COPY TEXT AFTER THE CODE
-GETERRTXT_2
+GETERRTXT_2                 ;copy its text
          INY
          LDA (INDPTR),Y
          STA FILE-1,Y
@@ -591,7 +662,11 @@ GETERRTXT_4
          STA FILE
          RTS
 ;
-;GET A SINGLE CHAR FROM USER
+; GETCHR - read a key (K:, caps lock
+; on) and show it. Esc or an error
+; (Break) go back to the menu
+; Exit: A = the key; MOD10 changed
+;
 GETCHR
          @MKCAPS
          LDX #KBDID
@@ -602,28 +677,33 @@ GETCHR
          STA ICBLH,X
          JSR CIOV
          BMI GETCHRERR
-;
-         CMP #$1B           ;ESCAPE KEY
+         CMP #$1B           ;Esc
          BEQ GETCHRERR
-; RELAY TO SCREEN
          STA MOD10
          LDA #DEL
          STA MOD10+1
          @PRNTLN MOD10,DEL
-;
-         LDA MOD10          ;RECALL CHAR
+         LDA MOD10
          RTS
 GETCHRERR
          JMP NLMENU
 ;
-;GETINP1: READ A LINE INTO INP1 (MAXBUF), Y = # CHARACTERS
+; GETINP1 - read a line into INP1, at
+; most MAXBUF with EOL (GETTEXT)
+; Exit: as GETTEXT
+;
 GETINP1
          LDX #MAXBUF
          STX TXTLEN
          LDA # <INP1
-         LDY # >INP1        ;FALL INTO GETTEXT
-;GET A TEXT INPUT FROM USER | Y-RETURN # CHARACTERS | A-LO BYTE INPUT
-;Y-HI BYTE INPUT
+         LDY # >INP1        ;into GETTEXT
+;
+; GETTEXT - read a line from E: into
+; A/Y (lo/hi), at most TXTLEN bytes
+; with EOL (longer: error 137). Break
+; goes to GETCOM, errors to DISKERR
+; Exit: Y = characters (no EOL); X = 0
+;
 GETTEXT
          LDX #SCRID
          STA ICBAL,X
@@ -631,35 +711,44 @@ GETTEXT
          STA ICCOM,X
          TYA
          STA ICBAH,X
-         LDA TXTLEN         ;MAX LEN, LONGER->137
+         LDA TXTLEN
          STA ICBLL,X
          LDA #0
          STA ICAX2,X
          JSR CIOV
          BMI GETTEXTERR
-         DEC ICBLL,X        ;REMOVE EOL
-         LDY ICBLL,X        ;# CHARS READ
+         DEC ICBLL,X        ;less the EOL
+         LDY ICBLL,X
          RTS
 GETTEXTERR
          CPY #BREAK
          BEQ HANDLEBREAK
-         JMP DISKERR        ;NO, IO ERROR
+         JMP DISKERR
 HANDLEBREAK
          JMP GETCOM
 ;
-;PRINT TEXT ON SCREEN | INLINE AFTER JSR: .WORD BUF | X,Y KEPT
-;PRNTLN: UP TO AND WITH EOL | PRNTDL: UP TO DEL (NOT PRINTED)
+; PRNTDL - print text on E: up to a
+; DEL, not printed (@PRNTLN with DEL);
+; .WORD the text after the JSR
+; Exit: X, Y kept; A, D0, D1, TMP,
+; INDPTR changed
+;
 PRNTDL
          LDA #DEL
-         BNE PRNTLN_D       ;ALWAYS
+         BNE PRNTLN_D       ;always
+;
+; PRNTLN - the same, up to and with
+; the EOL (@PRNTLN)
+; Exit: as PRNTDL
+;
 PRNTLN
          LDA #EOL
 PRNTLN_D
-         STA TMP            ;DELIMITER
+         STA TMP            ;the delimiter
          STX D0
          STY D1
          LDY #$02
-         JSR INLINE         ;.WORD TXT
+         JSR INLINE
          LDX #SCRID
          LDA (RETADR),Y
          STA INDPTR+1
@@ -672,7 +761,6 @@ PRNTLN_D
          STA ICCOM,X
          LDA #$00
          STA ICBLH,X
-; FIND DELIM
          LDY #$00
 PRNTLN_1
          LDA (INDPTR),Y
@@ -681,23 +769,29 @@ PRNTLN_1
          BNE PRNTLN_1
          CMP #EOL
          BEQ PRNTLN_2
-         DEY                ;REMOVE DEL
+         DEY                ;not the DEL
 PRNTLN_2
          TYA
          STA ICBLL,X
          JSR CIOV
-; RESTORE
          LDX D0
          LDY D1
          RTS
 ;
-;PRINT A NEW LINE ON SCREEN
+; PRNTNL - print an EOL (EOLB)
+; Exit: as PRNTLN
+;
 PRNTNL
          @PRNTLN EOLB
          RTS
 ;
-;VALUE (16 BIT) TO DECIMAL TEXT AT A/Y (LO/HI): # CHARS, DIGITS, EOL
-;$FF -> 3,"255",EOL
+; BIN2DEC - VALUE (16 bits) as decimal
+; text at A/Y (lo/hi): the count, the
+; digits, EOL; $FF -> 3,"255",EOL. By
+; the OS's IFP and FASC
+; Exit: A = the count, Y = 0; INDPTR,
+; FR0, LBUFF changed
+;
 BIN2DEC
          STA INDPTR
          STY INDPTR+1
@@ -709,8 +803,7 @@ BIN2DEC
          JSR FASC
          LDY #$00
          LDX #$FF
-; DISREGARD FIRST 0
-         LDA LBUFF
+         LDA LBUFF          ;skip a leading '0'
          CMP #'0
          BNE BIN2DEC_1
          INX
@@ -719,20 +812,24 @@ BIN2DEC_1
          INY
          LDA LBUFF,X
          STA (INDPTR),Y
-         BPL BIN2DEC_1
+         BPL BIN2DEC_1      ;bit 7: the last
          AND #$7F
          STA (INDPTR),Y
          INY
          LDA #EOL
          STA (INDPTR),Y
-;# CHARS
          DEY
          TYA
          LDY #$00
          STA (INDPTR),Y
          RTS
-;COPY UP TO AND WITH EOL | INLINE AFTER JSR: .WORD SRC,DST
-;Y = # BYTES COPIED | SEE @CPYMEM
+;
+; COPY - copy text up to and with EOL
+; (@CPYMEM with 2 parameters): .WORD
+; source, destination after the JSR
+; Exit: Y = bytes copied, A = EOL;
+; CPYSRC, CPYDST changed
+;
 COPY
          LDY #$04
          JSR INLINE
@@ -748,12 +845,15 @@ COPY_3
          CMP #EOL
          BNE COPY_3
          RTS
+; CPYDST must follow CPYSRC, or the
+; undefined label stops assembly
          .IF CPYDST-CPYSRC-2
-         JMP CPYDST_MUST_FOLLOW_CPYSRC ;UNDEFINED
+         JMP CPYDST_MUST_FOLLOW_CPYSRC
          .ENDIF
 ;
+; HEXOUT - A as 2 hex digits at FILE,Y
+; Exit: Y + 2; X kept; A changed
 ;
-;A -> 2 HEX DIGITS AT FILE,Y | Y+2 | X KEPT
 HEXOUT
          PHA
          LSR A
@@ -773,19 +873,23 @@ HEXOUT_2
          INY
          RTS
 ;
-;FILL MEMORY | INLINE AFTER JSR: .WORD ADDR | .BYTE LEN, CHAR
-;SEE @FILLMEM | X KEPT
+; FILL - fill memory (@FILLMEM): .WORD
+; address, .BYTE length, character
+; after the JSR; length 0 is 256
+; Exit: X kept; A, Y, TMP, CPYSRC,
+; CPYDST changed
+;
 FILL
          STX TMP
          LDY #$04
          JSR INLINE
 FILL_1
          LDA (RETADR),Y
-         STA CPYSRC-1,Y     ;ADDR, LEN -> CPYDST, CHAR -> CPYDST+1
+         STA CPYSRC-1,Y     ;to CPYSRC, CPYDST
          DEY
          BNE FILL_1
-         LDA CPYDST+1
-         LDY CPYDST
+         LDA CPYDST+1       ;the character
+         LDY CPYDST         ;the length
 FILL_2
          DEY
          STA (CPYSRC),Y
@@ -793,25 +897,31 @@ FILL_2
          LDX TMP
          RTS
 ;
-;DETECT # EXTENDED RAM BANKS | A-# MEM PAGES
+; DTXMEM - count the extended memory
+; banks: each of the 128 PORTB values
+; with the OS ROM on shows a bank or
+; main memory at $4000. The byte there
+; is kept in BUF and put back (a RAM
+; disk may be in the banks)
+; Exit: A = NUMBKS = banks; PORTB as
+; it was; X = $FF; BUF changed
+;
 DTXMEM
          LDA PORTB
          PHA
          LDA #$00
          STA NUMBKS
-; SAVE RAMDISK
-         LDX #$7F
+         LDX #$7F           ;keep the bytes
 DTXMEM_1
          TXA
          ASL A
-         ORA #$01
+         ORA #$01           ;OS ROM on
          STA PORTB
          LDA M4000
          STA BUF,X
          DEX
          BPL DTXMEM_1
-; CLR RAM TO TEST
-         LDX #$7F
+         LDX #$7F           ;zero them
 DTXMEM_2
          TXA
          ASL A
@@ -821,12 +931,11 @@ DTXMEM_2
          STA M4000
          DEX
          BPL DTXMEM_2
-         LDA #$FF           ;RST POTB
+         LDA #$FF           ;main memory
          STA PORTB
-         LDA #'K
+         LDA #'K            ;not 0: not a bank
          STA M4000
-; COUNT BANKS
-         LDX #$7F
+         LDX #$7F           ;count those still 0
 DTXMEM_3
          TXA
          ASL A
@@ -839,8 +948,7 @@ DTXMEM_3
          STA M4000
 SKIP     DEX
          BPL DTXMEM_3
-; RESTORE RAMDISK
-         LDX #$7F
+         LDX #$7F           ;put them back
 DTXMEM_4
          TXA
          ASL A
@@ -855,7 +963,12 @@ DTXMEM_4
          LDA NUMBKS
          RTS
 ;
-;4 DIGITS DEC TO HEX CONVERT | A-LO BYTE | Y-HI BYTE
+; DEC2HEX - decimal text to a number
+; by the OS's AFP, FPI: "1234" ->
+; $04D2. A/Y (lo/hi): the buffer; the
+; digits from its second byte
+; Exit: VALUE; A, FR0, CIX changed
+;
 DEC2HEX
          STA INBUFF
          STY INBUFF+1
@@ -869,33 +982,42 @@ DEC2HEX
          STA VALUE+1
          RTS
 ;
-; VARIABLES
+; Data and the work area. Zero page:
+; SYSTEM.M65; the variables not in the
+; file: the end of EDOSVARS.M65
 ;
-; ZERO PAGE: SEE SYSTEM.M65
-; RESERVED (NOT IN THE FILE): SEE THE END OF EDOSVARS.M65
 EMSG     .BYTE "* Error ",DEL
-;WORK AREA $3900-$3FFF: BELOW THE $4000 BANK WINDOW, ALWAYS MAPPED
-;EDOS MUST END BELOW WRKBEG - CHECKED AT THE END OF EDOS.M65
+; The work area $3900-$3FFF, below the
+; $4000 bank window: always mapped.
+; EDOS must end below WRKBEG (checked
+; at the end of EDOS.M65)
 BUF      = $3E00            ;$100
-INP1     = $3D80            ;INPUT/HELPER $80
-FILE     = $3D40            ;FILE BUF $40
-FSIOV    = $3900            ;DRIVE'S FAST SIO CODE, UP TO FILE
-FSIOMAX  = FILE-FSIOV       ;$440 BYTES
-WRKBEG   = FSIOV            ;LOWEST WORK AREA ADDR
+INP1     = $3D80            ;input, helper $80
+FILE     = $3D40            ;file name, row $40
+FSIOV    = $3900            ;the fast SIO code
+FSIOMAX  = FILE-FSIOV       ;$440 bytes
+WRKBEG   = FSIOV            ;the work area's start
+; BANKS - PORTB values: main memory
+; (set at START), then the 16 banks
 BANKS    .BYTE $FD
          .BYTE $A3,$A7,$AB,$AF
          .BYTE $E3,$E7,$EB,$EF
          .BYTE $83,$87,$8B,$8F
          .BYTE $C3,$C7,$CB,$CF
 ;
-;LOAD D:EDOS.FNT (1K) BELOW THE SCREEN | SETS FONTPG IF LOADED
-;NO ERROR MESSAGES: NO FILE OR NO ROOM KEEPS THE ROM FONT
+; LDFONT - load D:EDOS.FNT (1K) below
+; the screen, at page (RAMTOP-8) AND
+; $FC, and set FONTPG to it. No file,
+; a short one, or no room (under
+; $8000) keep the ROM font; no message
+; Exit: A, X, Y, TMP changed
+;
 LDFONT
          LDA RAMTOP
          SEC
-         SBC #$08           ;1K PAGE BELOW SCREEN
+         SBC #$08
          AND #$FC
-         CMP #$80           ;NOT IN $4000-$7FFF
+         CMP #$80           ;not under $8000
          BCC LDFONT_1
          STA TMP
          LDX #DSKID1
@@ -918,7 +1040,7 @@ LDFONT
          STA ICBLL,X
          LDA TMP
          STA ICBAH,X
-         LDA #$04           ;$400 BYTES
+         LDA #$04           ;$400 bytes
          STA ICBLH,X
          JSR CIOV
          BMI LDFONT_2
@@ -928,5 +1050,5 @@ LDFONT_2
          JMP CLOSECHANNEL
 LDFONT_1
          RTS
-FONTPG   .BYTE 0            ;CUSTOM FONT PAGE, 0=ROM
+FONTPG   .BYTE 0            ;the font's page, 0: ROM
 FNTNAM   .BYTE "D:EDOS.FNT",EOL
