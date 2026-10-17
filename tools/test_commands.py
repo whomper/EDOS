@@ -166,17 +166,39 @@ class TestMenu(unittest.TestCase):
     def test_menu_screen(self):
         m = Machine()
         m.run('GOMENU')
-        for text in ('EDOS 3.3', 'Dir D1-D8', 'Write EDOS', 'Copy Files', 'Duplicate Disk',
+        for text in ('EDOS 3.4', 'Dir D1-D8', 'Write EDOS', 'Copy Files', 'Duplicate Disk',
                      'Quit to DOS', 'XMEM:'):
             self.assertIn(text, m.screen)
         self.assertIn('(C) AERA 2026', m.screen)
+
+    def test_help_key(self):
+        # the OS sets HELPFG ($02DC); K: never returns HELP as a key
+        m = Machine()
+        m.sim.poke(0x02FC, 0xFF)                      # CH: no key
+        m.sim.poke(0x11, 0xFF)                        # BRKKEY: no BREAK
+        self.assertEqual(m.run('GETCOM', stop=['GETCOM_W']), 'GETCOM_W')
+        m.sim.poke(0x02DC, 0x11)                      # HELP pressed
+        self.assertEqual(m.run('GETCOM_W', stop=['NLMENU', 'GETCHR']), 'NLMENU')
+        self.assertIn('Copyright (C) 2026 AERA | Erez Yaary', m.screen)
+        self.assertEqual(m.sim.peek(0x02DC), 0)
+
+    def test_help_during_a_command_is_forgotten(self):
+        m = Machine(keys='Q')
+        m.sim.poke(0x02DC, 0x11)                      # pressed before the prompt
+        self.assertEqual(m.run('GETCOM', stop=['COMHLP', 'COMQIT']), 'COMQIT')
+
+    def test_break_at_the_prompt_goes_to_k(self):
+        m = Machine()
+        m.sim.poke(0x02FC, 0xFF)
+        m.sim.poke(0x11, 0)                           # BREAK: K: reports it
+        self.assertEqual(m.run('GETCOM', stop=['GETCOM_K', 'COMHLP']), 'GETCOM_K')
 
     def test_about(self):
         # ? (HELP) at the menu: the About lines (guidelines 1.4)
         m = Machine(keys='?')
         m.run('GETCOM', stop=['NLMENU'])
         self.assertIn('Select Item (RETURN menu, ? About): ?', m.screen)
-        self.assertIn('EDOS 3.3\nDisk utility for Atari 8-bit DOS\n'
+        self.assertIn('EDOS 3.4\nDisk utility for Atari 8-bit DOS\n'
                       'Copyright (C) 2026 AERA | Erez Yaary\nGPL-2.0-or-later\n'
                       'github.com/whomper/EDOS\n', m.screen)
 
@@ -661,7 +683,7 @@ class TestStartAndReset(unittest.TestCase):
         self.assertIsNone(m.hits.get(0x9000))        # DOS has set up already
         m.run('AXINIT', watch=[0x9000])               # RESET: OS calls DOSINI
         self.assertEqual(m.hits.get(0x9000), 1, "DOS reset handler not chained")
-        self.assertIn('EDOS 3.3', m.screen)
+        self.assertIn('EDOS 3.4', m.screen)
 
     def test_rerun_keeps_original_dosini(self):
         m = Machine()
@@ -711,7 +733,7 @@ class TestFont(unittest.TestCase):
         self.assertEqual(m.sim.peek(0x2F4), 0)
         self.assertEqual(m.sim.peek(m['FONTPG']), 0)
         self.assertNotIn('Error', m.screen)
-        self.assertIn('EDOS 3.3', m.screen)
+        self.assertIn('EDOS 3.4', m.screen)
 
     def test_short_file_is_not_used(self):
         m = self.start({1: {'AERA.FNT': self.font[:500]}})

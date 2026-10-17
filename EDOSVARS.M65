@@ -1,5 +1,5 @@
 ;
-; EDOSVARS.M65 - EDOS 3.3
+; EDOSVARS.M65 - EDOS 3.4
 ; Variables, menu texts and messages
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
@@ -27,7 +27,7 @@ DELL     .BYTE DLN,CUP,CUP,DEL ; delete the line, up 2
 DLLN     .BYTE DLN,DEL      ; delete the line
 TTL1     .BYTE CLS,DEL      ; clear the screen
 ; The title bar, inverse
-TTL2     .BYTE "",EOL
+TTL2     .BYTE "",EOL
 ; The status line: the drives at
 ; +3, the speed at +$0E, the
 ; extended memory at +$19
@@ -73,10 +73,11 @@ INST     .BYTE "Target drive # [1-8,Y-same]: ",DEL
 WFTR     .BYTE "Insert Target [Y] ",DEL
 ANYK     .BYTE DLN,"Select Item ( menu, ? About): ",DEL
 NOTB     .BYTE "Not a binary file!",EOL
-; The About lines (? at the menu):
+; The About lines (HELP or ? at the
+; menu):
 ; the version is TTL2's (make test
 ; checks it)
-ABOUT    .BYTE "EDOS 3.3",EOL
+ABOUT    .BYTE "EDOS 3.4",EOL
          .BYTE "Disk utility for Atari 8-bit DOS",EOL
          .BYTE "Copyright (C) 2026 AERA | Erez Yaary",EOL
          .BYTE "GPL-2.0-or-later",EOL

@@ -1,5 +1,5 @@
 ;
-; EDOSMAIN.M65 - EDOS 3.3
+; EDOSMAIN.M65 - EDOS 3.4
 ; Start-up, the menu and Load Binary
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
@@ -90,10 +90,11 @@ NLMENU
 ; stack, maps the main bank, black
 ; background, forgets the fast SIO
 ; code, closes the IOCBs, opens K:
-; and reads a key. 1-8: COMDIG, that
-; drive's directory; a key in CMDKEY:
-; its title bar (the first NTITLE
-; only), then jumps to its command,
+; and reads a key. HELP or ?: the
+; About lines (COMHLP). 1-8: COMDIG,
+; that drive's directory. A key in
+; CMDKEY: its title bar (the first
+; NTITLE only), then its command,
 ; from the tables CMDLO and CMDHI
 ; Exit: to the command; ESC: NLMENU;
 ; any other key: GETCOM again
@@ -109,7 +110,21 @@ GETCOM
          @DOCIO KBDID,AXOPEN,KYBD,AXOPNIN
          @SHWCUR
          @SIOSNDON
+         LDA #$00           ; forget a HELP pressed
+         STA HELPFG         ; during a command
          @PRNTLN ANYK,DEL
+; Wait: HELP (HELPFG; K: never
+; returns it), a key (CH) or BREAK
+; (BRKKEY 0: K: reports it)
+GETCOM_W
+         LDA HELPFG
+         BNE GETCOM_H
+         LDA BRKKEY
+         BEQ GETCOM_K
+         LDA CH
+         CMP #$FF           ; $FF: no key yet
+         BEQ GETCOM_W
+GETCOM_K
          JSR GETCHR
 ; A digit 1-8?
          CMP #'1
@@ -126,6 +141,10 @@ FINDCM_1
          CPX #NUMCMD
          BNE FINDCM_1
          BEQ GETCOM         ; not a command
+GETCOM_H
+         LDA #$00           ; HELP seen: as ?
+         STA HELPFG
+         JMP COMHLP
 FOUND
          CPX #NTITLE
          BCS FOUND_1        ; no title bar

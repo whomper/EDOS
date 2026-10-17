@@ -1,5 +1,5 @@
 ;
-; EDOSSCRN.M65 - EDOS 3.3
+; EDOSSCRN.M65 - EDOS 3.4
 ; Directory, status line, title bars
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
@@ -295,8 +295,7 @@ TITLE_6
          LDX D2
          RTS
 ;
-; COMHLP - ? (the HELP key, which K:
-; doesn't return): the About lines
+; COMHLP - HELP or ?: the About lines
 ; under the menu
 ; Exit: JMP NLMENU
 ;
@@ -310,7 +309,8 @@ COMHLP
 ; CMDLO and CMDHI. The first NTITLE
 ; get a title bar (TITLE); RETURN
 ; (the EOL) draws the menu again,
-; ? shows the About lines
+; ? shows the About lines (HELP:
+; GETCOM)
 ;
 NTITLE   = 18
 NUMCMD   = 21

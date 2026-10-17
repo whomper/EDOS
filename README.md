@@ -17,15 +17,15 @@ running on top of MyDOS, SpartaDOS or DOS 2.5.
 - **Colour shows what's happening:** green while reading, red before anything is written or erased
 - **Sectors and memory too:** view any file, sector or memory address 128 bytes at a time; jump to
   an address or into the cartridge
-- **Small:** `EDOS.COM` is 7,185 bytes
+- **Small:** `EDOS.COM` is 7,214 bytes
 - **Assembles on the Atari:** the MAC/65 sources are on the disk; a PC cross assembler and tests are
   here too
 
-![The EDOS 3.3 main menu: drives 1 and 2, HIGH speed and 512K of extended memory on the status line, and the twenty commands](EDOS.png)
+![The EDOS 3.4 main menu: drives 1 and 2, HIGH speed and 512K of extended memory on the status line, and the twenty commands](EDOS.png)
 
 ## The commands
 
-Press the key in inverse on the menu; **RETURN** shows the menu again, and **?** (the HELP key) shows
+Press the key in inverse on the menu; **RETURN** shows the menu again, and **HELP** (or **?**) shows
 the About lines: the version, the copyright and licence, and where EDOS lives. The status line at the top shows
 the drives connected (the current one in inverse), **HIGH** when that drive runs at high speed, and the
 extended memory (**XMEM**).
