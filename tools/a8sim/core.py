@@ -95,6 +95,7 @@ class Machine:
         self.poke_word(DOSINI, DOSINI_TRAP)
         self.os_colours()
         self.poke(CH, [0xFF])
+        self.poke(0x11, [0x80])             # BRKKEY: BREAK not pressed
 
     # -- memory
     def peek(self, addr):
