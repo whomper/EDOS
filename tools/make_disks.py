@@ -4,7 +4,7 @@
 BASE.ATR holds the SpartaDOS boot code, SpartaDOS 3.2 (X32G.DOS) and the
 utilities that go on the EDOS disk; nothing EDOS-specific.
 
-  build/EDOS.FNT      EDOS's character set (tools/font.py), loaded at start
+  build/EDOS.FNT      EDOS's character set (xl/tools/font.py), loaded at start
   build/EDOS.ATR      the EDOS disk: BASE.ATR's files, build/EDOS.COM, EDOS.FNT and
                       the current sources in MAC/65 tokenized form
                       (LOAD #D:EDOS.M65)
@@ -12,16 +12,19 @@ utilities that go on the EDOS disk; nothing EDOS-specific.
                       files used by tools/test_commands.py, RUNME.COM and
                       TESTPLAN.TXT (manual test steps for the real Atari)
 
-Both are written as fresh file systems (tools/sparta.py) and checked with
+Both are written as fresh file systems (xl/tools/sparta.py) and checked with
 fsck; every file is read back and compared.
 """
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+sys.path.insert(0, os.path.join(HERE, '..', 'xl', 'tools'))
 import sparta  # noqa: E402
 import mac65tok  # noqa: E402
-from font import edos_font  # noqa: E402
+from atari_src import numbered  # noqa: E402
+from font import aera_font  # noqa: E402
 from test_commands import PROG, NORUN, TEXT, BIG, binfile  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -35,7 +38,7 @@ def tokenized_sources():
     out = []
     for name in SOURCES:
         with open(os.path.join(ROOT, name), encoding='utf-8') as f:
-            out.append((name, mac65tok.tokenize(f.read())))
+            out.append((name, mac65tok.tokenize(numbered(f.read()))))
     return out
 
 # RUNME.COM: INIT stores $5A at $5300; RUN sets the background colour
@@ -208,7 +211,7 @@ def main():
 
     orig = {n: (d, st) for n, d, st in originals}
     files = [(DOS,) + orig[DOS]]
-    fnt = edos_font()
+    fnt = aera_font()
     with open(os.path.join(BUILD, 'EDOS.FNT'), 'wb') as f:
         f.write(fnt)
     files.append(('EDOS.COM', edos))

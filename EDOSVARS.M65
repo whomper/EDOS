@@ -1,98 +1,98 @@
-10 ;
-20 ; EDOSVARS.M65 - EDOS 3.2
-30 ; Copyright (C) 2026 AERA | Erez Yaary
-40 ; VARIABLES
-50 ;
-0130 REFDRV .BYTE 1  ;REFRESH DRVS?
-0180 SNGL .BYTE $28,1,0,$12,0,0,0,$80,$FF
-0190 ENHA .BYTE $28,1,0,$1A,0,0,0,$80,$FF
-0200 DBLE .BYTE $28,1,0,$12,0,4,0,$FF,$FF
-0210 VTOC .BYTE 2,$F2,3,$F2,3,0,0,0,0,0,$0F,EOL
-0215 PERCOFS .BYTE 0,ENHA-SNGL,DBLE-SNGL ;SETDRVSTAT (NOT BEFORE VTOC:
-0216 ; DBLE IS SENT WITH THE 2 BYTES AFTER IT)
-0220 DISK .BYTE "D1:*.*",EOL ;DEF DISK
-0230 EDOS .BYTE "EDOS.COM",EOL
-0240 ARGS .BYTE "*.*",EOL ;DEF ARGS
-0250 KYBD .BYTE "K:" ;KEYBOARD
-0255 EOLB .BYTE EOL  ;ENDS KYBD; PRNTNL PRINTS IT
-0260 DELL .BYTE DLN,CUP,CUP,DEL
-0270 DLLN .BYTE DLN,DEL
-0280 TTL1 .BYTE CLS,DEL
-0290 TTL2 .BYTE "",EOL
-0300 STAT .BYTE " D:                 XMEM:      ",EOL
-0310 MNU1 .BYTE "" ;"1-8": NO TITLE BAR
-0315 MNUL .BYTE " Dir D1-D8      ","rite EDOS",EOL
-0320     .BYTE "iles on Disk      ","rotect Files",EOL
-0330     .BYTE "o Cartridge       ","nprotect Files",EOL
-0340     .BYTE "opy Files         ","ename Files",EOL
-0350     .BYTE "uplicate Disk     ","ave Binary",EOL,DEL
-0360 MNU2 .BYTE "rase Files        ","oad Binary",EOL
-0370     .BYTE "nitialize Disk    ","o To Address",EOL
-0380     .BYTE "iew File          ","ew Drive",EOL
-0390     .BYTE "nalyze Sector     ","yte Compare",EOL
-0400     .BYTE "emory Status      ","uit to DOS",EOL,DEL
-0410 FSPC .BYTE "File Spec: ",DEL
-0420 NUMF .BYTE "Number of files: ",EOL
-0430 RENO .BYTE "Old File: ",DEL
-0440 RENN .BYTE "New File: ",DEL
-0450 BCMF .BYTE "File 1: ",DEL
-0460 BCMS .BYTE "File 2: ",DEL
-0470 DRVN .BYTE "Drive #: ",DEL
-0480 FMTD .BYTE "1-Single, 2-Enhance, 3-Double: ",DEL
-0490 FRMT .BYTE "Formatting D , ",DEL
-0500 GOTA .BYTE "Address: ",DEL
-0510 FLST .BYTE "Start: ",DEL
-0520 FLED .BYTE " End: ",DEL
-0530 FLRN .BYTE " Run: ",DEL
-0540 SCNM .BYTE "Sector: ",DEL
-0550 ARYS .BYTE "Are You Sure? ",DEL
-0560 INSS .BYTE "Read source [Y]? ",DEL
-0570 INST .BYTE "Target drive # [1-8,Y-same]: ",DEL
-0580 WFTR .BYTE "Insert Target [Y] ",DEL
-0590 ANYK .BYTE DLN,"Select Item ( for menu): ",DEL
-0600 NOTB .BYTE "Not a binary file!",EOL
-0605 LDOV .BYTE "Program loads over $0600-$06FF",EOL
-0610 REOF .BYTE "Reached end of file",EOL
-0620 VIMR .BYTE "View more [Y/N]? ",DEL
-0630 VINP .BYTE "View next/previous [+/-/N]? ",DEL
-0640 BDIF .BYTE "Files are different",EOL
-0650 BSAM .BYTE "Files are the same",EOL
-0660 RUNP .BYTE "Run Program [Y/N]? ",DEL
-0670 UPDT .BYTE " Updating... ",DEL
-0680 NOMM .BYTE "Not enough memory!",EOL
-0685 BADR .BYTE "Invalid address!",EOL
-0690 DSNG .BYTE "Single ",DEL
-0700 DENH .BYTE "Enhance",DEL
-0710 DDBL .BYTE "Double ",DEL
-0711 DUPBNK .BYTE 6,9,12 ;BANKS TO DUPLICATE
-0712     .IF DENH-DSNG-8
-0713     JMP DENSITY_NAMES_MUST_BE_8_APART ;UNDEFINED
-0714     .ENDIF
-0715     .IF DDBL-DENH-8
-0716     JMP DENSITY_NAMES_MUST_BE_8_APART
-0717     .ENDIF
-0720 SECT .BYTE "Sector:     ",EOL ;4 DIGITS AT SECT+8
-0730 DUPE .BYTE "    ",DEL
-0740 DUPS .BYTE ":       :        :     :     ",DEL
-0750 MODR .BYTE "Read ",DEL
-0760 MODW .BYTE "Write ",DEL
-0770 MODF .BYTE "Format",DEL
-0780 DRSP .BYTE "HIGH",DEL
-0790 DRGN .BYTE "NORM",DEL
-0800 MEMS .BYTE ":      :    ",EOL ;HEX AT +4, +$0F
-0810 ; TITLE BARS ARE THE MENU LABELS, SEE TITLE IN EDOS.M65
-1000 ;
-1010 ; EDOS.COM ENDS HERE. THE VARIABLES BELOW ARE RESERVED
-1020 ; AFTER IT AND NOT IN THE FILE. MORE IN ZERO PAGE.
-1030 END_PROG
-1040 FILLEN *= *+2   ;FILE LEN
-1050 DRIVES *= *+1   ;CONNECTED DRVS
-1060 BITWISE *= *+1  ;FOCUS DRIVE
-1070 DRVHS *= *+1    ;SPEEDY DRIVE?
-1080 SAVLEN *= *+2   ;SAVE STRT/END LEN
-1090 NUM2CNV *= *+1  ;COPY SOURCE DRV
-1100 STKPTR *= *+1   ;SP AT START (<$4000)
-1110 ABORT *= *+1    ;ABRT ACTV COM
-1120 MEMD *= *+7     ;MEM
-1130 DOSIN *= *+2    ;DOSINI CACHE
-1140 VAREND
+;
+; EDOSVARS.M65 - EDOS 3.2
+; Copyright (C) 2026 AERA | Erez Yaary
+; VARIABLES
+;
+REFDRV   .BYTE 1            ;REFRESH DRVS?
+SNGL     .BYTE $28,1,0,$12,0,0,0,$80,$FF
+ENHA     .BYTE $28,1,0,$1A,0,0,0,$80,$FF
+DBLE     .BYTE $28,1,0,$12,0,4,0,$FF,$FF
+VTOC     .BYTE 2,$F2,3,$F2,3,0,0,0,0,0,$0F,EOL
+PERCOFS  .BYTE 0,ENHA-SNGL,DBLE-SNGL ;SETDRVSTAT (NOT BEFORE VTOC:
+; DBLE IS SENT WITH THE 2 BYTES AFTER IT)
+DISK     .BYTE "D1:*.*",EOL ;DEF DISK
+EDOS     .BYTE "EDOS.COM",EOL
+ARGS     .BYTE "*.*",EOL    ;DEF ARGS
+KYBD     .BYTE "K:"         ;KEYBOARD
+EOLB     .BYTE EOL          ;ENDS KYBD; PRNTNL PRINTS IT
+DELL     .BYTE DLN,CUP,CUP,DEL
+DLLN     .BYTE DLN,DEL
+TTL1     .BYTE CLS,DEL
+TTL2     .BYTE "",EOL
+STAT     .BYTE " D:                 XMEM:      ",EOL
+MNU1     .BYTE ""        ;"1-8": NO TITLE BAR
+MNUL     .BYTE " Dir D1-D8      ","rite EDOS",EOL
+         .BYTE "iles on Disk      ","rotect Files",EOL
+         .BYTE "o Cartridge       ","nprotect Files",EOL
+         .BYTE "opy Files         ","ename Files",EOL
+         .BYTE "uplicate Disk     ","ave Binary",EOL,DEL
+MNU2     .BYTE "rase Files        ","oad Binary",EOL
+         .BYTE "nitialize Disk    ","o To Address",EOL
+         .BYTE "iew File          ","ew Drive",EOL
+         .BYTE "nalyze Sector     ","yte Compare",EOL
+         .BYTE "emory Status      ","uit to DOS",EOL,DEL
+FSPC     .BYTE "File Spec: ",DEL
+NUMF     .BYTE "Number of files: ",EOL
+RENO     .BYTE "Old File: ",DEL
+RENN     .BYTE "New File: ",DEL
+BCMF     .BYTE "File 1: ",DEL
+BCMS     .BYTE "File 2: ",DEL
+DRVN     .BYTE "Drive #: ",DEL
+FMTD     .BYTE "1-Single, 2-Enhance, 3-Double: ",DEL
+FRMT     .BYTE "Formatting D , ",DEL
+GOTA     .BYTE "Address: ",DEL
+FLST     .BYTE "Start: ",DEL
+FLED     .BYTE " End: ",DEL
+FLRN     .BYTE " Run: ",DEL
+SCNM     .BYTE "Sector: ",DEL
+ARYS     .BYTE "Are You Sure? ",DEL
+INSS     .BYTE "Read source [Y]? ",DEL
+INST     .BYTE "Target drive # [1-8,Y-same]: ",DEL
+WFTR     .BYTE "Insert Target [Y] ",DEL
+ANYK     .BYTE DLN,"Select Item ( for menu): ",DEL
+NOTB     .BYTE "Not a binary file!",EOL
+LDOV     .BYTE "Program loads over $0600-$06FF",EOL
+REOF     .BYTE "Reached end of file",EOL
+VIMR     .BYTE "View more [Y/N]? ",DEL
+VINP     .BYTE "View next/previous [+/-/N]? ",DEL
+BDIF     .BYTE "Files are different",EOL
+BSAM     .BYTE "Files are the same",EOL
+RUNP     .BYTE "Run Program [Y/N]? ",DEL
+UPDT     .BYTE " Updating... ",DEL
+NOMM     .BYTE "Not enough memory!",EOL
+BADR     .BYTE "Invalid address!",EOL
+DSNG     .BYTE "Single ",DEL
+DENH     .BYTE "Enhance",DEL
+DDBL     .BYTE "Double ",DEL
+DUPBNK   .BYTE 6,9,12       ;BANKS TO DUPLICATE
+         .IF DENH-DSNG-8
+         JMP DENSITY_NAMES_MUST_BE_8_APART ;UNDEFINED
+         .ENDIF
+         .IF DDBL-DENH-8
+         JMP DENSITY_NAMES_MUST_BE_8_APART
+         .ENDIF
+SECT     .BYTE "Sector:     ",EOL ;4 DIGITS AT SECT+8
+DUPE     .BYTE "    ",DEL
+DUPS     .BYTE ":       :        :     :     ",DEL
+MODR     .BYTE "Read ",DEL
+MODW     .BYTE "Write ",DEL
+MODF     .BYTE "Format",DEL
+DRSP     .BYTE "HIGH",DEL
+DRGN     .BYTE "NORM",DEL
+MEMS     .BYTE ":      :    ",EOL ;HEX AT +4, +$0F
+; TITLE BARS ARE THE MENU LABELS, SEE TITLE IN EDOS.M65
+;
+; EDOS.COM ENDS HERE. THE VARIABLES BELOW ARE RESERVED
+; AFTER IT AND NOT IN THE FILE. MORE IN ZERO PAGE.
+END_PROG
+FILLEN   *= *+2             ;FILE LEN
+DRIVES   *= *+1             ;CONNECTED DRVS
+BITWISE  *= *+1             ;FOCUS DRIVE
+DRVHS    *= *+1             ;SPEEDY DRIVE?
+SAVLEN   *= *+2             ;SAVE STRT/END LEN
+NUM2CNV  *= *+1             ;COPY SOURCE DRV
+STKPTR   *= *+1             ;SP AT START (<$4000)
+ABORT    *= *+1             ;ABRT ACTV COM
+MEMD     *= *+7             ;MEM
+DOSIN    *= *+2             ;DOSINI CACHE
+VAREND

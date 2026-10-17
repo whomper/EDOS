@@ -15,7 +15,7 @@ set -e
 cd "$(dirname "$0")/.."
 mkdir -p build
 
-python3 tools/mac65.py EDOS.M65 -o build/EDOS.COM -l build/EDOS.LST -s build/EDOS.SYM
+python3 xl/tools/mac65.py EDOS.M65 -o build/EDOS.COM -l build/EDOS.LST -s build/EDOS.SYM
 
 if python3 -c 'import py65' 2>/dev/null; then
     python3 tools/test_edos.py
@@ -24,18 +24,18 @@ else
     echo "py65 not installed (pip install py65): skipping unit tests"
 fi
 
-python3 tools/test_mac65tok.py
+python3 tools/test_sources.py
 python3 tools/make_disks.py
 python3 tools/test_sparta.py
 
-python3 tools/atr.py new build/EDOS-D2.ATR >/dev/null
-python3 tools/atr.py put build/EDOS-D2.ATR build/EDOS.COM
+python3 xl/tools/atr.py new build/EDOS-D2.ATR >/dev/null
+python3 xl/tools/atr.py put build/EDOS-D2.ATR build/EDOS.COM
 
 master=${DOS_ATR:-tools/dos/DOS.ATR}
 if [ -f "$master" ]; then
     cp "$master" build/EDOS-BOOT.ATR
-    python3 tools/atr.py put build/EDOS-BOOT.ATR build/EDOS.COM
+    python3 xl/tools/atr.py put build/EDOS-BOOT.ATR build/EDOS.COM
     if [ "${EDOS_AS_DUP:-0}" = 1 ]; then
-        python3 tools/atr.py put build/EDOS-BOOT.ATR build/EDOS.COM DUP.SYS
+        python3 xl/tools/atr.py put build/EDOS-BOOT.ATR build/EDOS.COM DUP.SYS
     fi
 fi

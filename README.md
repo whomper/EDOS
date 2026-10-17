@@ -92,14 +92,15 @@ tools/build.sh          # assembles, runs the tests and makes the disk images
 | `tools/build.sh` writes | What it is |
 |---|---|
 | `build/EDOS.COM`, `EDOS.LST`, `EDOS.SYM` | the program, its listing and its symbols |
-| `build/EDOS.FNT` | the font, made by `tools/font.py` from `EREZ.FNT`, one pixel to the right so inverse letters show as blocks |
+| `build/EDOS.FNT` | the font: the family's AERA.FNT (`xl/tools/font.py`), `EREZ.FNT` moved one pixel right so inverse letters show as blocks |
 | `build/EDOS.ATR` | the EDOS disk: SpartaDOS 3.2 and the utilities from `tools/disk/BASE.ATR`, with `EDOS.COM`, `EDOS.FNT` and the sources in MAC/65's tokenised form |
 | `build/EDOSTEST.ATR` | the test disk |
 | `build/EDOS-D2.ATR` | a DOS 2/MyDOS disk with `EDOS.COM` |
 | `build/EDOS-BOOT.ATR` | a bootable DOS 2.5 or MyDOS disk with `EDOS.COM`, when you put that DOS's master disk at `tools/dos/DOS.ATR` (`EDOS_AS_DUP=1` also installs EDOS as `DUP.SYS`) |
 
-`tools/mac65.py` is a Python cross assembler for the MAC/65 syntax used here. Fed the February 2025
-sources, it makes the same `EDOS.COM` that MAC/65 made then, byte for byte. `build/` is what the build
+`xl/tools/mac65.py`, the family's cross assembler (from AERA-Atari's `xl` branch, in `xl/`), takes
+the MAC/65 syntax used here. Fed the February 2025 sources, it makes the same `EDOS.COM` that MAC/65
+made then, byte for byte. `build/` is what the build
 writes; it is never committed.
 
 **On the Atari**, with the sources from `EDOS.ATR` on D1:
@@ -135,13 +136,15 @@ UTILS.M65      general routines, usable in other programs (list below)
 MACROS.M65     MAC/65 macros (list below)
 SYSTEM.M65     OS and hardware addresses, zero page
 CIOSTAT.M65    the texts for CIO error codes
-tools/         cross assembler, tokenizer, ATR tools, font, screenshot, tests
+tools/         disks, screenshot, the 6502 simulator and the tests
+xl/            the AERA family's shared tools and includes (tools/sync-xl.sh updates it)
 release-notes/ what each release changed
 ```
 
-`tools/mac65tok.py` converts between these text sources and MAC/65's tokenised SAVE format, checked
-byte for byte against files MAC/65 saved. `tools/sparta.py` lists, extracts, adds, deletes and checks
-files on SpartaDOS disk images; `tools/atr.py` does the same for DOS 2 and MyDOS images.
+In git the sources have no line numbers; on the disk they are numbered 10, 20, ... and tokenised as
+MAC/65's SAVE writes them (`xl/tools/atari_src.py`, `mac65tok.py`). A file changed on the Atari comes
+back with `python3 xl/tools/atari_src.py import FILE.M65 FILE.M65`. `xl/tools/sparta.py` and `atr.py`
+read and write SpartaDOS, DOS 2 and MyDOS disk images.
 `tools/screenshot.py EDOS.png` draws the menu picture above by running `EDOS.COM` on the emulated 6502
 (it needs Pillow).
 
@@ -204,7 +207,7 @@ python3 tools/test_commands.py     # every menu command, the menu keys, start-up
                                    # sectors copied, screen text and where control goes
 python3 tools/test_edos.py         # routines: conversions, error texts, the disk copy loop in
                                    # every density, fast SIO loading, the memory layout
-python3 tools/test_mac65tok.py     # the tokenizer, and the sources as MAC/65 needs them
+python3 tools/test_sources.py      # the sources as git and MAC/65 need them
 python3 tools/test_sparta.py       # the disk images: files read back, fsck, the sources on the
                                    # disk assemble to EDOS.COM
 python3 tools/difftest.py OLD NEW  # 29 command runs on two builds: any change in the screens,

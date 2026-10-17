@@ -14,6 +14,7 @@ import sys
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'xl', 'tools'))
 from sim import Sim, PORTB  # noqa: E402
 from difftest import World, Done, symbolizer, binfile  # noqa: E402
 
@@ -570,8 +571,8 @@ class TestFont(unittest.TestCase):
 
     def setUp(self):
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        from font import edos_font
-        self.font = edos_font()
+        from font import aera_font
+        self.font = aera_font()
 
     def start(self, files, ramtop=0xA0):
         m = Machine(files)

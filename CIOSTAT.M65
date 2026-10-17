@@ -1,32 +1,32 @@
-10 ;
-20 ; CIOSTAT.M65 - V. 3.2 | CIO STATUS TEXTS
-30 ; Copyright (C) 2026 AERA | Erez Yaary
-35 CIO_MSG ;CODE, TEXT, EOL ... $FF
-40 CS.128 .BYTE 128,"Key Abort",EOL
-50 CS.129 .BYTE 129,"IOCB already open",EOL
-60 CS.130 .BYTE 130,"Non-Existent Device",EOL
-70 CS.131 .BYTE 131,"Opened for write only",EOL
-80 CS.132 .BYTE 132,"Invalid command",EOL
-90 CS.133 .BYTE 133,"Device/File not open",EOL
-0110 CS.135 .BYTE 135,"Opened for read only",EOL
-0120 CS.136 .BYTE 136,"End of file",EOL
-0130 CS.137 .BYTE 137,"Truncated record",EOL
-0140 CS.138 .BYTE 138,"Device timeout",EOL
-0150 CS.139 .BYTE 139,"Device NAK",EOL
-0160 CS.140 .BYTE 140,"Input framing",EOL
-0180 CS.142 .BYTE 142,"Data frame overrun",EOL
-0190 CS.143 .BYTE 143,"Data frame checksum",EOL
-0200 CS.144 .BYTE 144,"Device done",EOL
-0220 CS.146 .BYTE 146,"Function not supported",EOL
-0230 CS.147 .BYTE 147,"Insufficient memory",EOL
-0240 CS.160 .BYTE 160,"Disk drive number",EOL
-0250 CS.161 .BYTE 161,"Too many open files",EOL
-0260 CS.162 .BYTE 162,"Disk full",EOL
-0270 CS.163 .BYTE 163,"Fatal disk I/O",EOL
-0280 CS.164 .BYTE 164,"File number mismatch",EOL
-0290 CS.165 .BYTE 165,"File name",EOL
-0310 CS.167 .BYTE 167,"File locked",EOL
-0320 CS.168 .BYTE 168,"Invalid command for disk",EOL
-0330 CS.169 .BYTE 169,"Directory full",EOL
-0340 CS.170 .BYTE 170,"File not found",EOL
-0360     .BYTE $FF   ;END OF LIST
+;
+; CIOSTAT.M65 - V. 3.2 | CIO STATUS TEXTS
+; Copyright (C) 2026 AERA | Erez Yaary
+CIO_MSG                     ;CODE, TEXT, EOL ... $FF
+CS.128   .BYTE 128,"Key Abort",EOL
+CS.129   .BYTE 129,"IOCB already open",EOL
+CS.130   .BYTE 130,"Non-Existent Device",EOL
+CS.131   .BYTE 131,"Opened for write only",EOL
+CS.132   .BYTE 132,"Invalid command",EOL
+CS.133   .BYTE 133,"Device/File not open",EOL
+CS.135   .BYTE 135,"Opened for read only",EOL
+CS.136   .BYTE 136,"End of file",EOL
+CS.137   .BYTE 137,"Truncated record",EOL
+CS.138   .BYTE 138,"Device timeout",EOL
+CS.139   .BYTE 139,"Device NAK",EOL
+CS.140   .BYTE 140,"Input framing",EOL
+CS.142   .BYTE 142,"Data frame overrun",EOL
+CS.143   .BYTE 143,"Data frame checksum",EOL
+CS.144   .BYTE 144,"Device done",EOL
+CS.146   .BYTE 146,"Function not supported",EOL
+CS.147   .BYTE 147,"Insufficient memory",EOL
+CS.160   .BYTE 160,"Disk drive number",EOL
+CS.161   .BYTE 161,"Too many open files",EOL
+CS.162   .BYTE 162,"Disk full",EOL
+CS.163   .BYTE 163,"Fatal disk I/O",EOL
+CS.164   .BYTE 164,"File number mismatch",EOL
+CS.165   .BYTE 165,"File name",EOL
+CS.167   .BYTE 167,"File locked",EOL
+CS.168   .BYTE 168,"Invalid command for disk",EOL
+CS.169   .BYTE 169,"Directory full",EOL
+CS.170   .BYTE 170,"File not found",EOL
+         .BYTE $FF          ;END OF LIST

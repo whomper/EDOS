@@ -1,240 +1,240 @@
-10 ;MACROS.M65 - V. 3.2 | COPY TXT FROM 1 BUF TO ANOTHER | %1 - SRC
-11 ;Copyright (C) 2026 AERA | Erez Yaary
-13 ;%2 - DEST | %3 - BOLD? | %4 - OFFSET MEM | %5 - COUNT MEM | X HOLD COUNT
-16 ;ONLY %1,%2: JSR COPY, UP TO AND WITH EOL, Y HOLDS COUNT
-19       .MACRO @CPYMEM
-22       .IF %0=2
-25       JSR COPY
-28       .WORD %1,%2
-31       .ELSE
-40         .IF %0>3
-50         LDY %4
-60         .ENDIF
-70       LDX #$00
-80 LOOP
-90       LDA %1,X
-0100       .IF %0>2
-0110         .IF %3=1
-0120         CLC
-0130         ADC #$80
-0140         .ENDIF
-0150       .ENDIF
-0160       .IF %0>3
-0170       STA %2,Y
-0180       INY
-0190       .ELSE
-0200       STA %2,X
-0210       .ENDIF
-0220     INX
-0230       .IF %0>4
-0240       CPX %5
-0250       .ELSE
-0260       CMP #EOL
-0270       .ENDIF
-0280     BNE LOOP
-0285     .ENDIF
-0290     .ENDM
-0300 ;
-0470 ;PUT CURSOR POS ON STACK
-0480     .MACRO @CHECURPOS
-0490     LDA ROWCRS
-0500     PHA
-0510     LDA COLCRS
-0520     PHA
-0530     .ENDM
-0540 ;
-0550 ;HIDES THE CURSOR
-0560     .MACRO @HIDCUR
-0570     JSR HIDECURSOR
-0580     .ENDM
-0590 ;
-0600 ;SHOWS THE CURSOR
-0610     .MACRO @SHWCUR
-0620     JSR SHOWCURSOR
-0630     .ENDM
-0640 ;
-0650 ;GREEN BACKGROUND
-0660     .MACRO @COLGRN
-0670     LDA #$C8
-0680     STA COLOR4
-0690     .ENDM
-0700 ;
-0710 ;RED BACKGROUND
-0720     .MACRO @COLRED
-0730     JSR SETCOLRED
-0740     .ENDM
-0750 ;
-0760 ;BLACK BACKGROUND
-0770     .MACRO @COLDEF
-0780     LDA #$00
-0790     STA COLOR4
-0800     .ENDM
-0810 ;
-0820 ;FORCE UPPERCASE
-0830     .MACRO @MKCAPS
-0840     LDA #$40
-0850     STA SHFLOK
-0860     .ENDM
-0870 ;
-0880 ;CONVERT DIGIT TO ASCII
-0890     .MACRO @MKASCII
-0900     CLC
-0910     ADC #$30
-0920     .ENDM
-0930 ;
-0940 ;CONVERT ASCII TO DIGIT
-0950     .MACRO @RMASCII
-0960     SEC
-0970     SBC #$30
-0980     .ENDM
-0990 ;
-1160 ;SILENCE SIO
-1170     .MACRO @SIOSNDOFF
-1180     LDA #$00
-1190     STA SOUNDR
-1200     .ENDM
-1210 ;
-1220 ;ENABLE SIO SOUND
-1230     .MACRO @SIOSNDON
-1240     LDA #$01
-1250     STA SOUNDR
-1260     .ENDM
-1270 ;
-1280 ;HIDE SPECIAL CHARACTERS
-1290     .MACRO @HIDCHR
-1300     LDA #$00
-1310     STA DSPFLG
-1320     .ENDM
-1330 ;
-1340 ;SHOW SPECIAL CHARACTERS
-1350     .MACRO @SHWCHR
-1360     LDA #$01
-1370     STA DSPFLG
-1380     .ENDM
-1390 ;
-1400 ;RESTORE CURSOR POSITION
-1410     .MACRO @RSTCURPOS
-1420     PLA
-1430     STA COLCRS
-1440     PLA
-1450     STA ROWCRS
-1460     .ENDM
-1470 ;
-1480 ;ENABLE PAGE 0 POINTER | %1 - TARGET TXT BUF
-1490     .MACRO @POINT2TXT
-1500     LDA # <%1
-1510     STA INDPTR
-1520     LDA # >%1
-1530     STA INDPTR+1
-1540     .ENDM
-1550 ;
-1560 ;FILLS MEM WITH CHAR | %1 - MEM | %2 - LEN ($00=256) | %3 - CHAR
-1570 ;JSR FILL WITH THEM AFTER IT | X KEPT
-1580     .MACRO @FILLMEM
-1590     JSR FILL
-1600     .WORD %1
-1610     .BYTE %2,%3
-1620     .ENDM
-1700 ;
-1710 ;POINT TO A BUF FOR GETTEXT | %1 - BUF | %2 - MAX LEN W/ EOL
-1720     .MACRO @INPRM
-1721       .IF %0>1
-1722       LDX #%2
-1723       .ELSE
-1724       LDX #MAXBUF
-1725       .ENDIF
-1726     STX TXTLEN
-1730     LDA # <%1
-1740     LDY # >%1
-1750     .ENDM
-1760 ;
-1770 ;HELPER FOR THE DRAW METHOD | %1-CHAR | %2-POS | %3-LEN
-1780     .MACRO @DRAW
-1790     LDA #%1
-1800     LDX #%2
-1810     LDY #%3
-1820     JSR DRAW
-1830     .ENDM
-1840 ;
-1850 ;HELPER FOR PRNTLN | %1 - TXT BUF | %2 - DEL: PRINT UP TO DEL,
-1860 ;ELSE UP TO AND WITH EOL | .WORD %1 FOLLOWS THE JSR
-1870     .MACRO @PRNTLN
-1880     .IF %0>1
-1890     .IF %2-DEL
-1900     JMP PRNTLN_2ND_PARAMETER_MUST_BE_DEL ;UNDEFINED: STOPS ASSEMBLY
-1910     .ENDIF
-1920     JSR PRNTDL
-1930     .ELSE
-1940     JSR PRNTLN
-1950     .ENDIF
-1960     .WORD %1
-1970     .ENDM
-1990 ;
-2000 ;SET SECTOR # TO DAUX1/2 | %1 - LO BYTE | %2 - HI BYTE
-2003 ;ARGS <256 ARE TAKEN AS LITERALS (#),
-2006 ;SO NEVER PASS A ZERO PAGE VARIABLE
-2010     .MACRO @SETSCT
-2020       .IF %1<256
-2030       LDA #%1
-2040       .ELSE
-2050       LDA %1
-2060       .ENDIF
-2070     STA DAUX1
-2080       .IF %2<256
-2090       LDA #%2
-2100       .ELSE
-2110       LDA %2
-2120       .ENDIF
-2130     STA DAUX2
-2140     .ENDM
-2150 ;
-2160 ;HELPER FOR DOSIO | %1 - COMND | %2 - STAT | %3 - BUF | %4 - TIME
-2170 ;%5 - SIZE LO | %6 - SIZE HI | %7 - FLAG | ALL ARE CONSTANTS
-2180 ;EMITS JSR DOSIO + 8 INLINE BYTES IN DCB ORDER ($302-$309)
-2190     .MACRO @DOSIO
-2200     JSR DOSIO
-2210     .BYTE %1,%2
-2220     .WORD %3
-2230     .BYTE %4
-2240     .IF %0>6
-2250     .BYTE %7
-2260     .ELSE
-2270     .BYTE 0
-2280     .ENDIF
-2290     .BYTE %5,%6
-2300     .ENDM
-2520 ;
-2530 ;HELPER FOR DOCIO | %1 - IOCB | %2 - ICM.XX | %3 - BUF | %4 - ICAX1
-2540 ;%5 - LEN LO ADDR | %6 - LEN HI ADDR, MUST BE %5+1 | %7 - 1=BUF IS PNTR
-2550 ;EMITS JSR DOCIO + 5 OR 7 INLINE BYTES: IOCB+FLAGS,CMD,BUF,ICAX1[,LEN ADR]
-2560     .MACRO @DOCIO
-2570     JSR DOCIO
-2580     .IF %0<5
-2590     .BYTE %1
-2600     .ENDIF
-2610     .IF %0=5
-2620     .BYTE %1+1
-2630     .ENDIF
-2640     .IF %0=6
-2650     .BYTE %1+3
-2660     .ENDIF
-2670     .IF %0>6
-2680     .IF %7=1
-2690     .BYTE %1+7
-2700     .ELSE
-2710     .BYTE %1+3
-2720     .ENDIF
-2730     .ENDIF
-2740     .BYTE %2
-2750     .WORD %3
-2760     .BYTE %4
-2770     .IF %0>4
-2780     .WORD %5
-2790     .ENDIF
-2800     .ENDM
-2960 ;
-2970 ;CLOSE A CIO CHANNEL | %1 - DEV ID
-2980     .MACRO @CLOSEIO
-2990     LDX #%1
-3000     JSR CLOSECHANNEL
-3010     .ENDM
+;MACROS.M65 - V. 3.2 | COPY TXT FROM 1 BUF TO ANOTHER | %1 - SRC
+;Copyright (C) 2026 AERA | Erez Yaary
+;%2 - DEST | %3 - BOLD? | %4 - OFFSET MEM | %5 - COUNT MEM | X HOLD COUNT
+;ONLY %1,%2: JSR COPY, UP TO AND WITH EOL, Y HOLDS COUNT
+         .MACRO @CPYMEM
+         .IF %0=2
+         JSR COPY
+         .WORD %1,%2
+         .ELSE
+         .IF %0>3
+         LDY %4
+         .ENDIF
+         LDX #$00
+LOOP
+         LDA %1,X
+         .IF %0>2
+         .IF %3=1
+         CLC
+         ADC #$80
+         .ENDIF
+         .ENDIF
+         .IF %0>3
+         STA %2,Y
+         INY
+         .ELSE
+         STA %2,X
+         .ENDIF
+         INX
+         .IF %0>4
+         CPX %5
+         .ELSE
+         CMP #EOL
+         .ENDIF
+         BNE LOOP
+         .ENDIF
+         .ENDM
+;
+;PUT CURSOR POS ON STACK
+         .MACRO @CHECURPOS
+         LDA ROWCRS
+         PHA
+         LDA COLCRS
+         PHA
+         .ENDM
+;
+;HIDES THE CURSOR
+         .MACRO @HIDCUR
+         JSR HIDECURSOR
+         .ENDM
+;
+;SHOWS THE CURSOR
+         .MACRO @SHWCUR
+         JSR SHOWCURSOR
+         .ENDM
+;
+;GREEN BACKGROUND
+         .MACRO @COLGRN
+         LDA #$C8
+         STA COLOR4
+         .ENDM
+;
+;RED BACKGROUND
+         .MACRO @COLRED
+         JSR SETCOLRED
+         .ENDM
+;
+;BLACK BACKGROUND
+         .MACRO @COLDEF
+         LDA #$00
+         STA COLOR4
+         .ENDM
+;
+;FORCE UPPERCASE
+         .MACRO @MKCAPS
+         LDA #$40
+         STA SHFLOK
+         .ENDM
+;
+;CONVERT DIGIT TO ASCII
+         .MACRO @MKASCII
+         CLC
+         ADC #$30
+         .ENDM
+;
+;CONVERT ASCII TO DIGIT
+         .MACRO @RMASCII
+         SEC
+         SBC #$30
+         .ENDM
+;
+;SILENCE SIO
+         .MACRO @SIOSNDOFF
+         LDA #$00
+         STA SOUNDR
+         .ENDM
+;
+;ENABLE SIO SOUND
+         .MACRO @SIOSNDON
+         LDA #$01
+         STA SOUNDR
+         .ENDM
+;
+;HIDE SPECIAL CHARACTERS
+         .MACRO @HIDCHR
+         LDA #$00
+         STA DSPFLG
+         .ENDM
+;
+;SHOW SPECIAL CHARACTERS
+         .MACRO @SHWCHR
+         LDA #$01
+         STA DSPFLG
+         .ENDM
+;
+;RESTORE CURSOR POSITION
+         .MACRO @RSTCURPOS
+         PLA
+         STA COLCRS
+         PLA
+         STA ROWCRS
+         .ENDM
+;
+;ENABLE PAGE 0 POINTER | %1 - TARGET TXT BUF
+         .MACRO @POINT2TXT
+         LDA # <%1
+         STA INDPTR
+         LDA # >%1
+         STA INDPTR+1
+         .ENDM
+;
+;FILLS MEM WITH CHAR | %1 - MEM | %2 - LEN ($00=256) | %3 - CHAR
+;JSR FILL WITH THEM AFTER IT | X KEPT
+         .MACRO @FILLMEM
+         JSR FILL
+         .WORD %1
+         .BYTE %2,%3
+         .ENDM
+;
+;POINT TO A BUF FOR GETTEXT | %1 - BUF | %2 - MAX LEN W/ EOL
+         .MACRO @INPRM
+         .IF %0>1
+         LDX #%2
+         .ELSE
+         LDX #MAXBUF
+         .ENDIF
+         STX TXTLEN
+         LDA # <%1
+         LDY # >%1
+         .ENDM
+;
+;HELPER FOR THE DRAW METHOD | %1-CHAR | %2-POS | %3-LEN
+         .MACRO @DRAW
+         LDA #%1
+         LDX #%2
+         LDY #%3
+         JSR DRAW
+         .ENDM
+;
+;HELPER FOR PRNTLN | %1 - TXT BUF | %2 - DEL: PRINT UP TO DEL,
+;ELSE UP TO AND WITH EOL | .WORD %1 FOLLOWS THE JSR
+         .MACRO @PRNTLN
+         .IF %0>1
+         .IF %2-DEL
+         JMP PRNTLN_2ND_PARAMETER_MUST_BE_DEL ;UNDEFINED: STOPS ASSEMBLY
+         .ENDIF
+         JSR PRNTDL
+         .ELSE
+         JSR PRNTLN
+         .ENDIF
+         .WORD %1
+         .ENDM
+;
+;SET SECTOR # TO DAUX1/2 | %1 - LO BYTE | %2 - HI BYTE
+;ARGS <256 ARE TAKEN AS LITERALS (#),
+;SO NEVER PASS A ZERO PAGE VARIABLE
+         .MACRO @SETSCT
+         .IF %1<256
+         LDA #%1
+         .ELSE
+         LDA %1
+         .ENDIF
+         STA DAUX1
+         .IF %2<256
+         LDA #%2
+         .ELSE
+         LDA %2
+         .ENDIF
+         STA DAUX2
+         .ENDM
+;
+;HELPER FOR DOSIO | %1 - COMND | %2 - STAT | %3 - BUF | %4 - TIME
+;%5 - SIZE LO | %6 - SIZE HI | %7 - FLAG | ALL ARE CONSTANTS
+;EMITS JSR DOSIO + 8 INLINE BYTES IN DCB ORDER ($302-$309)
+         .MACRO @DOSIO
+         JSR DOSIO
+         .BYTE %1,%2
+         .WORD %3
+         .BYTE %4
+         .IF %0>6
+         .BYTE %7
+         .ELSE
+         .BYTE 0
+         .ENDIF
+         .BYTE %5,%6
+         .ENDM
+;
+;HELPER FOR DOCIO | %1 - IOCB | %2 - ICM.XX | %3 - BUF | %4 - ICAX1
+;%5 - LEN LO ADDR | %6 - LEN HI ADDR, MUST BE %5+1 | %7 - 1=BUF IS PNTR
+;EMITS JSR DOCIO + 5 OR 7 INLINE BYTES: IOCB+FLAGS,CMD,BUF,ICAX1[,LEN ADR]
+         .MACRO @DOCIO
+         JSR DOCIO
+         .IF %0<5
+         .BYTE %1
+         .ENDIF
+         .IF %0=5
+         .BYTE %1+1
+         .ENDIF
+         .IF %0=6
+         .BYTE %1+3
+         .ENDIF
+         .IF %0>6
+         .IF %7=1
+         .BYTE %1+7
+         .ELSE
+         .BYTE %1+3
+         .ENDIF
+         .ENDIF
+         .BYTE %2
+         .WORD %3
+         .BYTE %4
+         .IF %0>4
+         .WORD %5
+         .ENDIF
+         .ENDM
+;
+;CLOSE A CIO CHANNEL | %1 - DEV ID
+         .MACRO @CLOSEIO
+         LDX #%1
+         JSR CLOSECHANNEL
+         .ENDM
