@@ -148,7 +148,7 @@ EDOSVARS.M65   variables, the menu and the messages
 UTILS.M65      general routines, usable in other programs (list below)
 MACROS.M65     MAC/65 macros (list below)
 SYSTEM.M65     EDOS's constants and zero page (the OS's names are xl's AXEQU.M65)
-tools/         disks, screenshot, the 6502 simulator and the tests
+tools/         disks, screenshot, the tests and their DOS and drive (on xl's a8sim)
 xl/            the AERA family's shared tools and includes (tools/sync-xl.sh updates it); EDOS
                includes AXEQU, AXLOAD (the load check), AXRESET (RESET back into EDOS),
                AXFONT (AERA.FNT) and AXERR (the error texts)
@@ -210,9 +210,9 @@ read and write SpartaDOS, DOS 2 and MyDOS disk images.
 
 ## Tests
 
-The tests run the real `EDOS.COM` on an emulated 6502 ([py65](https://github.com/mnaberez/py65)) with
-256K of banked memory, a simulated DOS (files on D1: and D2:), a simulated disk drive, and scripted
-keys and lines:
+The tests run the real `EDOS.COM` on the family's emulated Atari (`xl/tools/a8sim`, on
+[py65](https://github.com/mnaberez/py65)) with 256K of banked memory, and EDOS's own simulated DOS
+(files on D1: and D2:), simulated disk drive and scripted keys and lines (`tools/difftest.py`):
 
 ```
 make test                          # runs them all, and xl/'s own
