@@ -456,27 +456,37 @@ GETSPEC
 ; from INP1 (ending in EOL). Empty:
 ; DISK, "Dn:*.*" for the drive in use.
 ; "Dn:..." as it is; "n:..." gets a D
-; in front; a name alone gets DISK's
-; "Dn:". A device with no name gets
-; the name ARGS, "*.*"
+; in front; a name alone, or "D:" and
+; a name, gets DISK's "Dn:". A device
+; with no name gets the name ARGS,
+; "*.*"
 ; Exit: FILE set; A, X, Y changed
 ;
 PROCFILESPEC
          LDA INP1
          CMP #EOL
          BEQ DEFDSKID       ; empty: DISK
+         LDX #$00           ; from INP1's start
          LDA INP1+2
          CMP #':
          BEQ CMPLTSTRCT     ; "Dn:"
          LDA INP1+1
          CMP #':
-         BEQ CMPLTSTRCT     ; "n:"
-; A name alone: DISK's "Dn:" + INP1
-         @CPYMEM DISK,FILE
-         @CPYMEM INP1,FILE+3
-         RTS
+         BNE PROCFS_1       ; a name alone
+         LDA INP1
+         CMP #'D
+         BNE CMPLTSTRCT     ; "n:"
+         LDX #$02           ; "D:": after it
+PROCFS_1
+         LDY #$02           ; DISK's "Dn:", then
+PROCFS_2
+         LDA DISK,Y         ; INP1 from X
+         STA FILE,Y
+         DEY
+         BPL PROCFS_2
+         LDY #$03
+         BNE CONTPROC       ; always
 CMPLTSTRCT
-         LDX #$00
          LDY #$00
          LDA INP1+1
          CMP #':

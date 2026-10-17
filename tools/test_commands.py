@@ -220,7 +220,7 @@ class TestLoadBinary(unittest.TestCase):
         s.poke_word(s['AXDOSI'], 0x1234)               # DOS's own DOSINI
         s.poke_word(0x0C, s['AXINIT'])                # EDOS hooked in
         self.assertEqual(m.run('COMLOA', stop=['GETCOM', 0x40F0]), 0x40F0)
-        self.assertEqual(m.mem(0x2000, 0x2100), code)                # BUF ($3E00) too
+        self.assertEqual(m.mem(0x2000, 0x2100), code)                # BUF ($3F00) too
         self.assertEqual(s.word(0x0C), 0x1234)
         self.assertEqual(s.peek(0x02F4), 0xE0)       # ROM font
 
@@ -322,6 +322,16 @@ class TestCopyFiles(unittest.TestCase):
         for n in ('PROG.COM', 'TEXT.TXT', 'BIG.DAT', 'NORUN.COM'):
             self.assertEqual(m.file(2, n), m.file(1, n), n)
 
+    def test_empty_and_16k_files_copy_exactly(self):
+        # the last PUT had length 0, and CIO then writes the byte in A
+        f = files()
+        f[1].update({'EMPTY.DAT': b'', 'K16.DAT': bytes(range(256)) * 64})
+        for n in ('EMPTY.DAT', 'K16.DAT'):
+            m = Machine(f, lines=['D1:' + n], keys='2')
+            m.run('COMCPY', max_steps=60_000_000)
+            m.close_files()
+            self.assertEqual(m.file(2, n), f[1][n], n)
+
     def test_same_drive_prompts_for_swaps(self):
         m = Machine(files(), lines=['TEXT.TXT'], keys='YYY')
         m.run('COMCPY')
@@ -351,9 +361,11 @@ class TestCopyFiles(unittest.TestCase):
 
 
 class TestCompare(unittest.TestCase):
-    def check(self, a, b, expect):
-        m = Machine(files(), lines=[a, b])
-        m.run('COMCMP')
+    def check(self, a, b, expect, more=None):
+        f = files()
+        f[1].update(more or {})
+        m = Machine(f, lines=[a, b])
+        m.run('COMCMP', max_steps=60_000_000)
         self.assertIn(expect, m.screen)
 
     def test_same(self):
@@ -364,6 +376,21 @@ class TestCompare(unittest.TestCase):
 
     def test_different_length(self):
         self.check('TEXT.TXT', 'BIG.DAT', 'Files are different')
+
+    def test_a_file_and_a_longer_copy_differ(self):
+        # 3.2 compared only the bytes both had: the same
+        long = {'LONG.TXT': TEXT + b'MORE'}
+        self.check('TEXT.TXT', 'LONG.TXT', 'Files are different', long)
+        self.check('LONG.TXT', 'TEXT.TXT', 'Files are different', long)
+        self.check('A.DAT', 'B.DAT', 'Files are different', {'A.DAT': bytes(255), 'B.DAT': bytes(256)})
+
+    def test_same_at_block_ends_and_empty(self):
+        self.check('A.DAT', 'B.DAT', 'Files are the same', {'A.DAT': bytes(255), 'B.DAT': bytes(255)})
+        self.check('A.DAT', 'B.DAT', 'Files are the same', {'A.DAT': b'', 'B.DAT': b''})
+        self.check('BIG.DAT', 'BIG.DAT', 'Files are the same')
+
+    def test_last_byte_differs(self):
+        self.check('BIG.DAT', 'B.DAT', 'Files are different', {'B.DAT': BIG[:-1] + bytes([BIG[-1] ^ 1])})
 
 
 class TestFileCommands(unittest.TestCase):
@@ -382,6 +409,24 @@ class TestFileCommands(unittest.TestCase):
         m.run('COMREN')
         self.assertIsNone(m.file(1, 'TEXT.TXT'))
         self.assertEqual(m.file(1, 'NEW.TXT'), TEXT)
+
+    def test_files_on_disk_keeps_the_rename_prompt(self):
+        # the count went over NUMF's EOL and on into RENO ("Old File: ")
+        m = Machine(files(), lines=['', 'TEXT.TXT', 'NEW.TXT'], keys='Y')
+        m.run('COMDIR')
+        self.assertRegex(m.screen, r'Number of files: \d+')
+        m.run('COMREN')
+        self.assertIn('Old File: ', m.screen)
+        self.assertEqual(m.file(1, 'NEW.TXT'), TEXT)
+
+    def test_file_specs(self):
+        # "D:" was taken for "n:" and got a D in front: DD:TEXT.TXT
+        for spec, want in (('D:TEXT.TXT', 'D1:TEXT.TXT'), ('D1:TEXT.TXT', 'D1:TEXT.TXT'),
+                           ('1:TEXT.TXT', 'D1:TEXT.TXT'), ('TEXT.TXT', 'D1:TEXT.TXT'),
+                           ('D:', 'D1:*.*'), ('2:', 'D2:*.*'), ('', 'D1:*.*')):
+            m = Machine(files(), lines=[spec])
+            m.run('COMDIR')                           # Files on Disk opens it
+            self.assertEqual(m.opened(), [want], spec)
 
     def test_protect_unprotect(self):
         m = Machine(files(), lines=['PROG*.COM'])
@@ -439,6 +484,14 @@ class TestViewers(unittest.TestCase):
         lines = [l for l in m.screen.split('\n') if 'Sector:' in l][1:]   # [0]: the prompt
         self.assertEqual(lines, ['Sector: 10  ', 'Sector: 11  ', 'Sector: 10  '])
 
+    def test_analyze_sector_1000_keeps_numbks(self):
+        # BIN2DEC wrote "1000" (count, 4 digits, EOL) into SCTR's 5 bytes:
+        # the EOL went into NUMBKS, the banks Copy Files and Duplicate use
+        m = Machine(lines=['1000'], keys='N', densities=[2])
+        m.run('COMANA')
+        self.assertEqual(m.sim.peek(m['NUMBKS']), 16)
+        self.assertIn('Sector: 1000', m.screen)
+
 
 class TestDisk(unittest.TestCase):
     def test_duplicate_same_drive_all_sectors(self):
@@ -476,6 +529,17 @@ class TestDisk(unittest.TestCase):
         self.assertIn(0x22, [c for c, s in cmds])
         self.assertIn((0x57, 360), cmds)                                 # VTOC
         self.assertIn((0x57, 1024), cmds)                                # VTOC2
+        # DOS 2.5's VTOC: 1010 free; its bitmap (bytes 10-99) has sectors
+        # 0-3 and 360-368 in use, so 707 of 0-719 free. Byte 99 (712-719)
+        # used to be left as the format reply had it
+        vtoc = m.w.disk[(1, 360)]
+        self.assertEqual(vtoc[:10], bytes([2, 0xF2, 3, 0xF2, 3, 0, 0, 0, 0, 0]))
+        free = sum(bin(b).count('1') for b in vtoc[10:100])
+        self.assertEqual(free, 707)
+        self.assertEqual(vtoc[99], 0xFF)
+        vtoc2 = m.w.disk[(1, 1024)]
+        self.assertEqual(sum(bin(b).count('1') for b in vtoc2[84:122]), 303)    # 721-1023
+        self.assertEqual(vtoc2[122] | vtoc2[123] << 8, 303)
 
     def test_initialize_cancel(self):
         m = Machine(files(), keys='1N')

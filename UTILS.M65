@@ -966,14 +966,14 @@ DEC2HEX
 ; file: the end of EDOSVARS.M65
 ;
 EMSG     .BYTE "* Error ",DEL
-; The work area $3900-$3FFF, below the
+; The work area $3A00-$3FFF, below the
 ; $4000 bank window: always mapped.
 ; EDOS must end below WRKBEG (checked
 ; at the end of EDOS.M65)
-BUF      = $3E00            ;$100
-INP1     = $3D80            ;input, helper $80
-FILE     = $3D40            ;file name, row $40
-FSIOV    = $3900            ;the fast SIO code
+BUF      = $3F00            ;$100
+INP1     = $3E80            ;input, helper $80
+FILE     = $3E40            ;file name, row $40
+FSIOV    = $3A00            ;the fast SIO code
 FSIOMAX  = FILE-FSIOV       ;$440 bytes
 WRKBEG   = FSIOV            ;the work area's start
 ; BANKS - PORTB values: main memory

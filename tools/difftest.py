@@ -166,6 +166,8 @@ class World:
             h = self.open.get(x)
             if not h:
                 return 133
+            if blen == 0:                                # CIO: length 0 puts the
+                h['data'] += bytes([self.sim.mpu.a])     # byte in A
             h['data'] += bytes(self.sim.mem[buf + k] for k in range(blen))
             return 1
         spec = self.text_at(buf)

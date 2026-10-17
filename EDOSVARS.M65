@@ -54,7 +54,7 @@ MNU2     .BYTE "rase Files        ","oad Binary",EOL
 ; stays after them), messages in EOL
 ;
 FSPC     .BYTE "File Spec: ",DEL
-NUMF     .BYTE "Number of files: ",EOL
+NUMF     .BYTE "Number of files: ",EOL,0,0,0 ; room: 3 digits, EOL
 RENO     .BYTE "Old File: ",DEL
 RENN     .BYTE "New File: ",DEL
 BCMF     .BYTE "File 1: ",DEL

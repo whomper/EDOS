@@ -99,13 +99,13 @@ COMANA_0
          STA VALUE
          LDA DAUX2
          STA VALUE+1
-         LDA # <SCTR
-         LDY # >SCTR
+         LDA # <INP1        ; not SCTR: 4 digits,
+         LDY # >INP1        ; count and EOL are 6
          JSR BIN2DEC        ; length, digits, EOL
          LDA #$00
          STA D0
          @FILLMEM SECT+$08,$04,$20
-         @CPYMEM SCTR+1,SECT+$08,1,D0,SCTR
+         @CPYMEM INP1+1,SECT+$08,1,D0,INP1
          @PRNTLN SECT
 ; its first $80 bytes, addresses from
 ; 0
@@ -145,15 +145,16 @@ COMANA_5
 ;
 ; COMCMP - Byte Compare: ask for two
 ; files, read both $FF bytes at a
-; time (to M4000, M5000), compare
-; Exit: JMP GETCOM; ABORT, BYTRD, D0,
-; D1, BUF, FILE changed
+; time (to M4000, M5000), compare.
+; They are the same when each read
+; gets as many bytes, the bytes match
+; and both end in the same read
+; Exit: JMP GETCOM; ABORT, D0, D1,
+; BUF, FILE changed
 ;
 COMCMP
          LDA #$00
-         STA ABORT          ; CHKEOF sets it
-         LDA #$FF
-         STA BYTRD          ; bytes to compare
+         STA ABORT          ; CHKEOF counts EOFs
 ; the first file spec into BUF
          @PRNTLN BCMF,DEL
          JSR GETSPEC
@@ -171,23 +172,28 @@ COMCMP_1
          LDA #$FF
          STA D0
          @DOCIO DSKID1,AXGETCHR,M4000,AXOPNIN,D0,D1
-         LDX #DSKID1
          JSR CHKEOF
          @DOCIO DSKID2,AXGETCHR,M5000,AXOPNIN,D0,D1
-         LDX #DSKID2
          JSR CHKEOF
-; compare the BYTRD bytes both read
+; as many bytes from each?
+         LDA ICBLL+DSKID1
+         CMP ICBLL+DSKID2
+         BNE COMCMP_3       ; no: different
+         TAY                ; the bytes to compare
+         BEQ COMCMP_5       ; none
          LDX #$00
 COMCMP_2
          LDA M4000,X
          CMP M5000,X
          BNE COMCMP_3
          INX
-         CPX BYTRD
+         DEY
          BNE COMCMP_2
+COMCMP_5
          LDA ABORT
          BEQ COMCMP_1       ; no EOF: the next block
-COMCMP_4
+         CMP #$02
+         BNE COMCMP_3       ; one ended first
          @PRNTLN BSAM       ; the same
          JMP GETCOM
 COMCMP_3
@@ -195,22 +201,15 @@ COMCMP_3
          JMP GETCOM
 ;
 ; CHKEOF - after a Byte Compare read:
-; ABORT = 1 at EOF, BYTRD = the bytes
-; read if fewer
-; X: the IOCB, Y: the CIO status
-; Exit: RTS; A, ABORT, BYTRD changed
+; ABORT + 1 at EOF
+; Y: the CIO status
+; Exit: RTS; ABORT changed
 ;
 CHKEOF
          CPY #AXEOF
          BNE CHKEOF_1
-         LDA #$01
-         STA ABORT
+         INC ABORT
 CHKEOF_1
-         LDA ICBLL,X
-         CMP BYTRD          ; the fewest bytes read
-         BCS CHKEOF_2
-         STA BYTRD
-CHKEOF_2
          RTS
 ;
 ; COMMEM - Memory Status: show MEMLO
@@ -558,6 +557,8 @@ FILCPY_5
          STA D0
          LDA VALUE+1
          STA D1
+         ORA D0             ; nothing left: no PUT
+         BEQ FILCPY_8       ; (length 0 puts A's byte)
 FILCPY_7
          @DOCIO DSKID2,AXPUTCHR,M4000,AXOPNOT,D0,D1
          LDA ACVMEM

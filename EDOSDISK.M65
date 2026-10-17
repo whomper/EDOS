@@ -366,7 +366,7 @@ WRTVTOC
 ; sectors, 1010 free, and the bitmap
 ; byte of sectors 0-7; then the map
          @CPYMEM VTOC,BUF
-         @FILLMEM BUF+11,$58,$FF
+         @FILLMEM BUF+11,$59,$FF ; bytes 11-99: 8-719 free
          LDA #$00
          STA BUF+55         ; 360-367 in use
          LDA #$7F
