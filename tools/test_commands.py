@@ -203,19 +203,55 @@ class TestLoadBinary(unittest.TestCase):
         m = Machine(files(), lines=['PROG.COM'], keys='Y')
         self.assertEqual(m.run('COMLOA', stop=['GETCOM', 0x5000]), 0x5000)
 
-    def test_no_run_address_no_prompt(self):
-        m = Machine(files(), lines=['NORUN.COM'])
-        m.run('COMLOA')
+    def test_no_run_address_back_to_menu(self):
+        # asked before loading: EDOS may be gone afterwards
+        m = Machine(files(), lines=['NORUN.COM'], keys='Y')
+        self.assertEqual(m.run('COMLOA'), 'GETCOM')
         self.assertEqual(m.mem(0x5000, 6), b'ABCDEF')
-        self.assertNotIn('Run Program', m.screen)
+        self.assertIn('Run Program', m.screen)
+
+    def test_over_edos_runs_with_reset_to_dos(self):
+        # a program built for EDOS's own memory loads whole and runs
+        code = bytes((i * 3) & 0xFF for i in range(0x2100))       # $2000-$40FF
+        m = Machine(files(OVER_COM=binfile((0x2000, code), run=0x2000)), lines=['OVER.COM'],
+                    keys='Y')
+        s = m.sim
+        s.poke_word(s['DOSIN'], 0x1234)               # DOS's own DOSINI
+        s.poke_word(0x0C, s['START'])                 # EDOS hooked in
+        self.assertEqual(m.run('COMLOA', stop=['GETCOM', 0x2000]), 0x2000)
+        self.assertEqual(m.mem(0x2000, 0x2100), code)                # BUF ($3E00) too
+        self.assertEqual(s.word(0x0C), 0x1234)
+        self.assertEqual(s.peek(0x02F4), 0xE0)       # ROM font
+
+    def test_over_edos_without_run_exits_to_dos(self):
+        m = Machine(files(OVER_COM=binfile((0x3000, b'\x55' * 0x200), run=0x3000)),
+                    lines=['OVER.COM'], keys='N')
+        m.sim.poke_word(0x0A, 0xA100)                 # DOSVEC
+        self.assertEqual(m.run('COMLOA', stop=['GETCOM', 0xA100]), 0xA100)
+        self.assertEqual(m.mem(0x3000, 0x200), b'\x55' * 0x200)
+
+    def test_over_loader_page_refused(self):
+        m = Machine(files(P6_COM=binfile((0x0680, b'\xEA' * 4), run=0x0680)),
+                    lines=['P6.COM'], keys='Y')
+        self.assertEqual(m.run('COMLOA', stop=['GETCOM', 0x0680]), 'GETCOM')
+        self.assertIn('loads over $0600-$06FF', m.screen)
+
+    def test_init_segment_in_edos_memory(self):
+        # INIT code inside EDOS's area runs; the program after it too
+        init = bytes([0xA9, 0x77, 0x8D, 0x00, 0x53, RTS])         # LDA #$77 / STA $5300 / RTS
+        f = binfile((0x2400, init), (0x5000, b'XY'), run=0x5000, init=(0x2400, 0x2400))
+        m = Machine(files(I_COM=f), lines=['I.COM'], keys='Y')
+        self.assertEqual(m.run('COMLOA', stop=['GETCOM', 0x5000]), 0x5000)
+        self.assertEqual(m.mem(0x5300, 1), b'\x77')
+        self.assertEqual(m.mem(0x5000, 2), b'XY')
 
     def test_not_binary(self):
-        m = Machine(files(), lines=['TEXT.TXT'])
+        m = Machine(files(), lines=['TEXT.TXT'], keys='N')
         m.run('COMLOA')
         self.assertIn('Not a binary file', m.screen)
 
     def test_missing_file_error(self):
-        m = Machine(files(), lines=['NOPE.COM'])
+        m = Machine(files(), lines=['NOPE.COM'], keys='N')
         for a in range(m['BUF'], m['BUF'] + 0x100):    # leftovers must not show
             m.sim.poke(a, ord('#'))
         m.run('COMLOA')
@@ -249,7 +285,7 @@ class TestSaveBinary(unittest.TestCase):
 
     def test_saved_file_loads_back(self):
         m = self.save(['OUT.COM', '5000', '50FF', ''])
-        m2 = Machine({1: {'OUT.COM': m.file(1, 'OUT.COM')}}, lines=['OUT.COM'])
+        m2 = Machine({1: {'OUT.COM': m.file(1, 'OUT.COM')}}, lines=['OUT.COM'], keys='N')
         m2.run('COMLOA')
         self.assertEqual(m2.mem(0x5000, 256), self.data)
 

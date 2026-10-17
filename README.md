@@ -44,8 +44,11 @@ extended memory (**XMEM**).
   View File starts at a position you give in hex, Analyze Sector at a sector number in decimal, and
   Memory Status shows `MEMLO` and `MEMTOP`, then starts at a hex address. Sectors and memory go
   forwards (+) and backwards (-).
-- **Load Binary** (L): loads a binary file and runs it if you say so. **Save Binary** (S): saves a
-  memory range, with a run address.
+- **Load Binary** (L): asks whether to run the program, then loads it and runs it if you said so.
+  A small loader in page 6 ($0600-$06FF) does the reading, so a program may load over EDOS
+  itself. If it does, EDOS hands RESET back to DOS and you end up in DOS; otherwise you come
+  back to the menu. Loading stops before anything is written to page 6.
+- **Save Binary** (S): saves a memory range, with a run address.
 - **Byte Compare** (B): tells you whether two files are the same.
 - **Go To Address** (G): jumps to an address of one to four hex digits. **To Cartridge** (T): starts
   the cartridge, when there is one.
@@ -65,7 +68,7 @@ Download from **[Releases](../../releases/latest)**:
 | `EDOS.ATR` | a bootable SpartaDOS 3.2 disk with EDOS, its font and the current MAC/65 sources |
 | `EDOS.COM` | the program: a binary load file for any DOS |
 | `EDOS.FNT` | EDOS's character set; keep it next to `EDOS.COM` |
-| `EDOSTEST.ATR` | a bootable test disk with the test files and `TESTPLAN.TXT`, 33 checks for a real Atari |
+| `EDOSTEST.ATR` | a bootable test disk with the test files and `TESTPLAN.TXT`, 35 checks for a real Atari |
 
 1. Boot `EDOS.ATR` and type `EDOS` at the SpartaDOS prompt.
 2. Or copy `EDOS.COM` and `EDOS.FNT` to your own DOS disk and load `EDOS.COM` (**L** in the DOS 2.5

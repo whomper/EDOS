@@ -91,6 +91,7 @@ class Sim:
         self.mem = BankedMemory(bank_bits)
         build = build or BUILD
         load_binary(self.mem, os.path.join(build, 'EDOS.COM'))
+        self.mem.main[0x2E5], self.mem.main[0x2E6] = 0x1F, 0x9C   # MEMTOP: 40K, GRAPHICS 0
         self.sym = load_symbols(os.path.join(build, 'EDOS.SYM'))
         self.mpu = MPU(memory=self.mem)
         self.sio_log = []

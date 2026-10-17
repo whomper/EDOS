@@ -7,6 +7,7 @@
 70 SCRID =   $00     ;DEF SCR ID
 80 KBDID =   $10     ;KBD IO
 90 DSKID1 =  $20     ;DSK IO
+95 LDRID =   $10     ;LOAD BINARY: IOCB #1, AS DOS 2
 0100 DSKID2 = $30    ;2ND DSK ID
 0110 CUP =   $1C     ;CUR UP
 0120 CLS =   $7D     ;CLR SCR

@@ -294,6 +294,12 @@ class TestFastSio(unittest.TestCase):
         s, result = self.run_fast(0x90)
         self.assertEqual(result, 'DISKERR')
 
+    def test_loader_fits_page_6(self):
+        s = Sim()
+        self.assertEqual(s['LDR'], 0x0600)
+        self.assertLessEqual(s['LDREND'] - s['LDRSRC'], 0x100)
+        self.assertEqual(s['LR.TAB'] - s['LDR'], s['LD.TAB'] - s['LDRSRC'])
+
     def test_work_area_below_bank_window(self):
         s = Sim()
         self.assertLessEqual(s['END_PROG'], s['VAREND'])

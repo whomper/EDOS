@@ -42,6 +42,7 @@ class World:
         self.sim = sim
         self.files = {d: {n: [bytearray(v), False] for n, v in fs.items()} for d, fs in files.items()}
         self.keys = list(keys)
+        self.dfile = set()                               # IOCBs >0 with a D: file open
         self.lines = list(lines)
         self.sym = symbolize
         self.open = {}
@@ -95,12 +96,16 @@ class World:
         self.trace.append(('CIO', tuple(sorted(rec.items()))))
         if x == 0:
             return self.editor(cmd, buf, blen)
-        if x == 0x10:
+        if x == 0x10 and cmd == 3 and not self.text_at(buf).startswith('K'):
+            self.dfile.add(x)                            # a file on IOCB #1 (Load Binary)
+        if x == 0x10 and x not in self.dfile:
             if cmd == 7 and blen == 0:
                 if not self.keys:
                     return (1, 0x1B)                     # Esc: abort to menu
                 return (1, ord(self.keys.pop(0)))
             return 1
+        if cmd == 12:
+            self.dfile.discard(x)
         return self.dos(x, cmd, buf, blen, ax1)
 
     def editor(self, cmd, buf, blen):
@@ -315,8 +320,8 @@ SCENARIOS = {
                         check_mem=[(0x5000, 0x110), (0x5200, 1)]),
     'load_ffff_mid': dict(entry='COMLOA', lines=['P2.COM'], keys='N', files=BASE,
                           check_mem=[(0x5300, 4), (0x5400, 0x100)]),
-    'load_not_binary': dict(entry='COMLOA', lines=['B.TXT'], files=BASE),
-    'load_missing': dict(entry='COMLOA', lines=['NOPE.COM'], files=BASE),
+    'load_not_binary': dict(entry='COMLOA', lines=['B.TXT'], keys='N', files=BASE),
+    'load_missing': dict(entry='COMLOA', lines=['NOPE.COM'], keys='N', files=BASE),
     'save': dict(entry='COMSAV', lines=['D1:OUT.COM', '5000', '50FF', '5000'], files=BASE,
                  mem=dict(PATTERN)),
     'save_no_run': dict(entry='COMSAV', lines=['OUT2.COM', '5010', '5020', ''], files=BASE,

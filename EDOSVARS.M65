@@ -51,6 +51,7 @@
 0580 WFTR .BYTE "Insert Target [Y] ",DEL
 0590 ANYK .BYTE DLN,"Select Item ( for menu): ",DEL
 0600 NOTB .BYTE "Not a binary file!",EOL
+0605 LDOV .BYTE "Program loads over $0600-$06FF",EOL
 0610 REOF .BYTE "Reached end of file",EOL
 0620 VIMR .BYTE "View more [Y/N]? ",DEL
 0630 VINP .BYTE "View next/previous [+/-/N]? ",DEL

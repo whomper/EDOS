@@ -43,6 +43,11 @@ def tokenized_sources():
 RUNME = binfile((0x5000, bytes([0xA9, 0x34, 0x8D, 0xC8, 0x02, 0x6C, 0x0A, 0x00])),
                 (0x5200, bytes([0xA9, 0x5A, 0x8D, 0x00, 0x53, 0x60])),
                 run=0x5000, init=(0x5200, 0x5200))
+# OVER.COM loads over all of EDOS ($2000-$3FFF); RUN sets a green
+# background and returns to DOS. P6.COM loads into the page-6 loader's page.
+OVER = binfile((0x2000, bytes([0xA9, 0xC4, 0x8D, 0xC8, 0x02, 0x6C, 0x0A, 0x00]) + bytes(0x1FF8)),
+               run=0x2000)
+P6 = binfile((0x0680, bytes([0xEA] * 4)), run=0x0680)
 
 
 def symbols():
@@ -77,11 +82,12 @@ Expect: what you should see.
 6 L PROG.COM, N. M 5300: first
   byte 5A (INIT ran). M 5000:
   01 02 03 04 05 06 07 08.
-7 L NORUN.COM. Expect no Run
-  prompt. M 5000: 41 42 43 44.
-8 L TEXT.TXT. Expect
+7 L NORUN.COM, Y. Expect the menu
+  (no run address). M 5000:
+  41 42 43 44.
+8 L TEXT.TXT, N. Expect
   Not a binary file!
-9 L NOPE.COM. Expect
+9 L NOPE.COM, N. Expect
   * Error 170 File not found
 10 L RUNME.COM, Y. Expect DOS
   prompt with red background.
@@ -155,6 +161,15 @@ Expect: what you should see.
 33 RENAME EDOS.FNT X.FNT, run
   EDOS: ROM font, no error.
   RENAME X.FNT EDOS.FNT after.
+
+-- LOADER --
+34 L OVER.COM, Y (loads over
+  EDOS). Expect DOS prompt with
+  green background. RESET: stays
+  in DOS. Run EDOS again.
+35 L P6.COM, Y. Expect Program
+  loads over $0600-$06FF and the
+  menu.
 """
     return text.replace('\n', '\x9b').encode('latin1')
 
@@ -208,6 +223,7 @@ def main():
     test = [(DOS,) + orig[DOS], ('EDOS.COM', edos), ('EDOS.FNT', fnt),
             ('PROG.COM', PROG), ('PROG2.COM', PROG), ('NORUN.COM', NORUN),
             ('TEXT.TXT', TEXT), ('BIG.DAT', BIG), ('RUNME.COM', RUNME),
+            ('OVER.COM', OVER), ('P6.COM', P6),
             ('TESTPLAN.TXT', b'')]
     test[-1] = ('TESTPLAN.TXT', plan(symbols(), len(test)))
     make(os.path.join(BUILD, 'EDOSTEST.ATR'), 'EDOSTEST', test, DOS)
