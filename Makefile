@@ -13,7 +13,7 @@
 #   build/EDOS.COM      the program (binary load file)
 #   build/EDOS.LST      listing with addresses and bytes
 #   build/EDOS.SYM      symbol table
-#   build/AERA.FNT      the font (xl/tools/font.py)
+#   build/AERA.FNT      the font, xl/font/AERA.FNT as the family has it
 #   build/EDOS.ATR      tools/disk/BASE.ATR (SpartaDOS 3.2 and its tools)
 #                       with EDOS.COM, the font and the sources, numbered
 #                       and tokenised; they must give the same EDOS.COM
@@ -55,9 +55,9 @@ $(PROGRAM): Makefile $(SRCS) $(AXSRCS) xl/tools/mac65.py
 	cp $(SRCS) $(AXSRCS) build/src/
 	$(MAC65) build/src/EDOS.M65 -o $@ -l build/EDOS.LST -s build/EDOS.SYM
 
-$(FONTFILE): xl/tools/font.py xl/font/*
+$(FONTFILE): xl/font/AERA.FNT
 	mkdir -p build
-	$(PYTHON) xl/tools/font.py fnt $@
+	cp xl/font/AERA.FNT $@
 
 # what is on the disk must build the same program
 $(DISK): $(PROGRAM) $(FONTFILE) $(SRCS) $(AXSRCS) tools/disk/BASE.ATR xl/tools/*.py

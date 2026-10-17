@@ -1,5 +1,5 @@
 ;
-; EDOS.M65 - EDOS 3.5
+; EDOS.M65 - EDOS 3.6
 ; Options, origin and the includes
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
@@ -54,6 +54,8 @@ START_PROG
 AXWARM   = START            ; RESET, after DOS's init
 AXPTR    = INDPTR           ; lent to AXERR
 AXERRS   = 2                ; DOS's disk errors too
+AXFMIN   = $80              ; the font above the banks
+AXFCOPY  = 0                ; no file: the ROM font
          .INCLUDE #D:AXRESET.M65
          .INCLUDE #D:AXFONT.M65
          .INCLUDE #D:AXERR.M65

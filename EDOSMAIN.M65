@@ -1,5 +1,5 @@
 ;
-; EDOSMAIN.M65 - EDOS 3.5
+; EDOSMAIN.M65 - EDOS 3.6
 ; Start-up, the menu and Load Binary
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
@@ -36,17 +36,12 @@ START
          STA BANKS          ; the main bank's PORTB
          LDA #1
          STA DSKNUM         ; drive 1 by default
-; The font: load D:AERA.FNT once;
-; select it on every start, as RESET
-; puts the ROM's back
-         LDA FONTPG
-         BNE START_1        ; loaded already
-         JSR LDFONT
-START_1
-         LDA FONTPG
-         BEQ START_2        ; none: ROM font
-         STA CHBAS
-START_2
+; The font (xl's AXFONT): AERA.FNT
+; read once, below the screen, and
+; selected again on every start, as
+; RESET puts the ROM's back
+         LDX #DSKID1
+         JSR AXFONT
          @HIDCHR
 ;
 ; GOMENU - clear the screen, draw the
@@ -216,8 +211,10 @@ COMLOA_3
          STA LR.DOSI+1
          LDA MEMTOP+1       ; the pages from MEMTOP up
          STA LR.TAB+6
-         LDA FONTPG         ; the font's 4 pages, if
-         BEQ COMLOA_4       ; it was loaded
+         LDA AXFPG          ; the font's 4 pages, if
+         BEQ COMLOA_4       ; it is AERA.FNT: not 0
+         CMP #$E0           ; (not tried) or $E0
+         BEQ COMLOA_4       ; (the ROM's)
          STA LR.TAB+8
          CLC
          ADC #$03

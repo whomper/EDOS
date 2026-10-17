@@ -17,11 +17,11 @@ running on top of MyDOS, SpartaDOS or DOS 2.5.
 - **Colour shows what's happening:** green while reading, red before anything is written or erased
 - **Sectors and memory too:** view any file, sector or memory address 128 bytes at a time; jump to
   an address or into the cartridge
-- **Small:** `EDOS.COM` is 7,297 bytes
+- **Small:** `EDOS.COM` is 7,305 bytes
 - **Assembles on the Atari:** the MAC/65 sources are on the disk; a PC cross assembler and tests are
   here too
 
-![The EDOS 3.5 main menu: drives 1 and 2, HIGH speed and 512K of extended memory on the status line, and the twenty commands](EDOS.png)
+![The EDOS 3.6 main menu: drives 1 and 2, HIGH speed and 512K of extended memory on the status line, and the twenty commands](EDOS.png)
 
 ## The commands
 
@@ -105,7 +105,7 @@ make test                            # and runs every test
 | `make` writes | What it is |
 |---|---|
 | `build/EDOS.COM`, `EDOS.LST`, `EDOS.SYM` | the program, its listing and its symbols |
-| `build/AERA.FNT` | the family's font (`xl/tools/font.py`): `EREZ.FNT` moved one pixel right so inverse letters show as blocks |
+| `build/AERA.FNT` | the family's font, as `xl/font/AERA.FNT` has it: `EREZ.FNT` moved one pixel right so inverse letters show as blocks |
 | `build/EDOS.ATR` | the EDOS disk: SpartaDOS 3.2 and the utilities from `tools/disk/BASE.ATR`, with `EDOS.COM`, `AERA.FNT` and the sources numbered and tokenised as MAC/65 saves them; `make` checks they assemble to the same `EDOS.COM` |
 | `build/EDOSTEST.ATR` | the test disk |
 | `build/EDOS-D2.ATR` | a DOS 2/MyDOS disk with `EDOS.COM` |
@@ -157,7 +157,7 @@ SYSTEM.M65     EDOS's constants and zero page (the OS's names are xl's AXEQU.M65
 tools/         disks, screenshot, the tests and their DOS and drive (on xl's a8sim)
 xl/            the AERA family's shared tools and includes (tools/sync-xl.sh updates it); EDOS
                includes AXEQU, AXLOAD (the load check), AXRESET (RESET back into EDOS),
-               AXFONT (AERA.FNT) and AXERR (the error texts)
+               AXFONT (AERA.FNT below the screen, again after RESET) and AXERR (the error texts)
 release-notes/ what each release changed
 ```
 
@@ -192,7 +192,6 @@ read and write SpartaDOS, DOS 2 and MyDOS disk images.
 | `HEXOUT` | one byte to two hex digits at `FILE`,Y: $A0 → "A0" |
 | `COPY`, `FILL` | copy text up to EOL; fill memory (used by `@CPYMEM` and `@FILLMEM`) |
 | `HIDECURSOR`, `SHOWCURSOR`, `SETCOLRED` | hide and show the cursor; turn the border red |
-| `LDFONT` | loads `AERA.FNT` below the screen (xl's `AXFONT`), or keeps the ROM font |
 
 **MACROS.M65**
 

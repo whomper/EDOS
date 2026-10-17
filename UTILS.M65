@@ -1,5 +1,5 @@
 ;
-; UTILS.M65 - EDOS 3.5
+; UTILS.M65 - EDOS 3.6
 ; Screen, input, SIO and CIO routines
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
@@ -919,27 +919,3 @@ BANKS    .BYTE $FD
          .BYTE $83,$87,$8B,$8F
          .BYTE $C3,$C7,$CB,$CF
 ;
-; LDFONT - load D:AERA.FNT (1K, xl's
-; AXFONT) below the screen, at page
-; (RAMTOP-8) AND $FC, and set FONTPG
-; to it. No file, a short one, or no
-; room (under $8000) keep the ROM
-; font; no message
-; Exit: A, X, Y, TMP changed
-;
-LDFONT
-         LDA RAMTOP
-         SEC
-         SBC #$08
-         AND #$FC
-         CMP #$80           ;not under $8000
-         BCC LDFONT_1
-         STA TMP
-         LDX #DSKID1
-         JSR AXFONT
-         BCS LDFONT_1       ;not read
-         LDA TMP
-         STA FONTPG
-LDFONT_1
-         RTS
-FONTPG   .BYTE 0            ;the font's page, 0: ROM

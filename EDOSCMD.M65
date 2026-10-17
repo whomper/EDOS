@@ -1,5 +1,5 @@
 ;
-; EDOSCMD.M65 - EDOS 3.5
+; EDOSCMD.M65 - EDOS 3.6
 ; Nine commands, View to Copy Files
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
@@ -312,14 +312,14 @@ COMNEWERR
          JMP NLMENU
 ;
 ; PRPEXT - before leaving EDOS: the
-; ROM font, DOS's DOSINI back (xl's
-; AXQUIT), the IOCBs closed
+; ROM font (xl's AXFROM), DOS's
+; DOSINI back (AXQUIT), the IOCBs
+; closed
 ; Exit: RTS (from CLOSEIO); A, X, Y
 ; changed
 ;
 PRPEXT
-         LDA #$E0           ; ROM font, for DOS/program
-         STA CHBAS
+         JSR AXFROM         ; ROM font, for DOS/program
          JSR AXQUIT
          JMP CLOSEIO
 ;

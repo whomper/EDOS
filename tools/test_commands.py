@@ -166,7 +166,7 @@ class TestMenu(unittest.TestCase):
     def test_menu_screen(self):
         m = Machine()
         m.run('GOMENU')
-        for text in ('EDOS 3.5', 'Dir D1-D8', 'Write EDOS', 'Copy Files', 'Duplicate Disk',
+        for text in ('EDOS 3.6', 'Dir D1-D8', 'Write EDOS', 'Copy Files', 'Duplicate Disk',
                      'Quit to DOS', 'XMEM:'):
             self.assertIn(text, m.screen)
         self.assertIn('(C) AERA 2026', m.screen)
@@ -198,7 +198,7 @@ class TestMenu(unittest.TestCase):
         m = Machine(keys='?')
         m.run('GETCOM', stop=['NLMENU'])
         self.assertIn('Select Item (RETURN menu, ? About): ?', m.screen)
-        self.assertIn('EDOS 3.5\nDisk utility for Atari 8-bit DOS\n'
+        self.assertIn('EDOS 3.6\nDisk utility for Atari 8-bit DOS\n'
                       'Copyright (C) 2026 AERA | Erez Yaary\nGPL-2.0-or-later\n'
                       'github.com/whomper/EDOS\n', m.screen)
 
@@ -799,7 +799,7 @@ class TestEscCancels(unittest.TestCase):
         m.sim.poke(0x11, 0)
         self.assertEqual(m.run('COMREN'), 'GETCOM')
         self.assertIsNotNone(m.file(1, 'TEXT.TXT'))
-        self.assertEqual(m.sim.peek(0x11), 0x80)             # BREAK taken
+        self.assertNotEqual(m.sim.peek(0x11), 0)              # BREAK taken
 
     def test_esc_stops_copy_files(self):
         m = Machine(files(), lines=['D1:*.*'], keys='2')
@@ -822,7 +822,7 @@ class TestStartAndReset(unittest.TestCase):
         self.assertIsNone(m.hits.get(0x9000))        # DOS has set up already
         m.run('AXINIT', watch=[0x9000])               # RESET: OS calls DOSINI
         self.assertEqual(m.hits.get(0x9000), 1, "DOS reset handler not chained")
-        self.assertIn('EDOS 3.5', m.screen)
+        self.assertIn('EDOS 3.6', m.screen)
 
     def test_rerun_keeps_original_dosini(self):
         m = Machine()
@@ -869,20 +869,21 @@ class TestFont(unittest.TestCase):
 
     def test_no_font_file_keeps_rom_font_silently(self):
         m = self.start({1: {}})
-        self.assertEqual(m.sim.peek(0x2F4), 0)
-        self.assertEqual(m.sim.peek(m['FONTPG']), 0)
+        self.assertEqual(m.sim.peek(0x2F4), 0xE0)                 # the ROM's
+        self.assertEqual(m.sim.peek(m['AXFPG']), 0xE0)
         self.assertNotIn('Error', m.screen)
-        self.assertIn('EDOS 3.5', m.screen)
+        self.assertIn('EDOS 3.6', m.screen)
 
     def test_short_file_is_not_used(self):
         m = self.start({1: {'AERA.FNT': self.font[:500]}})
-        self.assertEqual(m.sim.peek(m['FONTPG']), 0)
-        self.assertEqual(m.sim.peek(0x2F4), 0)
+        self.assertEqual(m.sim.peek(m['AXFPG']), 0xE0)
+        self.assertEqual(m.sim.peek(0x2F4), 0xE0)
 
     def test_no_room_below_screen(self):
         m = self.start({1: {'AERA.FNT': self.font}}, ramtop=0x80)   # 16K cartridge
         self.assertNotIn('D:AERA.FNT', m.opened())
-        self.assertEqual(m.sim.peek(m['FONTPG']), 0)
+        self.assertEqual(m.sim.peek(m['AXFPG']), 0xE0)
+        self.assertEqual(m.sim.peek(0x2F4), 0xE0)
 
     def test_reset_reselects_without_reloading(self):
         m = self.start({1: {'AERA.FNT': self.font}})
@@ -896,6 +897,21 @@ class TestFont(unittest.TestCase):
         m.sim.poke_word(0x0A, 0xA100)
         self.assertEqual(m.run('COMQIT', stop=['GETCOM', 0xA100]), 0xA100)
         self.assertEqual(m.sim.peek(0x2F4), 0xE0)
+
+    def test_loader_protects_the_font_only_when_loaded(self):
+        # a program over AERA.FNT's pages ($9800-$9BFF): EDOS's font goes
+        # first (ROM font, RESET to DOS); with the ROM font those pages
+        # are just memory, and EDOS stays
+        over = binfile((0x9900, b'\xEA' * 16), run=0x9900)
+        for font, gone in ((True, True), (False, False)):
+            with self.subTest(font=font):
+                m = self.start({1: dict({'OVER9.COM': over}, **({'AERA.FNT': self.font} if font else {}))})
+                m.w.lines, m.w.keys = ['OVER9.COM'], ['N']
+                m.sim.poke_word(0x0A, 0xA100)                         # DOSVEC
+                at = m.run('COMLOA', stop=['GETCOM', 0xA100])
+                self.assertEqual(m.mem(0x9900, 16), b'\xEA' * 16)
+                self.assertEqual(at, 0xA100 if gone else 'GETCOM')
+                self.assertEqual(m.sim.peek(0x2F4), 0xE0)
 
     def test_running_a_program_restores_rom_font(self):
         m = self.start({1: {'AERA.FNT': self.font, 'PROG.COM': PROG}})

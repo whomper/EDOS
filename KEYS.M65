@@ -1,5 +1,5 @@
 ;
-; KEYS.M65 - EDOS 3.5
+; KEYS.M65 - EDOS 3.6
 ; Keys and typed lines; ESC cancels
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
@@ -53,8 +53,7 @@ GETKEY_W
 GETKEY_1
          JMP NLMENU
 GETKEY_B
-         LDA #$80           ; BREAK seen
-         STA BRKKEY
+         DEC BRKKEY         ; 0 to $FF: BREAK seen
          BNE GETKEY_1       ; always
 GETKEY_2
          RTS
@@ -75,8 +74,7 @@ CHKESC
 CHKESC_1
          LDA #$FF
          STA CH             ; the key is used
-         LDA #$80
-         STA BRKKEY
+         STA BRKKEY         ; and BREAK too
          @PRNTLN STPD,DEL
          JMP NLMENU
 CHKESC_2
@@ -100,7 +98,7 @@ GETINP1
 ; RETURN ends; control and inverse
 ; keys are not taken
 ; Exit: Y = characters (no EOL);
-; X = 0; TXTPOS, CIOPTR changed
+; X, TXTPOS, CIOPTR changed
 ;
 GETTEXT
          STA CIOPTR
@@ -114,11 +112,10 @@ GETTEXT_1
          BEQ GETTEXT_4
          CMP #$7E           ; the BACK S key
          BNE GETTEXT_2
-         TYA
+         CPY #$00
          BEQ GETTEXT_1      ; nothing to delete
-         DEY
-         LDA #$7E
-         BNE GETTEXT_3      ; always
+         DEY                ; A is still BACK S
+         BCS GETTEXT_3      ; always: C=1
 GETTEXT_2
          CMP #$20
          BCC GETTEXT_1      ; a control key
@@ -131,12 +128,10 @@ GETTEXT_2
          DEY                ; full: leave room for EOL
          BCS GETTEXT_1      ; always
 GETTEXT_3
-         JSR ECHO           ; Y kept
-         JMP GETTEXT_1
+         JSR ECHO           ; Y kept; A not 0
+         BNE GETTEXT_1      ; always
 GETTEXT_4
          STA (CIOPTR),Y     ; the EOL
-         JSR ECHO           ; a new line
-         LDX #$00
-         RTS
+         JMP ECHO           ; a new line
 ;
 KEYSEND                     ; the end (tools/difftest.py)

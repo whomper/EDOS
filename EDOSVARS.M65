@@ -1,5 +1,5 @@
 ;
-; EDOSVARS.M65 - EDOS 3.5
+; EDOSVARS.M65 - EDOS 3.6
 ; Variables, menu texts and messages
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
@@ -27,7 +27,7 @@ DELL     .BYTE DLN,CUP,CUP,DEL ; delete the line, up 2
 DLLN     .BYTE DLN,DEL      ; delete the line
 TTL1     .BYTE CLS,DEL      ; clear the screen
 ; The title bar, inverse
-TTL2     .BYTE "",EOL
+TTL2     .BYTE "",EOL
 ; The status line: the drives at
 ; +3, the speed at +$0E, the
 ; extended memory at +$19
@@ -78,7 +78,7 @@ STPD     .BYTE EOL,"Stopped",DEL ; ESC in a disk job
 ; menu):
 ; the version is TTL2's (make test
 ; checks it)
-ABOUT    .BYTE "EDOS 3.5",EOL
+ABOUT    .BYTE "EDOS 3.6",EOL
          .BYTE "Disk utility for Atari 8-bit DOS",EOL
          .BYTE "Copyright (C) 2026 AERA | Erez Yaary",EOL
          .BYTE "GPL-2.0-or-later",EOL
