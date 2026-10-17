@@ -12,22 +12,18 @@
 ;
          .OPT OBJ,NO LIST
 ;
-; xl's OS and hardware names first:
-; zero page must be known before it
-; is used. Then the macros: each must
-; be defined before it is used
+; xl's OS names first (zero page
+; before use), then the macros
 ;
          .INCLUDE #D:AXEQU.M65
          .INCLUDE #D:MACROS.M65
 ;
-; The load check (xl's AXLOAD): an
-; init segment, which DOS runs before
-; the rest of the file loads. MEMLO
-; must be at most $1E00, and MEMTOP
-; at least $8000: EDOS, its work area
-; and bank 0 of Copy Files and
-; Duplicate Disk ($4000-$7FFF). At
-; $3F00, which the load doesn't reach
+; The load check (xl's AXLOAD), run
+; before the rest loads: MEMLO up to
+; $1E00; MEMTOP from $8000, so the
+; screen is above the banks' window
+; ($4000-$7FFF) and Byte Compare has
+; $4000-$50FF. At $3F00, not loaded
 ;
 AXLOW    = $1E00
 AXHIGH   = $8000
@@ -66,10 +62,8 @@ AXERRS   = 2                ; DOS's disk errors too
          .INCLUDE #D:EDOSSCRN.M65
          .INCLUDE #D:EDOSVARS.M65
 ;
-; END_PROG and VAREND: see the end of
-; EDOSVARS.M65. EDOS and its reserved
-; variables must end below WRKBEG,
-; the work area (UTILS.M65)
+; EDOS and its variables (VAREND)
+; must end below the work area
 ;
          .IF VAREND>WRKBEG
          JMP EDOS_OVERLAPS_WORK_AREA ; undefined: stops assembly

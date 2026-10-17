@@ -84,8 +84,10 @@ font. Any 1,024-byte Atari character set saved as `AERA.FNT` works.
 
 **Needs:** an Atari 400, 800, XL or XE with 48K and a disk drive, and MyDOS, SpartaDOS 3.x or DOS 2.5.
 Copy Files and Duplicate Disk use 130XE-style extended memory when there is some. EDOS runs at
-$1E00-$3FFF and uses memory up to $8000; when DOS ends above $1E00 (`MEMLO`) or memory ends below
-$8000 (`MEMTOP`), it says so as it loads and goes back to DOS before anything is overwritten.
+$1E00-$3FFF. It also needs free memory up to $8000: during copies the extended memory banks appear
+at $4000-$7FFF, so the screen must be above them, and Byte Compare reads the files into $4000-$50FF.
+When DOS ends above $1E00 (`MEMLO`) or memory ends below $8000 (`MEMTOP`), EDOS says so as it loads
+and goes back to DOS before anything is overwritten. Any 48K Atari has room.
 
 ## Building
 
