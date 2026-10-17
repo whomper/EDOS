@@ -131,5 +131,4 @@ NUM2CNV  *= *+1             ; COPY: source drive digit
 STKPTR   *= *+1             ; SP at START, for GETCOM
 ABORT    *= *+1             ; 1: stop the command
 MEMD     *= *+7             ; number text (BNK2DEC)
-DOSIN    *= *+2             ; DOS's DOSINI, kept
 VAREND

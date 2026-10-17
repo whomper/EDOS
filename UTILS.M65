@@ -315,7 +315,7 @@ SETCOLRED
 ; Exit: Y = CIO status, N=1 on error
 ;
 CLOSECHANNEL
-         LDA #ICM.CL
+         LDA #AXCLOSE
          STA ICCOM,X
          JMP CIOV
 ;
@@ -588,7 +588,7 @@ DOCIO_2
 DOCIO_4
          JSR CIOV
          BPL DOCIO_1
-         CPY #ICSTAT.EOF    ;EOF is no error
+         CPY #AXEOF         ;EOF is no error
          BNE DISKERR
 DOCIO_1
          LDX TMP
@@ -601,7 +601,7 @@ DOCIO_1
 ;
 DISKERR
          STY VALUE
-         JSR GETERRTXT
+         JSR ERRTXT
          LDA #$00
          STA VALUE+1
          LDA # <INP1
@@ -618,48 +618,27 @@ DISKERR
          @PRNTLN FILE
          JMP NLMENU
 ;
-; GETERRTXT - the text of CIO error Y
-; into FILE, with EOL; only an EOL if
-; CIO_MSG (CIOSTAT.M65: code, text,
-; EOL, ... $FF) does not have it
-; Exit: A = EOL; Y, TMP, INDPTR
+; ERRTXT - the text of CIO error Y
+; (xl's AXERRT) into FILE, with EOL;
+; only an EOL if it has none
+; Exit: A = EOL; X, Y, INDPTR changed
 ;
-GETERRTXT
-         STY TMP
-         LDA # <CIO_MSG
-         STA INDPTR
-         LDA # >CIO_MSG
-         STA INDPTR+1
-GETERRTXT_1
-         LDY #$00
-         LDA (INDPTR),Y
-         CMP #$FF           ;end of the list?
-         BEQ GETERRTXT_4
-         CMP TMP
-         BEQ GETERRTXT_2
-GETERRTXT_5                 ;skip this one
-         INY
-         LDA (INDPTR),Y
-         CMP #EOL
-         BNE GETERRTXT_5
-         INY
-         TYA
-         CLC
-         ADC INDPTR
-         STA INDPTR
-         BCC GETERRTXT_1
-         INC INDPTR+1
-         BCS GETERRTXT_1
-GETERRTXT_2                 ;copy its text
-         INY
-         LDA (INDPTR),Y
-         STA FILE-1,Y
-         CMP #EOL
-         BNE GETERRTXT_2
-         RTS
-GETERRTXT_4
-         LDA #EOL
+ERRTXT
+         JSR AXERRT
+         BCC ERRTXT_1
+         LDA #EOL           ;no text
          STA FILE
+         RTS
+ERRTXT_1
+         STA INDPTR
+         STY INDPTR+1
+         LDY #$FF
+ERRTXT_2
+         INY
+         LDA (INDPTR),Y
+         STA FILE,Y
+         CMP #EOL
+         BNE ERRTXT_2
          RTS
 ;
 ; GETCHR - read a key (K:, caps lock
@@ -670,7 +649,7 @@ GETERRTXT_4
 GETCHR
          @MKCAPS
          LDX #KBDID
-         LDA #ICM.GB
+         LDA #AXGETCHR
          STA ICCOM,X
          LDA #0
          STA ICBLL,X
@@ -707,7 +686,7 @@ GETINP1
 GETTEXT
          LDX #SCRID
          STA ICBAL,X
-         LDA #ICM.GT
+         LDA #AXGETREC
          STA ICCOM,X
          TYA
          STA ICBAH,X
@@ -757,7 +736,7 @@ PRNTLN_D
          LDA (RETADR),Y
          STA INDPTR
          STA ICBAL,X
-         LDA #ICM.PB
+         LDA #AXPUTCHR
          STA ICCOM,X
          LDA #$00
          STA ICBLH,X
@@ -1005,11 +984,12 @@ BANKS    .BYTE $FD
          .BYTE $83,$87,$8B,$8F
          .BYTE $C3,$C7,$CB,$CF
 ;
-; LDFONT - load D:EDOS.FNT (1K) below
-; the screen, at page (RAMTOP-8) AND
-; $FC, and set FONTPG to it. No file,
-; a short one, or no room (under
-; $8000) keep the ROM font; no message
+; LDFONT - load D:AERA.FNT (1K, xl's
+; AXFONT) below the screen, at page
+; (RAMTOP-8) AND $FC, and set FONTPG
+; to it. No file, a short one, or no
+; room (under $8000) keep the ROM
+; font; no message
 ; Exit: A, X, Y, TMP changed
 ;
 LDFONT
@@ -1021,34 +1001,10 @@ LDFONT
          BCC LDFONT_1
          STA TMP
          LDX #DSKID1
-         LDA #ICM.OP
-         STA ICCOM,X
-         LDA # <FNTNAM
-         STA ICBAL,X
-         LDA # >FNTNAM
-         STA ICBAH,X
-         LDA #ICAX.RD
-         STA ICAX1,X
-         LDA #$00
-         STA ICAX2,X
-         JSR CIOV
-         BMI LDFONT_2
-         LDA #ICM.GB
-         STA ICCOM,X
-         LDA #$00
-         STA ICBAL,X
-         STA ICBLL,X
-         LDA TMP
-         STA ICBAH,X
-         LDA #$04           ;$400 bytes
-         STA ICBLH,X
-         JSR CIOV
-         BMI LDFONT_2
+         JSR AXFONT
+         BCS LDFONT_1       ;not read
          LDA TMP
          STA FONTPG
-LDFONT_2
-         JMP CLOSECHANNEL
 LDFONT_1
          RTS
 FONTPG   .BYTE 0            ;the font's page, 0: ROM
-FNTNAM   .BYTE "D:EDOS.FNT",EOL

@@ -3,7 +3,7 @@
 
 BASE.ATR holds the SpartaDOS boot code, SpartaDOS 3.2 (X32G.DOS) and the
 utilities that go on the EDOS disk; nothing EDOS-specific. The test disk
-gets SpartaDOS, build/EDOS.COM and build/EDOS.FNT (the Makefile makes
+gets SpartaDOS, build/EDOS.COM and build/AERA.FNT (the Makefile makes
 both), the test files used by tools/test_commands.py, RUNME.COM and
 TESTPLAN.TXT (manual test steps for the real Atari).
 
@@ -142,12 +142,12 @@ Expect: what you should see.
   the menu.
 
 -- FONT --
-32 EDOS shows the EDOS.FNT font
+32 EDOS shows the AERA.FNT font
   (inverse hotkeys as blocks).
   Q: DOS uses the ROM font again.
-33 RENAME EDOS.FNT X.FNT, run
+33 RENAME AERA.FNT X.FNT, run
   EDOS: ROM font, no error.
-  RENAME X.FNT EDOS.FNT after.
+  RENAME X.FNT AERA.FNT after.
 
 -- LOADER --
 34 L OVER.COM, Y (loads over
@@ -194,8 +194,8 @@ def main():
         raise SystemExit(f"{SOURCE}: {DOS} not found")
 
     orig = {n: (d, st) for n, d, st in originals}
-    fnt = sparta._read(os.path.join(BUILD, 'EDOS.FNT'))
-    test = [(DOS,) + orig[DOS], ('EDOS.COM', edos), ('EDOS.FNT', fnt),
+    fnt = sparta._read(os.path.join(BUILD, 'AERA.FNT'))
+    test = [(DOS,) + orig[DOS], ('EDOS.COM', edos), ('AERA.FNT', fnt),
             ('PROG.COM', PROG), ('PROG2.COM', PROG), ('NORUN.COM', NORUN),
             ('TEXT.TXT', TEXT), ('BIG.DAT', BIG), ('RUNME.COM', RUNME),
             ('OVER.COM', OVER), ('P6.COM', P6),

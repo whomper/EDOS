@@ -303,7 +303,7 @@ COMERA
          JSR GETFILESPEC
          JSR AREYOUSURE     ; returns only on Y
          JSR PRNTNL
-         @DOCIO DSKID1,ICM.ER,FILE,0
+         @DOCIO DSKID1,AXDELETE,FILE,0
          JMP GETCOM
 ;
 ; COMINI - Initialize Disk: ask for
@@ -346,7 +346,7 @@ DOINIT
          BEQ DOINIT_1
 ; Single or double
          JSR SETDRVSTAT
-         @DOCIO DSKID1,ICM.FT,DISK,0
+         @DOCIO DSKID1,AXFORMAT,DISK,0
          RTS
 DOINIT_1
          LDA #$02           ; enhanced
@@ -404,7 +404,7 @@ WRTVTOC
 ;
 COMPRC
          JSR GETFILESPEC
-         @DOCIO DSKID1,ICM.PC,FILE,0
+         @DOCIO DSKID1,AXLOCK,FILE,0
          JMP GETCOM
 ;
 ; COMUNP - Unprotect Files: ask for a
@@ -413,7 +413,7 @@ COMPRC
 ;
 COMUNP
          JSR GETFILESPEC
-         @DOCIO DSKID1,ICM.UP,FILE,0
+         @DOCIO DSKID1,AXUNLOCK,FILE,0
          JMP GETCOM
 ;
 ; COMREN - Rename Files: ask for the
@@ -441,7 +441,7 @@ COMREN
          JSR PRNTNL
          @PRNTLN BUF
 ; Rename
-         @DOCIO DSKID1,ICM.RN,BUF,0
+         @DOCIO DSKID1,AXRENAME,BUF,0
          JMP GETCOM
 ;
 ; COMWRT - Write EDOS: confirm, then
@@ -548,13 +548,13 @@ DOSAVE
          STA BUF+4
          LDA FILEND+1
          STA BUF+5
-         @DOCIO DSKID1,ICM.OP,FILE,ICAX.WT
+         @DOCIO DSKID1,AXOPEN,FILE,AXOPNOT
          LDA #$06
          STA D0             ; 6 bytes
-         @DOCIO DSKID1,ICM.PB,BUF,ICAX.WT,D0
+         @DOCIO DSKID1,AXPUTCHR,BUF,AXOPNOT,D0
 ; The data: FILLEN bytes from FILPOS
          JSR CALCLEN
-         @DOCIO DSKID1,ICM.PB,FILPOS,ICAX.WT,FILLEN,FILLEN+1,1
+         @DOCIO DSKID1,AXPUTCHR,FILPOS,AXOPNOT,FILLEN,FILLEN+1,1
 ; A run address? Then a segment that
 ; loads it into RUNAD ($02E0-$02E1)
          LDA RUNADR
@@ -574,7 +574,7 @@ DOSAVE
          STA BUF+5
          LDA #$06
          STA D0             ; 6 bytes
-         @DOCIO DSKID1,ICM.PB,BUF,ICAX.WT,D0
+         @DOCIO DSKID1,AXPUTCHR,BUF,AXOPNOT,D0
 DOSAVE_1
          JMP GETCOM
 ;

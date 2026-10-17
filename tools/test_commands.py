@@ -214,12 +214,12 @@ class TestLoadBinary(unittest.TestCase):
     def test_over_edos_runs_with_reset_to_dos(self):
         # a program built for EDOS's own memory loads whole and runs
         code = bytes((i * 3) & 0xFF for i in range(0x2100))       # $2000-$40FF
-        m = Machine(files(OVER_COM=binfile((0x2000, code), run=0x2000)), lines=['OVER.COM'],
-                    keys='Y')
+        m = Machine(files(OVER_COM=binfile((0x2000, code), run=0x40F0)), lines=['OVER.COM'],
+                    keys='Y')                     # run above EDOS: $2000 is EDOS code too
         s = m.sim
-        s.poke_word(s['DOSIN'], 0x1234)               # DOS's own DOSINI
-        s.poke_word(0x0C, s['START'])                 # EDOS hooked in
-        self.assertEqual(m.run('COMLOA', stop=['GETCOM', 0x2000]), 0x2000)
+        s.poke_word(s['AXDOSI'], 0x1234)               # DOS's own DOSINI
+        s.poke_word(0x0C, s['AXINIT'])                # EDOS hooked in
+        self.assertEqual(m.run('COMLOA', stop=['GETCOM', 0x40F0]), 0x40F0)
         self.assertEqual(m.mem(0x2000, 0x2100), code)                # BUF ($3E00) too
         self.assertEqual(s.word(0x0C), 0x1234)
         self.assertEqual(s.peek(0x02F4), 0xE0)       # ROM font
@@ -501,8 +501,8 @@ class TestExits(unittest.TestCase):
     def setUp(self):
         self.m = Machine()
         s = self.m.sim
-        s.poke_word(s['DOSIN'], 0x1234)               # DOS's own DOSINI
-        s.poke_word(0x0C, s['START'])                 # EDOS hooked in
+        s.poke_word(s['AXDOSI'], 0x1234)               # DOS's own DOSINI
+        s.poke_word(0x0C, s['AXINIT'])                # EDOS hooked in
 
     def dosini(self):
         return self.m.sim.word(0x0C)
@@ -531,7 +531,47 @@ class TestExits(unittest.TestCase):
     def test_no_cartridge(self):
         self.m.sim.poke(0x06, 0)
         self.assertEqual(self.m.run('COMCAR'), 'GETCOM')
-        self.assertEqual(self.dosini(), self.m['START'])
+        self.assertEqual(self.dosini(), self.m['AXINIT'])
+
+
+class TestLoadCheck(unittest.TestCase):
+    """xl's AXLOAD, run by DOS as EDOS.COM loads: MEMLO at most $1E00,
+    MEMTOP at least $8000, else a message and back to DOS."""
+
+    def check(self, memlo, memtop):
+        m = Machine()
+        s = m.sim
+        s.poke_word(0x02E7, memlo)
+        s.poke_word(0x02E5, memtop)
+        s.poke_word(0x0A, 0xA100)                     # DOSVEC
+        return m, m.run('AXCHECK', stop=['AXCHK3', 0xA100])
+
+    def test_fits(self):
+        for memlo, memtop in ((0x1E00, 0x8000), (0x1CFC, 0x9C1F), (0x0700, 0xBC1F)):
+            m, at = self.check(memlo, memtop)
+            self.assertEqual(at, 'AXCHK3', (hex(memlo), hex(memtop)))
+            self.assertEqual(m.screen, '')
+
+    def test_dos_too_big(self):
+        m, at = self.check(0x1E01, 0x9C1F)
+        self.assertEqual(at, 0xA100)
+        self.assertIn('EDOS loads at $1E00: MEMLO is above it', m.screen)
+
+    def test_not_enough_memory(self):
+        m, at = self.check(0x1CFC, 0x7FFF)
+        self.assertEqual(at, 0xA100)
+        self.assertIn('EDOS needs memory up to $8000', m.screen)
+
+    def test_it_runs_before_edos_loads(self):
+        # its segment and INITAD come first in EDOS.COM, above the program
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'build',
+                               'EDOS.COM'), 'rb') as f:
+            data = f.read()
+        first = data[2] | data[3] << 8
+        self.assertEqual(first, Sim()['AXLOWM'])
+        self.assertGreater(first, Sim()['VAREND'])
+        i = 6 + (data[4] | data[5] << 8) - first + 1
+        self.assertEqual(data[i:i + 4], bytes([0xE2, 0x02, 0xE3, 0x02]))   # INITAD
 
 
 class TestStartAndReset(unittest.TestCase):
@@ -541,11 +581,11 @@ class TestStartAndReset(unittest.TestCase):
         s.poke(0x9000, RTS)                           # DOS's reset handler
         s.poke_word(0x0C, 0x9000)
         m.run('PRE_START', watch=[0x9000])
-        self.assertEqual(s.word(0x0C), m['START'])
-        self.assertEqual(s.word(m['DOSIN']), 0x9000)
-        self.assertEqual(m.hits.get(0x9000), 1)
-        m.run('START', watch=[0x9000])                # RESET: OS calls DOSINI
-        self.assertEqual(m.hits.get(0x9000), 2, "DOS reset handler not chained")
+        self.assertEqual(s.word(0x0C), m['AXINIT'])
+        self.assertEqual(s.word(m['AXDOSI']), 0x9000)
+        self.assertIsNone(m.hits.get(0x9000))        # DOS has set up already
+        m.run('AXINIT', watch=[0x9000])               # RESET: OS calls DOSINI
+        self.assertEqual(m.hits.get(0x9000), 1, "DOS reset handler not chained")
         self.assertIn('EDOS 3.2', m.screen)
 
     def test_rerun_keeps_original_dosini(self):
@@ -555,7 +595,7 @@ class TestStartAndReset(unittest.TestCase):
         s.poke_word(0x0C, 0x9000)
         m.run('PRE_START')
         m.run('PRE_START')                            # EDOS run again
-        self.assertEqual(s.word(m['DOSIN']), 0x9000)
+        self.assertEqual(s.word(m['AXDOSI']), 0x9000)
 
     def test_escape_returns_to_menu_with_clean_stack(self):
         m = Machine(files(), lines=['TEXT.TXT'])      # no key: Esc at "Are You Sure?"
@@ -567,7 +607,7 @@ class TestStartAndReset(unittest.TestCase):
 
 
 class TestFont(unittest.TestCase):
-    """EDOS loads D:EDOS.FNT below the screen at start and selects it."""
+    """EDOS loads D:AERA.FNT below the screen at start and selects it."""
 
     def setUp(self):
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -584,8 +624,8 @@ class TestFont(unittest.TestCase):
         return m
 
     def test_loads_and_selects_font(self):
-        m = self.start({1: {'EDOS.FNT': self.font}})
-        self.assertIn('D:EDOS.FNT', m.opened())
+        m = self.start({1: {'AERA.FNT': self.font}})
+        self.assertIn('D:AERA.FNT', m.opened())
         self.assertEqual(m.sim.peek(0x2F4), 0x98)                 # CHBAS
         self.assertEqual(m.mem(0x9800, 1024), self.font)
         self.assertNotIn('Error', m.screen)
@@ -599,30 +639,30 @@ class TestFont(unittest.TestCase):
         self.assertIn('EDOS 3.2', m.screen)
 
     def test_short_file_is_not_used(self):
-        m = self.start({1: {'EDOS.FNT': self.font[:500]}})
+        m = self.start({1: {'AERA.FNT': self.font[:500]}})
         self.assertEqual(m.sim.peek(m['FONTPG']), 0)
         self.assertEqual(m.sim.peek(0x2F4), 0)
 
     def test_no_room_below_screen(self):
-        m = self.start({1: {'EDOS.FNT': self.font}}, ramtop=0x80)   # 16K cartridge
-        self.assertNotIn('D:EDOS.FNT', m.opened())
+        m = self.start({1: {'AERA.FNT': self.font}}, ramtop=0x80)   # 16K cartridge
+        self.assertNotIn('D:AERA.FNT', m.opened())
         self.assertEqual(m.sim.peek(m['FONTPG']), 0)
 
     def test_reset_reselects_without_reloading(self):
-        m = self.start({1: {'EDOS.FNT': self.font}})
+        m = self.start({1: {'AERA.FNT': self.font}})
         m.sim.poke(0x2F4, 0xE0)                                   # OS reset
         m.run('START')
-        self.assertEqual(m.opened().count('D:EDOS.FNT'), 1)
+        self.assertEqual(m.opened().count('D:AERA.FNT'), 1)
         self.assertEqual(m.sim.peek(0x2F4), 0x98)
 
     def test_exits_restore_rom_font(self):
-        m = self.start({1: {'EDOS.FNT': self.font}})
+        m = self.start({1: {'AERA.FNT': self.font}})
         m.sim.poke_word(0x0A, 0xA100)
         self.assertEqual(m.run('COMQIT', stop=['GETCOM', 0xA100]), 0xA100)
         self.assertEqual(m.sim.peek(0x2F4), 0xE0)
 
     def test_running_a_program_restores_rom_font(self):
-        m = self.start({1: {'EDOS.FNT': self.font, 'PROG.COM': PROG}})
+        m = self.start({1: {'AERA.FNT': self.font, 'PROG.COM': PROG}})
         m.w.lines, m.w.keys = ['PROG.COM'], ['Y']
         self.assertEqual(m.run('COMLOA', stop=['GETCOM', 0x5000]), 0x5000)
         self.assertEqual(m.sim.peek(0x2F4), 0xE0)

@@ -1,11 +1,10 @@
 ;
 ; SYSTEM.M65 - EDOS 3.2
-; The OS, hardware and zero page
+; EDOS's constants and zero page
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
 ; EDOS's constants
 ;
-RTN      = $7B              ; RTN key (not used)
 SCRID    = $00              ; IOCB 0, the screen
 KBDID    = $10              ; IOCB 1, the keyboard
 DSKID1   = $20              ; IOCB 2, the disk
@@ -13,7 +12,6 @@ LDRID    = $10              ; IOCB 1 loads, as in DOS 2
 DSKID2   = $30              ; IOCB 3, a 2nd disk file
 CUP      = $1C              ; cursor up
 CLS      = $7D              ; clear the screen
-EOL      = $9B              ; end of line
 DLN      = $9C              ; delete the line
 DEL      = $FF              ; ends a text, not printed
 CHL      = $12              ; the line character
@@ -47,54 +45,18 @@ COUNT    = $CC              ; files or banks counted
 TMPDSK   = $CD              ; a drive kept for later
 ;
 MAXBUF   = $80              ; longest text input (INP1)
-NMIEN_DLI = $80
-NMIEN_VBI = $40
+BREAK    = $80              ; CIO's status: BREAK key
 ;
-; OS and hardware addresses
+; The OS's addresses AXEQU.M65 has
+; not: the floating point package
 ;
 TRAMSZ   = $06
-DOSVEC   = $0A
-POKMSK   = $10
-BRKKEY   = $11
-DOSINI   = $0C
-RAMTOP   = $6A
 SOUNDR   = $41              ; 0: quiet SIO
-ROWCRS   = $54
-LMARGN   = $52
-RMARGN   = $53
-COLCRS   = $55
 FR0      = $D4
 FR1      = $D5              ; FR0+1; the OS's FR1 is $E0
 CIX      = $F2
 INBUFF   = $F3
-VDSLST   = $0200
-SDLSTL   = $0230
-STICK0   = $0278
-STICK1   = $0279
-STRIG0   = $0285
-STRIG1   = $0286
-SHFLOK   = $02BE            ; $40: capitals
-COLOR4   = $02C8            ; background
-RUNAD    = $02E0
-INITAD   = $02E2
-RAMSIZ   = $02E4
-MEMTOP   = $02E5
-MEMLO    = $02E7
-DVSTAT   = $02EA
-CRSINH   = $02F0            ; 1: no cursor
-CHBAS    = $02F4            ; the font's page
-DSPFLG   = $02FE            ; 1: show control codes
 LBUFF    = $0580
-COLPF0   = $D016
-COLPF1   = $D017
-COLPF2   = $D018
-COLPF3   = $D019
-COLBK    = $D01A
-HSCROL   = $D404
-VSCROL   = $D405
-WSYNC    = $D40A
-NMIEN    = $D40E
-PORTB    = $D301            ; PIA: the RAM banks
 AFP      = $D800
 FASC     = $D8E6
 IFP      = $D9AA
@@ -102,89 +64,24 @@ FPI      = $D9D2
 M4000    = $4000            ; the bank window
 M5000    = $5000
 ;
-; SIO and CIO: DOSIO's flags in
-; DUNUSE, the DCB, the IOCB
+; DOSIO's flags in DUNUSE
 ;
 CNGDSK   = $01              ; keep DUNIT, not DSKNUM
 SKPERR   = $02              ; on error: SIOERR, no DISKERR
 SIOERR   = $80              ; DUNUSE: an error skipped
-DDEVIC   = $0300
-DUNIT    = DDEVIC+1
-DCOMND   = DUNIT+1
-DSTATS   = DCOMND+1
-DBUFLO   = DSTATS+1
-DBUFHI   = DBUFLO+1
-DTIMLO   = DBUFHI+1
-DUNUSE   = DTIMLO+1
-DBYTLO   = DUNUSE+1
-DBYTHI   = DBYTLO+1
-DAUX1    = DBYTHI+1
-DAUX2    = DAUX1+1
-DSKINV   = $E453
-SIOV     = $E459
-;
-ICHID    = $0340
-ICDNO    = ICHID+1
-ICCOM    = ICDNO+1
-ICSTA    = ICCOM+1
-ICBAL    = ICSTA+1
-ICBAH    = ICBAL+1
-ICPTL    = ICBAH+1
-ICPTH    = ICPTL+1
-ICBLL    = ICPTH+1
-ICBLH    = ICBLL+1
-ICAX1    = ICBLH+1
-ICAX2    = ICAX1+1
-CIOV     = $E456
-;
-; SD time vectors
-;
-VGETTD   = $FFC0            ; get TD
-VSETTD   = $FFC3            ; set TD
-VTDON    = $FFC6            ; TD on or off
-VFMTTD   = $FFC9            ; get TD's format
 ;
 ; SIO commands
 ;
 SIO.FT   = $21              ; format
 SIO.FH   = $22              ; format enhanced
 SIO.HS   = $3F              ; get the high speed index
-SIO.RP   = $4E              ; read PERCOM
 SIO.WP   = $4F              ; write PERCOM
-SIO.PT   = $50              ; write, not verified
 SIO.RD   = $52              ; read
 SIO.ST   = $53              ; status
 SIO.WT   = $57              ; write, verified
 SIO.SL   = $68              ; drive's SIO code: length
-SIO.SR   = $69              ; drive's SIO code, at DAUX
 ;
 ; DSTATS: the data's direction
 ;
 SIOST.RD = $40              ; from the drive
 SIOST.WT = $80              ; to the drive
-;
-; ICCOM commands
-;
-ICM.OP   = $03              ; open
-ICM.GT   = $05              ; get a line
-ICM.GB   = $07              ; get bytes
-ICM.PT   = $09              ; put a line
-ICM.PB   = $0B              ; put bytes
-ICM.CL   = $0C              ; close
-ICM.RN   = $20              ; rename
-ICM.ER   = $21              ; erase
-ICM.PC   = $23              ; protect
-ICM.UP   = $24              ; unprotect
-ICM.FD   = $FD              ; format single
-ICM.FT   = $FE              ; format
-;
-; ICAX1 modes
-;
-ICAX.RD  = $04              ; read
-ICAX.DR  = $06              ; directory
-ICAX.WT  = $08              ; write
-;
-; Status codes
-;
-BREAK    = $80              ; BREAK key
-ICSTAT.EOF = $88            ; end of file

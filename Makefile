@@ -13,7 +13,7 @@
 #   build/EDOS.COM      the program (binary load file)
 #   build/EDOS.LST      listing with addresses and bytes
 #   build/EDOS.SYM      symbol table
-#   build/EDOS.FNT      the font (xl/tools/font.py)
+#   build/AERA.FNT      the font (xl/tools/font.py)
 #   build/EDOS.ATR      tools/disk/BASE.ATR (SpartaDOS 3.2 and its tools)
 #                       with EDOS.COM, the font and the sources, numbered
 #                       and tokenised; they must give the same EDOS.COM
@@ -32,7 +32,7 @@ MAC65      := $(PYTHON) xl/tools/mac65.py
 SRC        := $(PYTHON) xl/tools/atari_src.py
 ATR        := $(PYTHON) xl/tools/atr.py
 PROGRAM    := build/EDOS.COM
-FONTFILE   := build/EDOS.FNT
+FONTFILE   := build/AERA.FNT
 DISK       := build/EDOS.ATR
 TESTDISK   := build/EDOSTEST.ATR
 VERSION    := $(shell $(PYTHON) tools/version.py --source)

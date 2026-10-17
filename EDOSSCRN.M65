@@ -19,7 +19,7 @@ READIR
 READLOOP
          LDA #$12
          STA D0
-         @DOCIO DSKID1,ICM.GB,FILE,ICAX.DR,D0 ; an entry
+         @DOCIO DSKID1,AXGETCHR,FILE,AXOPNIN+AXDIRECT,D0 ; an entry
          INC COUNT
          BMI FINALIZE       ; N is COUNT's, not CIO's
          LDA FILE+1
@@ -55,7 +55,7 @@ ADD2ND
 ; only at 128 entries: EOF ends the
 ; list, else DISKERR
 FINALIZE
-         CPY #ICSTAT.EOF
+         CPY #AXEOF
          BEQ FREESEC
          JMP DISKERR
 ;

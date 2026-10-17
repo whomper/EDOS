@@ -9,7 +9,7 @@ the OS screen editor (E:): cursor at ROWCRS/COLCRS, margins LMARGN/RMARGN,
 clear screen, delete line, cursor moves, inverse video, and DSPFLG for
 showing control characters. It stops when EDOS waits for the first key
 and draws the 40x24 text screen in GRAPHICS 0 colours (COLOR2 background,
-COLOR1 luminance) with a COLOR4 border, in EDOS.FNT, the character set
+COLOR1 luminance) with a COLOR4 border, in AERA.FNT, the character set
 EDOS loads at start (xl/tools/font.py).
 """
 import argparse
@@ -84,7 +84,7 @@ def capture(xmem=512):
             buf, n = sim.word(0x344), sim.word(0x348)
             for k in range(n):
                 ed.put(sim.peek(buf + k))
-        elif x != 0 and cmd == 0x07 and sim.word(0x348 + x) == len(font):   # D:EDOS.FNT
+        elif x != 0 and cmd == 0x07 and sim.word(0x348 + x) == len(font):   # D:AERA.FNT
             buf = sim.word(0x344 + x)
             for k, b in enumerate(font):
                 sim.mem[buf + k] = b
@@ -135,7 +135,7 @@ def atari_rgb(colour):
 
 def render(sim, ed, path, scale=3):
     from PIL import Image
-    font = aera_font()                      # the EDOS.FNT that EDOS loads
+    font = aera_font()                      # the AERA.FNT that EDOS loads
     bg_c = sim.peek(COLOR2)
     bg = atari_rgb(bg_c)
     fg = atari_rgb((bg_c & 0xF0) | (sim.peek(COLOR1) & 0x0F))

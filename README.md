@@ -67,17 +67,17 @@ Download from **[Releases](../../releases/latest)**:
 |---|---|
 | `EDOS.ATR` | a bootable SpartaDOS 3.2 disk with EDOS, its font and the current MAC/65 sources |
 | `EDOS.COM` | the program: a binary load file for any DOS |
-| `EDOS.FNT` | EDOS's character set; keep it next to `EDOS.COM` |
+| `AERA.FNT` | the AERA family's character set; keep it next to `EDOS.COM` |
 | `EDOSTEST.ATR` | a bootable test disk with the test files and `TESTPLAN.TXT`, 35 checks for a real Atari |
 
 1. Boot `EDOS.ATR` and type `EDOS` at the SpartaDOS prompt.
-2. Or copy `EDOS.COM` and `EDOS.FNT` to your own DOS disk and load `EDOS.COM` (**L** in the DOS 2.5
+2. Or copy `EDOS.COM` and `AERA.FNT` to your own DOS disk and load `EDOS.COM` (**L** in the DOS 2.5
    or MyDOS menu, `EDOS` at the SpartaDOS prompt). On DOS 2.5 and MyDOS, EDOS can also take the place
    of `DUP.SYS`.
 3. Press **N** to pick your drive, then any command's key.
 
-EDOS loads `EDOS.FNT` from the current drive when it starts. Without it, or without room for it above
-$8000, EDOS keeps the Atari's own font. Any 1,024-byte Atari character set saved as `EDOS.FNT` works.
+EDOS loads `AERA.FNT` from the current drive when it starts. Without it, or without room for it above
+$8000, EDOS keeps the Atari's own font. Any 1,024-byte Atari character set saved as `AERA.FNT` works.
 
 **Needs:** an Atari 400, 800, XL or XE with a disk drive, and MyDOS, SpartaDOS 3.x or DOS 2.5. Copy
 Files and Duplicate Disk use 130XE-style extended memory when there is some.
@@ -93,8 +93,8 @@ make test                            # and runs every test
 | `make` writes | What it is |
 |---|---|
 | `build/EDOS.COM`, `EDOS.LST`, `EDOS.SYM` | the program, its listing and its symbols |
-| `build/EDOS.FNT` | the font: the family's AERA.FNT (`xl/tools/font.py`), `EREZ.FNT` moved one pixel right so inverse letters show as blocks |
-| `build/EDOS.ATR` | the EDOS disk: SpartaDOS 3.2 and the utilities from `tools/disk/BASE.ATR`, with `EDOS.COM`, `EDOS.FNT` and the sources numbered and tokenised as MAC/65 saves them; `make` checks they assemble to the same `EDOS.COM` |
+| `build/AERA.FNT` | the family's font (`xl/tools/font.py`): `EREZ.FNT` moved one pixel right so inverse letters show as blocks |
+| `build/EDOS.ATR` | the EDOS disk: SpartaDOS 3.2 and the utilities from `tools/disk/BASE.ATR`, with `EDOS.COM`, `AERA.FNT` and the sources numbered and tokenised as MAC/65 saves them; `make` checks they assemble to the same `EDOS.COM` |
 | `build/EDOSTEST.ATR` | the test disk |
 | `build/EDOS-D2.ATR` | a DOS 2/MyDOS disk with `EDOS.COM` |
 | `build/EDOS-BOOT.ATR` | a bootable DOS 2.5 or MyDOS disk with `EDOS.COM`, when you put that DOS's master disk at `tools/dos/DOS.ATR` (`EDOS_AS_DUP=1` also installs EDOS as `DUP.SYS`) |
@@ -122,7 +122,7 @@ every source file's header repeats it; the build fails when they differ. To rele
 `release-notes/vX.Y.md`, commit and push, then run the Release workflow (Actions > Release > Run
 workflow, on main; the family's, from `xl/`), or push a tag `vX.Y` made with `git tag -a`. GitHub
 Actions runs `make test` and `make dist`, checks the tag against `make version`, tags the commit and
-publishes `EDOS.COM`, `EDOS.FNT`, `EDOS.ATR` and `EDOSTEST.ATR` as a GitHub Release with the notes.
+publishes `EDOS.COM`, `AERA.FNT`, `EDOS.ATR` and `EDOSTEST.ATR` as a GitHub Release with the notes.
 The Withdraw workflow marks a bad release as withdrawn. From then on, each push
 to main that leaves `EDOS.COM` as released replaces that release's `EDOS.ATR` and `EDOSTEST.ATR` with
 the new build, so the disk always carries the current sources; a changed program waits for the next
@@ -141,7 +141,6 @@ EDOSVARS.M65   variables, the menu and the messages
 UTILS.M65      general routines, usable in other programs (list below)
 MACROS.M65     MAC/65 macros (list below)
 SYSTEM.M65     OS and hardware addresses, zero page
-CIOSTAT.M65    the texts for CIO error codes
 tools/         disks, screenshot, the 6502 simulator and the tests
 xl/            the AERA family's shared tools and includes (tools/sync-xl.sh updates it)
 release-notes/ what each release changed
@@ -168,7 +167,7 @@ read and write SpartaDOS, DOS 2 and MyDOS disk images.
 | `WRTSCT` | writes one sector |
 | `FXSCSZ` | sets the SIO sector size from the density and the sector number |
 | `DOCIO`, `CLOSECHANNEL` | a CIO operation; close an IOCB |
-| `DISKERR`, `GETERRTXT` | handle an error and show its message; the text for a CIO error code |
+| `DISKERR`, `ERRTXT` | handle an error and show its message; the text for a CIO error code (xl's `AXERRT`) |
 | `INLINE` | points `RETADR` at the parameters after a `JSR` and returns past them |
 | `GETCHR`, `GETTEXT`, `GETINP1` | read a key; read a line of text; read a line into `INP1` |
 | `GETADDR`, `INP2ADDR`, `A2HEX` | read an address; one to four hex digits in `INP1` to an address; one hex digit |
@@ -178,7 +177,7 @@ read and write SpartaDOS, DOS 2 and MyDOS disk images.
 | `HEXOUT` | one byte to two hex digits at `FILE`,Y: $A0 → "A0" |
 | `COPY`, `FILL` | copy text up to EOL; fill memory (used by `@CPYMEM` and `@FILLMEM`) |
 | `HIDECURSOR`, `SHOWCURSOR`, `SETCOLRED` | hide and show the cursor; turn the border red |
-| `LDFONT` | loads `EDOS.FNT` below the screen, or keeps the ROM font |
+| `LDFONT` | loads `AERA.FNT` below the screen, or keeps the ROM font |
 
 **MACROS.M65**
 

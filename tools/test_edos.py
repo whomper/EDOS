@@ -110,22 +110,23 @@ class TestErrorText(unittest.TestCase):
         self.fail("no EOL in FILE")
 
     def test_known_code(self):
-        self.s.call('GETERRTXT', y=170)
+        self.s.call('ERRTXT', y=170)
         self.assertEqual(self.text(), 'File not found')
 
     def test_every_message(self):
-        src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'CIOSTAT.M65')).read()
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'xl', 'src',
+                               'AXERR.M65')) as f:
+            src = f.read()
         msgs = re.findall(r'\.BYTE (\d+),"([^"]*)",EOL', src)
         self.assertGreater(len(msgs), 20)
         for code, text in msgs:
-            self.s.call('GETERRTXT', y=int(code))
+            self.s.call('ERRTXT', y=int(code))
             self.assertEqual(self.text(), text, code)
 
     def test_unknown_code_terminates(self):
-        # used to scan past the table and hang or print garbage;
-        # 134, 141, 145, 166 and 171 cannot happen in EDOS (no text)
-        for code in (148, 150, 172, 200, 255, 134, 141, 145, 166, 171):
-            self.s.call('GETERRTXT', y=code, max_steps=20_000)
+        # used to scan past the table and hang or print garbage
+        for code in (0, 1, 127, 148, 150, 159, 172, 200, 255):
+            self.s.call('ERRTXT', y=code, max_steps=20_000)
             self.assertEqual(self.text(), '', code)
 
 

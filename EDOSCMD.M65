@@ -15,7 +15,7 @@ COMVIE
 ; the start offset into FILPOS
          @PRNTLN FLST,DEL
          JSR GETADDR
-         @DOCIO DSKID1,ICM.OP,FILE,ICAX.RD
+         @DOCIO DSKID1,AXOPEN,FILE,AXOPNIN
 ; read up to the start: FILPOS+1
 ; blocks of $100, then FILPOS bytes
          LDA FILPOS+1
@@ -26,8 +26,8 @@ COMVIE
          STA D1             ; D0/D1 = $0100
          LDX FILPOS+1
 COMVIE_0
-         @DOCIO DSKID1,ICM.GB,BUF,ICAX.RD,D0,D1 ; X kept
-         CPY #ICSTAT.EOF
+         @DOCIO DSKID1,AXGETCHR,BUF,AXOPNIN,D0,D1 ; X kept
+         CPY #AXEOF
          BEQ COMVIE_3       ; the file is shorter
          DEX
          BNE COMVIE_0
@@ -35,15 +35,15 @@ COMVIE_1
          LDA FILPOS
          STA D0
          BEQ COMVIE_2       ; nothing more to skip
-         @DOCIO DSKID1,ICM.GB,BUF,ICAX.RD,D0
-         CPY #ICSTAT.EOF
+         @DOCIO DSKID1,AXGETCHR,BUF,AXOPNIN,D0
+         CPY #AXEOF
          BEQ COMVIE_3
 ; read $80 bytes and show them
 COMVIE_2
          JSR PRNTNL
          LDA #$80
          STA D0
-         @DOCIO DSKID1,ICM.GB,BUF,ICAX.RD,D0
+         @DOCIO DSKID1,AXGETCHR,BUF,AXOPNIN,D0
          LDA #$00
          STA ABORT          ; DSPBIN sets it at EOF
          LDX #DSKID1
@@ -162,18 +162,18 @@ COMCMP
          @PRNTLN BCMS,DEL
          JSR GETSPEC
 ; open both
-         @DOCIO DSKID1,ICM.OP,BUF,ICAX.RD
-         @DOCIO DSKID2,ICM.OP,FILE,ICAX.RD
+         @DOCIO DSKID1,AXOPEN,BUF,AXOPNIN
+         @DOCIO DSKID2,AXOPEN,FILE,AXOPNIN
 ; read $FF bytes of each
 COMCMP_1
          LDA #$00
          STA D1
          LDA #$FF
          STA D0
-         @DOCIO DSKID1,ICM.GB,M4000,ICAX.RD,D0,D1
+         @DOCIO DSKID1,AXGETCHR,M4000,AXOPNIN,D0,D1
          LDX #DSKID1
          JSR CHKEOF
-         @DOCIO DSKID2,ICM.GB,M5000,ICAX.RD,D0,D1
+         @DOCIO DSKID2,AXGETCHR,M5000,AXOPNIN,D0,D1
          LDX #DSKID2
          JSR CHKEOF
 ; compare the BYTRD bytes both read
@@ -201,7 +201,7 @@ COMCMP_3
 ; Exit: RTS; A, ABORT, BYTRD changed
 ;
 CHKEOF
-         CPY #ICSTAT.EOF
+         CPY #AXEOF
          BNE CHKEOF_1
          LDA #$01
          STA ABORT
@@ -313,18 +313,15 @@ COMNEWERR
          JMP NLMENU
 ;
 ; PRPEXT - before leaving EDOS: the
-; ROM font, DOS's DOSINI back from
-; DOSIN, the IOCBs closed
+; ROM font, DOS's DOSINI back (xl's
+; AXQUIT), the IOCBs closed
 ; Exit: RTS (from CLOSEIO); A, X, Y
 ; changed
 ;
 PRPEXT
          LDA #$E0           ; ROM font, for DOS/program
          STA CHBAS
-         LDA DOSIN
-         STA DOSINI
-         LDA DOSIN+1
-         STA DOSINI+1
+         JSR AXQUIT
          JMP CLOSEIO
 ;
 ; COMQIT - Quit to DOS
@@ -360,7 +357,7 @@ COMDIG
 COMDIR
          JSR GETFILESPEC
 COMDIR_1
-         @DOCIO DSKID1,ICM.OP,FILE,ICAX.DR
+         @DOCIO DSKID1,AXOPEN,FILE,AXOPNIN+AXDIRECT
          JSR READIR
          JSR PRNTNL
 ; COUNT in decimal after "Number of
@@ -424,13 +421,13 @@ COMCPY_1
 COMCPY_2
          JSR PRNTNL
          JSR PRNTNL
-         @DOCIO DSKID1,ICM.OP,FILE,ICAX.DR
+         @DOCIO DSKID1,AXOPEN,FILE,AXOPNIN+AXDIRECT
 ; a directory line: lock, space, name
 ; (8), ext (3), sectors, EOL ($12)
 COMCPY_3
          LDA #$12
          STA D0
-         @DOCIO DSKID1,ICM.GB,FILE,ICAX.DR,D0
+         @DOCIO DSKID1,AXGETCHR,FILE,AXOPNIN+AXDIRECT,D0
          CPY #$80
          BCS COMCPY_4       ; EOF: done
 ; "NAME    .EXT" in INP1
@@ -487,7 +484,7 @@ FILCPY_0
          LDA #DEL
          STA BUF,Y          ; over its EOL
          @PRNTLN BUF,DEL
-         @DOCIO DSKID2,ICM.OP,FILE,ICAX.RD
+         @DOCIO DSKID2,AXOPEN,FILE,AXOPNIN
 ; read 16K blocks into the banks
 FILCPY_1
          LDA #$00
@@ -495,7 +492,7 @@ FILCPY_1
          LDA #$40
          STA D1             ; D0/D1 = $4000
 ;
-         @DOCIO DSKID2,ICM.GB,M4000,ICAX.RD,D0,D1
+         @DOCIO DSKID2,AXGETCHR,M4000,AXOPNIN,D0,D1
 ; a full bank read?
          LDX #DSKID2
          LDA ICBLL,X
@@ -542,7 +539,7 @@ FILCPY_4_5
          LDA TMPDSK
          STA FILE+1         ; on the target drive
 ;
-         @DOCIO DSKID2,ICM.OP,FILE,ICAX.WT
+         @DOCIO DSKID2,AXOPEN,FILE,AXOPNOT
          LDA #$01
          STA ACVMEM
 FILCPY_5
@@ -562,7 +559,7 @@ FILCPY_5
          LDA VALUE+1
          STA D1
 FILCPY_7
-         @DOCIO DSKID2,ICM.PB,M4000,ICAX.WT,D0,D1
+         @DOCIO DSKID2,AXPUTCHR,M4000,AXOPNOT,D0,D1
          LDA ACVMEM
          CMP COUNT
          BEQ FILCPY_8

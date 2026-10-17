@@ -7,44 +7,23 @@
 ; Also the file spec helpers.
 ;
 ; PRE_START - the run address: hook
-; RESET. On the first run DOSINI is
-; DOS's: keep it in DOSIN. Then put
-; DOSIN in START's JSR and point
-; DOSINI at START, so RESET runs
-; DOS's init, then EDOS
+; RESET (xl's AXSTART keeps DOS's
+; DOSINI and points DOSINI at AXINIT,
+; which runs DOS's init, then START)
 ; Exit: falls into START
 ;
 PRE_START
-         LDA DOSINI+1       ; START's already?
-         CMP # >START
-         BEQ STARTING       ; yes: keep DOSIN
-         LDA DOSINI         ; first run: keep
-         STA DOSIN          ; DOS's init
-         LDA DOSINI+1
-         STA DOSIN+1
-STARTING
-         LDA DOSIN          ; JSR START becomes
-         STA START+1        ; JSR DOS's init
-         LDA DOSIN+1
-         STA START+2
-         LDA # <START       ; RESET: to START
-         STA DOSINI
-         LDA # >START
-         STA DOSINI+1
+         JSR AXSTART
 ;
-; START - DOSINI points here, so RESET
-; comes here; PRE_START falls in. Its
-; JSR runs DOS's init first: as
-; assembled it calls START itself,
-; PRE_START puts DOSIN in it. Keeps
-; SP for GETCOM and the main bank's
-; PORTB; sets the screen, drive 1
-; and the font
+; START - AXWARM: RESET comes here
+; after DOS's init; PRE_START falls
+; in. Keeps SP for GETCOM and the
+; main bank's PORTB; sets the screen,
+; drive 1 and the font
 ; Exit: falls into GOMENU; it never
 ; returns to the OS
 ;
 START
-         JSR START          ; DOS's init (patched)
          TSX                ; SP for GETCOM
          STX STKPTR
          LDA #$40           ; capitals
@@ -57,7 +36,7 @@ START
          STA BANKS          ; the main bank's PORTB
          LDA #1
          STA DSKNUM         ; drive 1 by default
-; The font: load D:EDOS.FNT once;
+; The font: load D:AERA.FNT once;
 ; select it on every start, as RESET
 ; puts the ROM's back
          LDA FONTPG
@@ -127,7 +106,7 @@ GETCOM
          @COLDEF
          JSR RESETFIO
          JSR CLOSEIO
-         @DOCIO KBDID,ICM.OP,KYBD,ICAX.RD
+         @DOCIO KBDID,AXOPEN,KYBD,AXOPNIN
          @SHWCUR
          @SIOSNDON
          @PRNTLN ANYK,DEL
@@ -188,10 +167,10 @@ COMLOA
 ; DOS 2; K: is on IOCB #1 too
          LDX #KBDID
          JSR CLOSECHANNEL
-         @DOCIO LDRID,ICM.OP,FILE,ICAX.RD
+         @DOCIO LDRID,AXOPEN,FILE,AXOPNIN
          LDA #$02           ; its first 2 bytes
          STA D0
-         @DOCIO LDRID,ICM.GB,BUF,ICAX.RD,D0
+         @DOCIO LDRID,AXGETCHR,BUF,AXOPNIN,D0
          LDA BUF
          AND BUF+1
          CMP #$FF
@@ -212,9 +191,9 @@ COMLOA_2
          LDY #$80
 COMLOA_3
          STY LR.RUN         ; $80: run it
-         LDA DOSIN          ; DOS's DOSINI, for RESET
+         LDA AXDOSI         ; DOS's DOSINI, for RESET
          STA LR.DOSI
-         LDA DOSIN+1
+         LDA AXDOSI+1
          STA LR.DOSI+1
          LDA MEMTOP+1       ; the pages from MEMTOP up
          STA LR.TAB+6
@@ -339,7 +318,7 @@ LD.LD1
          JSR LR.GB
          STY LR.ST
          BPL LD.IN
-         CPY #ICSTAT.EOF
+         CPY #AXEOF
          BNE LD.ERR         ; EOF ends the file
 LD.IN
          LDA INITAD
@@ -351,14 +330,14 @@ LD.IN1
          BMI LD.END         ; it was EOF
          JMP LDR            ; the next segment: LD.SG
 LD.END
-         CPY #ICSTAT.EOF
+         CPY #AXEOF
          BNE LD.ERR
          LDY #$01
 ; Y: 1 loaded, 0 over this page, else
 ; the CIO error
 LD.ERR
          STY LR.ST
-         LDA #ICM.CL
+         LDA #AXCLOSE
          JSR LR.CIO
          LDY LR.ST
          BIT LR.GONE
@@ -393,7 +372,7 @@ LD.HDR
          LDA #$00
          STA ICBLH,X
 LD.GB
-         LDA #ICM.GB
+         LDA #AXGETCHR
 LD.CIO
          LDX #LDRID
          STA ICCOM,X
