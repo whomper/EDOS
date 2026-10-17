@@ -133,7 +133,10 @@ the next number and say in the bad release's notes that it is withdrawn.
 
 ```
 EDOS.M65       the main file, the one MAC/65 loads: options, origin and the includes
-EDOSMAIN.M65   start-up, the menu and every command
+EDOSMAIN.M65   start-up, the menu and Load Binary (with its page-6 loader)
+EDOSCMD.M65    View, Analyze, Compare, Memory, New, Quit, Dir, Cartridge, Copy Files
+EDOSDISK.M65   Duplicate, Erase, Initialize, Protect, Unprotect, Rename, Write EDOS, Save, Go To
+EDOSSCRN.M65   the directory, the drive and status lines, the title bar, the command table
 EDOSVARS.M65   variables, the menu and the messages
 UTILS.M65      general routines, usable in other programs (list below)
 MACROS.M65     MAC/65 macros (list below)
