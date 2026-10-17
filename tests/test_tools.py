@@ -214,6 +214,21 @@ class TestSourceDisk(unittest.TestCase):
         self.assertEqual(open(path).read(), ';OLD\nSTART    LDA #1             ;ONE\n'
                                             '         STA $80\nLOOP\n')
 
+    def test_empty_file(self):
+        # an empty file owns its sector map, so nothing is lost (EDOS found it)
+        atr = os.path.join(self.tmp, 'E.ATR')
+        d = atari_src.new_disk(atr, 'EMPTY')
+        d.add('EMPTY.TXT', b'')
+        d.save()
+        d = sparta.Disk(atr)
+        problems, lost = d.fsck()
+        self.assertFalse(problems or lost, (problems, lost))
+        self.assertEqual(atari_src.files_of(atr)['EMPTY.TXT'], b'')
+        d.remove('EMPTY.TXT')
+        d.save()
+        problems, lost = sparta.Disk(atr).fsck()
+        self.assertFalse(problems or lost, (problems, lost))
+
     def test_shared_files_round_trip(self):
         for name in os.listdir(os.path.join(XL, 'src')):
             text = open(os.path.join(XL, 'src', name), encoding='utf-8').read()
