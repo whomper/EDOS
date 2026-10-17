@@ -229,7 +229,7 @@ class TestInput(unittest.TestCase):
 
 
 class TestFastSio(unittest.TestCase):
-    """READFIO loads drive fast-SIO code only if it fits the FSIOV page."""
+    """READFIO loads drive fast-SIO code only if it fits FSIOV..WRKBEG (FSIOMAX)."""
 
     def run_readfio(self, size):
         s = Sim()
@@ -245,15 +245,17 @@ class TestFastSio(unittest.TestCase):
         s.call('READFIO')
         return [e for e in s.sio_log if e['cmd'] == SIO_SL + 1]
 
-    def test_fits_page(self):
-        for size in (0x80, 0x100):
+    def test_fits(self):
+        # Speedy-style code is longer than a page; up to FSIOMAX must load
+        for size in (0x80, 0x100, 0x101, 0x200, Sim()['FSIOMAX']):
             loads = self.run_readfio(size)
             self.assertEqual(len(loads), 1, hex(size))
             self.assertEqual(loads[0]['buf'], Sim()['FSIOV'])
             self.assertEqual(loads[0]['size'], size)
 
     def test_too_big_is_skipped(self):
-        for size in (0x101, 0x200, 0x400):
+        big = Sim()['FSIOMAX']
+        for size in (big + 1, big + 0x100, 0x1000, 0xFFFF):
             self.assertEqual(self.run_readfio(size), [], hex(size))
 
     def run_fast(self, status, flags=0):
@@ -296,7 +298,10 @@ class TestFastSio(unittest.TestCase):
         s = Sim()
         self.assertLessEqual(s['END_PROG'], s['VAREND'])
         self.assertLessEqual(s['VAREND'], s['WRKBEG'])
-        self.assertLessEqual(s['FSIOV'] + 0x100, 0x4000)
+        self.assertEqual(s['WRKBEG'], s['FSIOV'])
+        self.assertEqual(s['FSIOV'] + s['FSIOMAX'], s['FILE'])
+        self.assertGreaterEqual(s['FSIOMAX'], 0x400)
+        self.assertLessEqual(s['BUF'] + 0x100, 0x4000)
 
 
 if __name__ == '__main__':
