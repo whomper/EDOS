@@ -173,30 +173,20 @@ class TestSioCommands(unittest.TestCase):
 
 
 class TestInput(unittest.TestCase):
-    """Drive COMANA (Analyze Sector) with scripted keyboard/editor input."""
+    """Drive COMANA (Analyze Sector) with scripted keys."""
 
     def make(self, typed):
         s = Sim()
         s.poke(s['DSKNUM'], 1)
-        seen = {}
+        keys = [ord(c) for c in typed] + [EOL]          # GETTEXT reads key by key
 
         def cio(sim, x):
             cmd = sim.peek(ICCOM + x)
-            if cmd == 5:                               # get record (GETTEXT)
-                buf = sim.word(ICBAL + x)
-                limit = sim.peek(ICBLL + x)
-                seen['limit'] = limit
-                data = typed.encode() + bytes([EOL])
-                n = min(len(data), limit)
-                for k in range(n):
-                    sim.poke(buf + k, data[k])
-                sim.poke(ICBLL + x, n)
-                return 1 if n == len(data) else 137     # truncated record
-            if cmd == 7 and sim.word(ICBLL + x) == 0:  # GETCHR
-                return (1, ord('N'))
+            if cmd == 7 and sim.word(ICBLL + x) == 0:  # K:
+                return (1, keys.pop(0) if keys else ord('N'))
             return 1
         s.cio_handler = cio
-        return s, seen
+        return s, keys
 
     def run_until_getcom(self, s):
         # COMANA ends with JMP GETCOM; run it as a call and stop there
@@ -221,12 +211,14 @@ class TestInput(unittest.TestCase):
         self.assertNotIn(0xB6B5, reads)
 
     def test_sector_input_is_bounded(self):
-        s, seen = self.make('1234567890123')
-        # NUMBKS and FILEND sit right after the 5-byte SCTR
+        s, _ = self.make('1234567890123')
+        # NUMBKS and FILEND sit right after the 5-byte SCTR: GETTEXT takes
+        # 4 digits and the EOL, and no more
         guard = [s.peek(a) for a in range(s['SCTR'] + 5, s['SCTR'] + 8)]
         self.run_until_getcom(s)
-        self.assertEqual(seen['limit'], 5)
         self.assertEqual(guard, [s.peek(a) for a in range(s['SCTR'] + 5, s['SCTR'] + 8)])
+        reads = [e['sector'] for e in s.sio_log if e['cmd'] == SIO_RD]
+        self.assertIn(1234, reads)
 
 
 class TestFastSio(unittest.TestCase):

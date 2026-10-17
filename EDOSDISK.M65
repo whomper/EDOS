@@ -1,5 +1,5 @@
 ;
-; EDOSDISK.M65 - EDOS 3.4
+; EDOSDISK.M65 - EDOS 3.5
 ; The disk commands, Save and Go To
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
@@ -220,6 +220,7 @@ DSKCPY_8
          STA PORTB          ; the main bank
          RTS
 DSKCPY_9
+         JSR CHKESC         ; ESC: stop
          JMP DSKCPY_2
 ;
 ; CLRDUPDSP - blank the sector count
@@ -307,15 +308,20 @@ COMERA
          JMP GETCOM
 ;
 ; COMINI - Initialize Disk: ask for
-; the density, confirm, then format
+; the density (1-3; any other key
+; does nothing), confirm, then format
 ; the disk in DSKNUM (DOINIT)
 ; Exit: to NLMENU
 ;
 COMINI
          @PRNTLN FMTD,DEL
          JSR GETCHR
+         CMP #'1
+         BCC COMINI_1       ; not 1-3: nothing
+         CMP #'4
+         BCS COMINI_1
          @RMASCII
-         STA DENSITY        ; not checked
+         STA DENSITY
          JSR PRNTNL
          JSR PRNTNL
 ;
@@ -327,6 +333,7 @@ COMINI
          @PRNTLN ARYS,DEL
          JSR YESORMENU
          JSR DOINIT
+COMINI_1
          JMP NLMENU
 ;
 ; DOINIT - format the disk in DSKNUM

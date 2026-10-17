@@ -47,7 +47,7 @@ def symbols():
 
 def plan(sym, nfiles):
     size = sym['END_PROG'] - sym['START_PROG'] + 12
-    text = f"""EDOS 3.4 TEST PLAN
+    text = f"""EDOS 3.5 TEST PLAN
 ==================
 D1: this disk (boot it, then EDOS).
 D2: a blank formatted disk.
@@ -56,7 +56,7 @@ Expect: what you should see.
 
 -- MENU / DIR --
 1 Boot, run EDOS. Expect title
-  EDOS 3.4, D:12 (or your drives),
+  EDOS 3.5, D:12 (or your drives),
   XMEM size, full menu.
 2 F: inverse title FILES ON DISK.
   RETURN: D1 listing,
@@ -160,7 +160,7 @@ Expect: what you should see.
 
 -- NEW IN 3.3 AND 3.4 --
 36 HELP at the menu: the About
-  lines, EDOS 3.4 ... github.com/
+  lines, EDOS 3.5 ... github.com/
   whomper/EDOS. ? does the same.
   Title: (C) AERA 2026.
 37 F RETURN, then R: the prompt
@@ -176,6 +176,20 @@ Expect: what you should see.
   1010 FREE SECTORS. A 1000:
   Sector: 1000. N 1, C TEXT.TXT 2:
   copies (banks were lost).
+
+-- NEW IN 3.5: ESC CANCELS --
+42 F, type AB, ESC: the menu,
+  nothing listed. R, type TE,
+  BREAK: the menu, no rename.
+43 Typing a name: DELETE BACK S
+  deletes; arrows do nothing.
+44 I, then X: nothing happens
+  (was: formatted). I 1, ESC at
+  Are You Sure: nothing.
+45 D Y, ESC while it reads:
+  Stopped, and the menu.
+46 C *.* 2, ESC: Stopped after
+  the file it is on.
 """
     return text.replace('\n', '\x9b').encode('latin1')
 

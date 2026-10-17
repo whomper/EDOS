@@ -16,7 +16,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'xl', 'tools'))
 from sim import Sim, PORTB  # noqa: E402
-from difftest import World, Done, symbolizer, binfile  # noqa: E402
+from difftest import World, Done, symbolizer, binfile, BRK  # noqa: E402
 
 EOL = 0x9B
 RTS = 0x60
@@ -166,7 +166,7 @@ class TestMenu(unittest.TestCase):
     def test_menu_screen(self):
         m = Machine()
         m.run('GOMENU')
-        for text in ('EDOS 3.4', 'Dir D1-D8', 'Write EDOS', 'Copy Files', 'Duplicate Disk',
+        for text in ('EDOS 3.5', 'Dir D1-D8', 'Write EDOS', 'Copy Files', 'Duplicate Disk',
                      'Quit to DOS', 'XMEM:'):
             self.assertIn(text, m.screen)
         self.assertIn('(C) AERA 2026', m.screen)
@@ -198,7 +198,7 @@ class TestMenu(unittest.TestCase):
         m = Machine(keys='?')
         m.run('GETCOM', stop=['NLMENU'])
         self.assertIn('Select Item (RETURN menu, ? About): ?', m.screen)
-        self.assertIn('EDOS 3.4\nDisk utility for Atari 8-bit DOS\n'
+        self.assertIn('EDOS 3.5\nDisk utility for Atari 8-bit DOS\n'
                       'Copyright (C) 2026 AERA | Erez Yaary\nGPL-2.0-or-later\n'
                       'github.com/whomper/EDOS\n', m.screen)
 
@@ -671,6 +671,145 @@ class TestLoadCheck(unittest.TestCase):
         self.assertEqual(data[i:i + 4], bytes([0xE2, 0x02, 0xE3, 0x02]))   # INITAD
 
 
+class TestEscCancels(unittest.TestCase):
+    """ESC, and BREAK, at any question or prompt: as if the answer were no.
+    Nothing is written, erased or changed, what was typed is thrown away,
+    and EDOS goes back to the menu (the family's guidelines, 3.4)."""
+
+    ESC = '\x1b'
+    # (what, the command, the answers before the prompt, L(ine) or K(ey))
+    PROMPTS = [
+        ('menu', 'GETCOM', [], 'K'),
+        ('Files on Disk: file spec', 'COMDIR', [], 'L'),
+        ('Copy Files: file spec', 'COMCPY', [], 'L'),
+        ('Copy Files: target drive', 'COMCPY', [('L', 'TEXT.TXT')], 'K'),
+        ('Duplicate Disk: insert source', 'COMDUP', [], 'K'),
+        ('Duplicate Disk: target drive', 'COMDUP', [('K', 'Y')], 'K'),
+        ('Erase Files: file spec', 'COMERA', [], 'L'),
+        ('Erase Files: are you sure', 'COMERA', [('L', 'TEXT.TXT')], 'K'),
+        ('Initialize Disk: density', 'COMINI', [], 'K'),
+        ('Initialize Disk: are you sure', 'COMINI', [('K', '1')], 'K'),
+        ('Protect Files: file spec', 'COMPRC', [], 'L'),
+        ('Unprotect Files: file spec', 'COMUNP', [], 'L'),
+        ('Rename Files: old name', 'COMREN', [], 'L'),
+        ('Rename Files: new name', 'COMREN', [('L', 'TEXT.TXT')], 'L'),
+        ('Rename Files: are you sure', 'COMREN', [('L', 'TEXT.TXT'), ('L', 'NEW.TXT')], 'K'),
+        ('Save Binary: file', 'COMSAV', [], 'L'),
+        ('Save Binary: start', 'COMSAV', [('L', 'OUT.COM')], 'L'),
+        ('Save Binary: end', 'COMSAV', [('L', 'OUT.COM'), ('L', '5000')], 'L'),
+        ('Save Binary: run address', 'COMSAV', [('L', 'OUT.COM'), ('L', '5000'), ('L', '50FF')], 'L'),
+        ('Load Binary: file spec', 'COMLOA', [], 'L'),
+        ('Load Binary: run it', 'COMLOA', [('L', 'PROG.COM')], 'K'),
+        ('Go To Address', 'COMGOT', [], 'L'),
+        ('View File: file spec', 'COMVIE', [], 'L'),
+        ('View File: position', 'COMVIE', [('L', 'TEXT.TXT')], 'L'),
+        ('View File: more', 'COMVIE', [('L', 'BIG.DAT'), ('L', '0')], 'K'),
+        ('Analyze Sector: sector', 'COMANA', [], 'L'),
+        ('Analyze Sector: next', 'COMANA', [('L', '10')], 'K'),
+        ('Memory Status: address', 'COMMEM', [], 'L'),
+        ('Memory Status: next', 'COMMEM', [('L', '5000')], 'K'),
+        ('New Drive', 'COMNEW', [], 'K'),
+        ('Byte Compare: first file', 'COMCMP', [], 'L'),
+        ('Byte Compare: second file', 'COMCMP', [('L', 'TEXT.TXT')], 'L'),
+        ('Write EDOS: are you sure', 'COMWRT', [], 'K'),
+    ]
+
+    def cancel(self, entry, before, kind, key, typed='AB'):
+        lines = [t for k, t in before if k == 'L']
+        keys = ''.join(t for k, t in before if k == 'K')
+        if kind == 'L':
+            lines.append(typed + key)                  # part typed, then ESC
+        else:
+            keys += key
+        m = Machine(files(), lines=lines, keys=keys)
+        before_files = {d: {n: bytes(v[0]) for n, v in fs.items()} for d, fs in m.w.files.items()}
+        stop = ['NLMENU'] if entry == 'GETCOM' else ['GETCOM']
+        at = m.run(entry, stop=stop + [0x5000, 0xA100], max_steps=60_000_000)
+        return m, at, before_files
+
+    def nothing_done(self, m, before_files, what):
+        m.close_files()
+        after = {d: {n: bytes(v[0]) for n, v in fs.items()} for d, fs in m.w.files.items()}
+        self.assertEqual(after, before_files, f'{what}: files changed')
+        cios = [dict(t[1]) for t in m.w.trace if t[0] == 'CIO']
+        for c in cios:
+            self.assertNotIn(c['cmd'], (0x20, 0x21, 0x23, 0x24, 0xFE), f'{what}: {c}')
+            if c['iocb'] > 0x10:
+                self.assertFalse(c['cmd'] == 3 and c['ax1'] & 8, f'{what}: opened to write')
+                self.assertNotEqual(c['cmd'], 0x0B, f'{what}: put')
+        writes = [c for c, u, s in m.w.sio_cmds if c in (0x21, 0x22, 0x4F, 0x50, 0x57)]
+        self.assertEqual(writes, [], f'{what}: SIO writes')
+        self.assertEqual(m.sim.peek(m['DSKNUM']), 1, f'{what}: drive changed')
+        self.assertNotIn('Stopped', m.screen)
+
+    def test_esc_and_break_at_every_prompt(self):
+        for what, entry, before, kind in self.PROMPTS:
+            for name, key in (('ESC', self.ESC), ('BREAK', BRK)):
+                with self.subTest(prompt=what, key=name):
+                    m, at, before_files = self.cancel(entry, before, kind, key)
+                    self.assertIn(at, ('GETCOM', 'NLMENU'), f'{what}: went to {at}')
+                    self.nothing_done(m, before_files, what)
+
+    def test_a_cancelled_line_is_thrown_away(self):
+        # Rename: "NE" typed, then ESC: no file named NE
+        m, at, before_files = self.cancel('COMREN', [('L', 'TEXT.TXT')], 'L', self.ESC, 'NE')
+        self.assertEqual(at, 'GETCOM')
+        self.assertIsNone(m.file(1, 'NE'))
+        self.assertIsNotNone(m.file(1, 'TEXT.TXT'))
+
+    def test_typed_line_editing(self):
+        # BACK S ($7E) deletes; arrows, CLEAR and inverse keys are not taken;
+        # BACK S on an empty line does nothing
+        for typed, want in (('*.TXX\x7eT', 'D1:*.TXT'), ('\x7e*.COM', 'D1:*.COM'),
+                            ('*.\x1c\x1d\x7dCOM', 'D1:*.COM'), ('*.CO\xc1M', 'D1:*.COM')):
+            with self.subTest(typed=repr(typed)):
+                m = Machine(files(), lines=[typed])
+                m.run('COMDIR')
+                self.assertEqual(m.opened(), [want])
+
+    def test_initialize_takes_only_1_to_3(self):
+        # any other key at the density was taken as a density, and formatted
+        for key in ('0', '4', 'X', ' ', '\x9b'):
+            with self.subTest(key=repr(key)):
+                m = Machine(files(), keys=key + 'Y')
+                before = {d: {n: bytes(v[0]) for n, v in fs.items()} for d, fs in m.w.files.items()}
+                self.assertEqual(m.run('COMINI'), 'GETCOM')
+                self.nothing_done(m, before, 'density ' + repr(key))
+
+    def test_esc_stops_duplicate_disk(self):
+        for name, poke in (('ESC', (0x02FC, 0x1C)), ('BREAK', (0x11, 0))):
+            with self.subTest(key=name):
+                m = Machine(keys='YY')
+                self.assertEqual(m.run('COMDUP', stop=['DSKCPY']), 'DSKCPY')
+                m.sim.poke(*poke)                         # pressed as it starts reading
+                # on to the prompt: GETCOM has put the main bank back
+                self.assertEqual(m.run('DSKCPY', a=0x52, stop=['GETCOM_W'],
+                                       max_steps=60_000_000), 'GETCOM_W')
+                self.assertIn('Stopped', m.screen)
+                reads = [s for c, u, s in m.w.sio_cmds if c == 0x52]
+                self.assertIn(1, reads)
+                self.assertNotIn(2, reads, 'one sector, then it stops')
+                self.assertEqual([c for c, u, s in m.w.sio_cmds if c == 0x57], [])
+                self.assertEqual(m.sim.peek(PORTB), m.sim.peek(m['BANKS']))   # main bank back
+                self.assertEqual(m.sim.peek(0x02FC), 0xFF)                    # the key is used
+
+    def test_break_at_a_typed_line(self):
+        # BREAK seen by GETKEY itself (BRKKEY 0), as the OS's K: may not look
+        m = Machine(files(), lines=['TEXT.TXT'])
+        m.sim.poke(0x11, 0)
+        self.assertEqual(m.run('COMREN'), 'GETCOM')
+        self.assertIsNotNone(m.file(1, 'TEXT.TXT'))
+        self.assertEqual(m.sim.peek(0x11), 0x80)             # BREAK taken
+
+    def test_esc_stops_copy_files(self):
+        m = Machine(files(), lines=['D1:*.*'], keys='2')
+        m.sim.poke(0x02FC, 0x5C)                          # SHIFT+ESC
+        self.assertEqual(m.run('COMCPY', max_steps=60_000_000), 'GETCOM')
+        m.close_files()
+        self.assertIn('Stopped', m.screen)
+        self.assertEqual(sorted(m.w.files[2]), ['OTHER.DAT'])     # nothing copied
+
+
 class TestStartAndReset(unittest.TestCase):
     def test_first_start_hooks_dosini_and_reset_reenters(self):
         m = Machine()
@@ -683,7 +822,7 @@ class TestStartAndReset(unittest.TestCase):
         self.assertIsNone(m.hits.get(0x9000))        # DOS has set up already
         m.run('AXINIT', watch=[0x9000])               # RESET: OS calls DOSINI
         self.assertEqual(m.hits.get(0x9000), 1, "DOS reset handler not chained")
-        self.assertIn('EDOS 3.4', m.screen)
+        self.assertIn('EDOS 3.5', m.screen)
 
     def test_rerun_keeps_original_dosini(self):
         m = Machine()
@@ -733,7 +872,7 @@ class TestFont(unittest.TestCase):
         self.assertEqual(m.sim.peek(0x2F4), 0)
         self.assertEqual(m.sim.peek(m['FONTPG']), 0)
         self.assertNotIn('Error', m.screen)
-        self.assertIn('EDOS 3.4', m.screen)
+        self.assertIn('EDOS 3.5', m.screen)
 
     def test_short_file_is_not_used(self):
         m = self.start({1: {'AERA.FNT': self.font[:500]}})

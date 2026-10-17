@@ -1,5 +1,5 @@
 ;
-; EDOS.M65 - EDOS 3.4
+; EDOS.M65 - EDOS 3.5
 ; Options, origin and the includes
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
@@ -45,6 +45,7 @@ START_PROG
          JMP PRE_START
          .INCLUDE #D:SYSTEM.M65
          .INCLUDE #D:UTILS.M65
+         .INCLUDE #D:KEYS.M65
 ;
 ; xl's shared code: RESET back into
 ; EDOS, AERA.FNT, the texts of CIO's

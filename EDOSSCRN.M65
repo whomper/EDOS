@@ -1,5 +1,5 @@
 ;
-; EDOSSCRN.M65 - EDOS 3.4
+; EDOSSCRN.M65 - EDOS 3.5
 ; Directory, status line, title bars
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
@@ -309,8 +309,8 @@ COMHLP
 ; CMDLO and CMDHI. The first NTITLE
 ; get a title bar (TITLE); RETURN
 ; (the EOL) draws the menu again,
-; ? shows the About lines (HELP:
-; GETCOM)
+; ? shows the About lines (HELP is
+; read in GETCOM)
 ;
 NTITLE   = 18
 NUMCMD   = 21

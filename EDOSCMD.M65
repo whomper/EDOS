@@ -1,5 +1,5 @@
 ;
-; EDOSCMD.M65 - EDOS 3.4
+; EDOSCMD.M65 - EDOS 3.5
 ; Nine commands, View to Copy Files
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
@@ -397,10 +397,6 @@ CAR.A
 ; D1 changed
 ;
 COMCPY
-         LDA DSKNUM         ; the default drive
-         @MKASCII
-         STA TMPDSK
-;
          JSR GETFILESPEC
          LDA FILE+1         ; keep the source drive
          STA NUM2CNV
@@ -486,6 +482,7 @@ FILCPY_0
          @DOCIO DSKID2,AXOPEN,FILE,AXOPNIN
 ; read 16K blocks into the banks
 FILCPY_1
+         JSR CHKESC         ; ESC: stop
          LDA #$00
          STA D0
          LDA #$40
@@ -542,6 +539,7 @@ FILCPY_4_5
          LDA #$01
          STA ACVMEM
 FILCPY_5
+         JSR CHKESC         ; ESC: stop
          LDX ACVMEM
          LDA BANKS,X
          STA PORTB

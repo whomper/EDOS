@@ -11,8 +11,10 @@ Sim keeps the calls EDOS's tests use:
     sim.cio_handler = lambda s, x: ...   # called on JSR CIOV: Y or (Y, A)
 
 Memory starts as EDOS's tests expect it: all zero but EDOS.COM (loaded
-without running its INIT) and MEMTOP $9C1F (40K, GRAPHICS 0), not the
-OS set-up a8sim's Machine makes for whole programs.
+without running its INIT), MEMTOP $9C1F (40K, GRAPHICS 0) and BRKKEY
+$80 (no BREAK), not the OS set-up a8sim's Machine makes for whole
+programs. CH stays 0: a key always seems to wait, and K: reads come
+from the test's script.
 """
 import os
 import sys
@@ -37,6 +39,7 @@ class Sim:
         self.mem.main[PORTB] = 0xFF
         m.load(os.path.join(build, 'EDOS.COM'), init=False)
         self.poke_word(0x2E5, 0x9C1F)                     # MEMTOP: 40K, GRAPHICS 0
+        self.poke(0x11, 0x80)                             # BRKKEY: no BREAK, as the OS
         self.sym = m.load_symbols(os.path.join(build, 'EDOS.SYM'))
         self.mpu = m.mpu
         m.unknown = 'run'          # other OS addresses run on, as before

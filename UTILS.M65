@@ -1,5 +1,5 @@
 ;
-; UTILS.M65 - EDOS 3.4
+; UTILS.M65 - EDOS 3.5
 ; Screen, input, SIO and CIO routines
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
@@ -640,71 +640,6 @@ ERRTXT_2
          CMP #EOL
          BNE ERRTXT_2
          RTS
-;
-; GETCHR - read a key (K:, caps lock
-; on) and show it. Esc or an error
-; (Break) go back to the menu
-; Exit: A = the key; MOD10 changed
-;
-GETCHR
-         @MKCAPS
-         LDX #KBDID
-         LDA #AXGETCHR
-         STA ICCOM,X
-         LDA #0
-         STA ICBLL,X
-         STA ICBLH,X
-         JSR CIOV
-         BMI GETCHRERR
-         CMP #$1B           ;Esc
-         BEQ GETCHRERR
-         STA MOD10
-         LDA #DEL
-         STA MOD10+1
-         @PRNTLN MOD10,DEL
-         LDA MOD10
-         RTS
-GETCHRERR
-         JMP NLMENU
-;
-; GETINP1 - read a line into INP1, at
-; most MAXBUF with EOL (GETTEXT)
-; Exit: as GETTEXT
-;
-GETINP1
-         LDX #MAXBUF
-         STX TXTLEN
-         LDA # <INP1
-         LDY # >INP1        ;into GETTEXT
-;
-; GETTEXT - read a line from E: into
-; A/Y (lo/hi), at most TXTLEN bytes
-; with EOL (longer: error 137). Break
-; goes to GETCOM, errors to DISKERR
-; Exit: Y = characters (no EOL); X = 0
-;
-GETTEXT
-         LDX #SCRID
-         STA ICBAL,X
-         LDA #AXGETREC
-         STA ICCOM,X
-         TYA
-         STA ICBAH,X
-         LDA TXTLEN
-         STA ICBLL,X
-         LDA #0
-         STA ICAX2,X
-         JSR CIOV
-         BMI GETTEXTERR
-         DEC ICBLL,X        ;less the EOL
-         LDY ICBLL,X
-         RTS
-GETTEXTERR
-         CPY #BREAK
-         BEQ HANDLEBREAK
-         JMP DISKERR
-HANDLEBREAK
-         JMP GETCOM
 ;
 ; PRNTDL - print text on E: up to a
 ; DEL, not printed (@PRNTLN with DEL);

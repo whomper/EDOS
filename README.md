@@ -17,11 +17,11 @@ running on top of MyDOS, SpartaDOS or DOS 2.5.
 - **Colour shows what's happening:** green while reading, red before anything is written or erased
 - **Sectors and memory too:** view any file, sector or memory address 128 bytes at a time; jump to
   an address or into the cartridge
-- **Small:** `EDOS.COM` is 7,214 bytes
+- **Small:** `EDOS.COM` is 7,297 bytes
 - **Assembles on the Atari:** the MAC/65 sources are on the disk; a PC cross assembler and tests are
   here too
 
-![The EDOS 3.4 main menu: drives 1 and 2, HIGH speed and 512K of extended memory on the status line, and the twenty commands](EDOS.png)
+![The EDOS 3.5 main menu: drives 1 and 2, HIGH speed and 512K of extended memory on the status line, and the twenty commands](EDOS.png)
 
 ## The commands
 
@@ -57,6 +57,11 @@ extended memory (**XMEM**).
 - **Write EDOS** (W): saves EDOS itself as `EDOS.COM` on the current drive.
 - **Quit to DOS** (Q).
 
+**ESC** (or **BREAK**) at any question or prompt is a "no": nothing is written, erased or changed,
+what you typed is thrown away and you are back at the menu. During Duplicate Disk and Copy Files,
+ESC stops the copy and EDOS says **Stopped**. Typed names and numbers take **DELETE BACK S**; the
+arrow keys do nothing there.
+
 File names follow the usual DOS rules: `D2:GAME.COM`, `2:GAME.COM`, `GAME.COM`, `D:GAME.COM`, `*.COM`,
 `G*.*` and other wildcards. A drive number in the name works on that drive without changing the
 current one; without one (`GAME.COM`, `D:GAME.COM`) the current drive is used.
@@ -70,7 +75,7 @@ Download from **[Releases](../../releases/latest)**:
 | `EDOS.ATR` | a bootable SpartaDOS 3.2 disk with EDOS, its font and the current MAC/65 sources |
 | `EDOS.COM` | the program: a binary load file for any DOS |
 | `AERA.FNT` | the AERA family's character set; keep it next to `EDOS.COM` |
-| `EDOSTEST.ATR` | a bootable test disk with the test files and `TESTPLAN.TXT`, 41 checks for a real Atari |
+| `EDOSTEST.ATR` | a bootable test disk with the test files and `TESTPLAN.TXT`, 46 checks for a real Atari |
 
 1. Boot `EDOS.ATR` and type `EDOS` at the SpartaDOS prompt.
 2. Or copy `EDOS.COM` and `AERA.FNT` to your own DOS disk and load `EDOS.COM` (**L** in the DOS 2.5
@@ -146,6 +151,7 @@ EDOSDISK.M65   Duplicate, Erase, Initialize, Protect, Unprotect, Rename, Write E
 EDOSSCRN.M65   the directory, the drive and status lines, the title bar, the command table
 EDOSVARS.M65   variables, the menu and the messages
 UTILS.M65      general routines, usable in other programs (list below)
+KEYS.M65       keys and typed lines: ESC and BREAK cancel
 MACROS.M65     MAC/65 macros (list below)
 SYSTEM.M65     EDOS's constants and zero page (the OS's names are xl's AXEQU.M65)
 tools/         disks, screenshot, the tests and their DOS and drive (on xl's a8sim)
@@ -178,7 +184,7 @@ read and write SpartaDOS, DOS 2 and MyDOS disk images.
 | `DOCIO`, `CLOSECHANNEL` | a CIO operation; close an IOCB |
 | `DISKERR`, `ERRTXT` | handle an error and show its message; the text for a CIO error code (xl's `AXERRT`) |
 | `INLINE` | points `RETADR` at the parameters after a `JSR` and returns past them |
-| `GETCHR`, `GETTEXT`, `GETINP1` | read a key; read a line of text; read a line into `INP1` |
+| `GETCHR`, `GETKEY`, `GETTEXT`, `GETINP1`, `CHKESC` (in `KEYS.M65`) | read a key and show it, or not; read a line, key by key; a line into `INP1`; ESC or BREAK in a disk job |
 | `GETADDR`, `INP2ADDR`, `A2HEX` | read an address; one to four hex digits in `INP1` to an address; one hex digit |
 | `PRNTLN`, `PRNTDL`, `PRNTNL` | print text up to and with EOL; up to DEL; go down one line |
 | `BIN2DEC` | `VALUE` to decimal text at A/Y: $FF → "255" |

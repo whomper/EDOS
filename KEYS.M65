@@ -1,0 +1,142 @@
+;
+; KEYS.M65 - EDOS 3.5
+; Keys and typed lines; ESC cancels
+; Copyright (C) 2026 AERA | Erez Yaary
+;
+; Included by EDOS.M65 after UTILS.M65
+;
+; GETCHR - read a key (GETKEY) and
+; show it
+; Exit: A = the key; MOD10 changed
+;
+GETCHR
+         JSR GETKEY
+;
+; ECHO - show the key in A on E:
+; Exit: A kept; X, Y kept; MOD10
+;
+ECHO
+         STA MOD10
+         LDA #DEL
+         STA MOD10+1
+         @PRNTLN MOD10,DEL
+         LDA MOD10
+         RTS
+;
+; GETKEY - read a key from K: (caps
+; lock on). ESC or BREAK cancel: back
+; to the menu, nothing done (the
+; family's 3.4)
+; Exit: A = the key; X, Y changed
+;
+GETKEY
+         @MKCAPS
+; Wait for a key, or BREAK: K:
+; doesn't look at BRKKEY while it
+; waits on every OS
+GETKEY_W
+         LDA BRKKEY
+         BEQ GETKEY_B       ; BREAK pressed
+         LDA CH
+         CMP #$FF           ; $FF: no key yet
+         BEQ GETKEY_W
+         LDX #KBDID
+         LDA #AXGETCHR
+         STA ICCOM,X
+         LDA #0
+         STA ICBLL,X
+         STA ICBLH,X
+         JSR CIOV
+         BMI GETKEY_1       ; BREAK, from K:
+         CMP #$1B           ; the ESC key
+         BNE GETKEY_2
+GETKEY_1
+         JMP NLMENU
+GETKEY_B
+         LDA #$80           ; BREAK seen
+         STA BRKKEY
+         BNE GETKEY_1       ; always
+GETKEY_2
+         RTS
+;
+; CHKESC - in a disk job: ESC or
+; BREAK stops it, says so and goes
+; back to the menu (GETCOM puts the
+; main bank back, closes the files)
+; Exit: RTS when neither; A changed
+;
+CHKESC
+         LDA BRKKEY
+         BEQ CHKESC_1       ; BREAK pressed
+         LDA CH
+         AND #$3F           ; ESC, with SHIFT or CTRL
+         CMP #$1C
+         BNE CHKESC_2
+CHKESC_1
+         LDA #$FF
+         STA CH             ; the key is used
+         LDA #$80
+         STA BRKKEY
+         @PRNTLN STPD,DEL
+         JMP NLMENU
+CHKESC_2
+         RTS
+;
+; GETINP1 - read a line into INP1, at
+; most MAXBUF with EOL (GETTEXT)
+; Exit: as GETTEXT
+;
+GETINP1
+         LDX #MAXBUF
+         STX TXTLEN
+         LDA # <INP1
+         LDY # >INP1        ;into GETTEXT
+;
+; GETTEXT - read a line into A/Y, at
+; most TXTLEN bytes with its EOL, key
+; by key (GETKEY), not by E:, whose
+; ESC types a control code: ESC or
+; BREAK cancel. BACK S deletes,
+; RETURN ends; control and inverse
+; keys are not taken
+; Exit: Y = characters (no EOL);
+; X = 0; TXTPOS, CIOPTR changed
+;
+GETTEXT
+         STA CIOPTR
+         STY CIOPTR+1
+         LDY #$00
+GETTEXT_1
+         STY TXTPOS
+         JSR GETKEY
+         LDY TXTPOS
+         CMP #EOL
+         BEQ GETTEXT_4
+         CMP #$7E           ; the BACK S key
+         BNE GETTEXT_2
+         TYA
+         BEQ GETTEXT_1      ; nothing to delete
+         DEY
+         LDA #$7E
+         BNE GETTEXT_3      ; always
+GETTEXT_2
+         CMP #$20
+         BCC GETTEXT_1      ; a control key
+         CMP #$7D
+         BCS GETTEXT_1      ; clear, tab, inverse
+         STA (CIOPTR),Y
+         INY
+         CPY TXTLEN
+         BCC GETTEXT_3
+         DEY                ; full: leave room for EOL
+         BCS GETTEXT_1      ; always
+GETTEXT_3
+         JSR ECHO           ; Y kept
+         JMP GETTEXT_1
+GETTEXT_4
+         STA (CIOPTR),Y     ; the EOL
+         JSR ECHO           ; a new line
+         LDX #$00
+         RTS
+;
+KEYSEND                     ; the end (tools/difftest.py)

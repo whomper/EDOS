@@ -35,6 +35,10 @@ def atascii(s):
     return bytes(ord(c) for c in s)
 
 
+BRK = '\uffff'            # in keys or lines: the BREAK key (K: gives status 128)
+BREAK = -1
+
+
 class World:
     """Fake DOS + keyboard + editor + disk drive behind CIOV/SIOV."""
 
@@ -44,6 +48,7 @@ class World:
         self.keys = list(keys)
         self.dfile = set()                               # IOCBs >0 with a D: file open
         self.lines = list(lines)
+        self.line = []                                   # the rest of the line being typed
         self.sym = symbolize
         self.open = {}
         self.screen = bytearray()
@@ -53,6 +58,17 @@ class World:
         self.dvstat = 0                                  # drive status byte 0
 
     # ---------------------------------------------------------------- CIO
+    def in_gettext(self):
+        """is this K: read for GETTEXT, a typed line? Since 3.5 GETTEXT
+        reads key by key: JSR GETKEY, which does JSR CIOV, so GETKEY's
+        return address, two up the stack, is inside GETTEXT"""
+        sim, sym = self.sim, self.sim.sym
+        if 'KEYSEND' not in sym:                         # before 3.5: lines from E:
+            return False
+        sp = sim.mpu.sp
+        w = sim.mem[0x100 + ((sp + 3) & 0xFF)] | sim.mem[0x100 + ((sp + 4) & 0xFF)] << 8
+        return sym['GETTEXT'] <= w + 1 < sym['KEYSEND']
+
     def field(self, x, off, n=1):
         m = self.sim.mem
         return m[IOCB + x + off] if n == 1 else m[IOCB + x + off] | m[IOCB + x + off + 1] << 8
@@ -100,9 +116,19 @@ class World:
             self.dfile.add(x)                            # a file on IOCB #1 (Load Binary)
         if x == 0x10 and x not in self.dfile:
             if cmd == 7 and blen == 0:
-                if not self.keys:
-                    return (1, 0x1B)                     # Esc: abort to menu
-                return (1, ord(self.keys.pop(0)))
+                if self.in_gettext():                    # a typed line, key by key
+                    if not self.line:
+                        if not self.lines:
+                            raise Done("ran out of scripted input lines")
+                        self.line = [BREAK if c == BRK else atascii(c)[0]
+                                     for c in self.lines.pop(0)] + [EOL]
+                    c = self.line.pop(0)
+                else:
+                    if not self.keys:
+                        return (1, 0x1B)                 # Esc: abort to menu
+                    k = self.keys.pop(0)
+                    c = BREAK if k == BRK else ord(k)
+                return (128, 0) if c == BREAK else (1, c)
             return 1
         if cmd == 12:
             self.dfile.discard(x)

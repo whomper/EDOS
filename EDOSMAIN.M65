@@ -1,5 +1,5 @@
 ;
-; EDOSMAIN.M65 - EDOS 3.4
+; EDOSMAIN.M65 - EDOS 3.5
 ; Start-up, the menu and Load Binary
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
@@ -225,8 +225,7 @@ COMLOA_3
 COMLOA_4
          LDA #$00           ; no run address yet
          STA RUNAD
-         STA RUNAD+1
-         @CLOSEIO DSKID2
+         STA RUNAD+1        ; (GETCOM closed IOCB 3)
          JMP LDR
 ;
 ; LDRBAK - back from the loader, with
