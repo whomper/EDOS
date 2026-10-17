@@ -1,6 +1,6 @@
 10 ;
 20 ; SYSTEM.M65 - V. 3.2
-30 ;
+30 ; Copyright (C) 2026 AERA | Erez Yaary
 40 ; CONSTANTS
 50 ;
 60 RTN   =   $7B     ;RTN KEY

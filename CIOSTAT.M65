@@ -1,6 +1,6 @@
 10 ;
-20 ; CIO STATUS
-30 ;
+20 ; CIOSTAT.M65 - V. 3.2 | CIO STATUS TEXTS
+30 ; Copyright (C) 2026 AERA | Erez Yaary
 35 CIO_MSG ;CODE, TEXT, EOL ... $FF
 40 CS.128 .BYTE 128,"Key Abort",EOL
 50 CS.129 .BYTE 129,"IOCB already open",EOL
