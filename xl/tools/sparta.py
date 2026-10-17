@@ -118,7 +118,7 @@ class Disk:
     def chain(self, first_map, length):
         """(map sectors, data sectors) needed to hold length bytes"""
         maps, data, m, need = [], [], first_map, (length + self.ss - 1) // self.ss
-        while m and len(data) < need:
+        while m and (len(data) < need or not maps):    # an empty file has its map too
             if m in maps:
                 raise SpartaError(f"sector map loop at {m}")
             maps.append(m)
