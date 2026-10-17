@@ -164,7 +164,7 @@ class TestMenu(unittest.TestCase):
     def test_menu_screen(self):
         m = Machine()
         m.run('GOMENU')
-        for text in ('EDOS 3.1', 'Dir D1-D8', 'Write EDOS', 'Copy Files', 'Duplicate Disk',
+        for text in ('EDOS 3.2', 'Dir D1-D8', 'Write EDOS', 'Copy Files', 'Duplicate Disk',
                      'Quit to DOS', 'XMEM:'):
             self.assertIn(text, m.screen)
 
@@ -545,7 +545,7 @@ class TestStartAndReset(unittest.TestCase):
         self.assertEqual(m.hits.get(0x9000), 1)
         m.run('START', watch=[0x9000])                # RESET: OS calls DOSINI
         self.assertEqual(m.hits.get(0x9000), 2, "DOS reset handler not chained")
-        self.assertIn('EDOS 3.1', m.screen)
+        self.assertIn('EDOS 3.2', m.screen)
 
     def test_rerun_keeps_original_dosini(self):
         m = Machine()
@@ -595,7 +595,7 @@ class TestFont(unittest.TestCase):
         self.assertEqual(m.sim.peek(0x2F4), 0)
         self.assertEqual(m.sim.peek(m['FONTPG']), 0)
         self.assertNotIn('Error', m.screen)
-        self.assertIn('EDOS 3.1', m.screen)
+        self.assertIn('EDOS 3.2', m.screen)
 
     def test_short_file_is_not_used(self):
         m = self.start({1: {'EDOS.FNT': self.font[:500]}})

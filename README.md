@@ -21,7 +21,7 @@ running on top of MyDOS, SpartaDOS or DOS 2.5.
 - **Assembles on the Atari:** the MAC/65 sources are on the disk; a PC cross assembler and tests are
   here too
 
-![The EDOS 3.1 main menu: drives 1 and 2, HIGH speed and 512K of extended memory on the status line, and the twenty commands](EDOS.png)
+![The EDOS 3.2 main menu: drives 1 and 2, HIGH speed and 512K of extended memory on the status line, and the twenty commands](EDOS.png)
 
 ## The commands
 
