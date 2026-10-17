@@ -128,7 +128,8 @@ class TestMenu(unittest.TestCase):
     KEYS = {'F': 'COMDIR', 'T': 'COMCAR', 'C': 'COMCPY', 'D': 'COMDUP', 'E': 'COMERA',
             'I': 'COMINI', 'V': 'COMVIE', 'A': 'COMANA', 'P': 'COMPRC', 'U': 'COMUNP',
             'R': 'COMREN', 'S': 'COMSAV', 'L': 'COMLOA', 'G': 'COMGOT', 'N': 'COMNEW',
-            'M': 'COMMEM', 'B': 'COMCMP', 'W': 'COMWRT', 'Q': 'COMQIT', '\x9b': 'GOMENU'}
+            'M': 'COMMEM', 'B': 'COMCMP', 'W': 'COMWRT', 'Q': 'COMQIT', '\x9b': 'GOMENU',
+            '?': 'COMHLP'}
 
     def test_every_menu_key_dispatches(self):
         for key, target in self.KEYS.items():
@@ -165,9 +166,19 @@ class TestMenu(unittest.TestCase):
     def test_menu_screen(self):
         m = Machine()
         m.run('GOMENU')
-        for text in ('EDOS 3.2', 'Dir D1-D8', 'Write EDOS', 'Copy Files', 'Duplicate Disk',
+        for text in ('EDOS 3.3', 'Dir D1-D8', 'Write EDOS', 'Copy Files', 'Duplicate Disk',
                      'Quit to DOS', 'XMEM:'):
             self.assertIn(text, m.screen)
+        self.assertIn('(C) AERA 2026', m.screen)
+
+    def test_about(self):
+        # ? (HELP) at the menu: the About lines (guidelines 1.4)
+        m = Machine(keys='?')
+        m.run('GETCOM', stop=['NLMENU'])
+        self.assertIn('Select Item (RETURN menu, ? About): ?', m.screen)
+        self.assertIn('EDOS 3.3\nDisk utility for Atari 8-bit DOS\n'
+                      'Copyright (C) 2026 AERA | Erez Yaary\nGPL-2.0-or-later\n'
+                      'github.com/whomper/EDOS\n', m.screen)
 
 
 class TestDirectory(unittest.TestCase):
@@ -650,7 +661,7 @@ class TestStartAndReset(unittest.TestCase):
         self.assertIsNone(m.hits.get(0x9000))        # DOS has set up already
         m.run('AXINIT', watch=[0x9000])               # RESET: OS calls DOSINI
         self.assertEqual(m.hits.get(0x9000), 1, "DOS reset handler not chained")
-        self.assertIn('EDOS 3.2', m.screen)
+        self.assertIn('EDOS 3.3', m.screen)
 
     def test_rerun_keeps_original_dosini(self):
         m = Machine()
@@ -700,7 +711,7 @@ class TestFont(unittest.TestCase):
         self.assertEqual(m.sim.peek(0x2F4), 0)
         self.assertEqual(m.sim.peek(m['FONTPG']), 0)
         self.assertNotIn('Error', m.screen)
-        self.assertIn('EDOS 3.2', m.screen)
+        self.assertIn('EDOS 3.3', m.screen)
 
     def test_short_file_is_not_used(self):
         m = self.start({1: {'AERA.FNT': self.font[:500]}})

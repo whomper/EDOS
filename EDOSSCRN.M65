@@ -1,5 +1,5 @@
 ;
-; EDOSSCRN.M65 - EDOS 3.2
+; EDOSSCRN.M65 - EDOS 3.3
 ; Directory, status line, title bars
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
@@ -295,23 +295,36 @@ TITLE_6
          LDX D2
          RTS
 ;
+; COMHLP - ? (the HELP key, which K:
+; doesn't return): the About lines
+; under the menu
+; Exit: JMP NLMENU
+;
+COMHLP
+         JSR PRNTNL
+         @PRNTLN ABOUT,DEL
+         JMP NLMENU
+;
 ; The commands in menu order: a key
 ; each in CMDKEY, the address in
 ; CMDLO and CMDHI. The first NTITLE
 ; get a title bar (TITLE); RETURN
-; (the EOL) draws the menu again
+; (the EOL) draws the menu again,
+; ? shows the About lines
 ;
 NTITLE   = 18
-NUMCMD   = 20
-CMDKEY   .BYTE "WFPTUCRDSELIGVNABMQ",EOL
+NUMCMD   = 21
+CMDKEY   .BYTE "WFPTUCRDSELIGVNABMQ",EOL,"?"
 CMDLO    .BYTE <COMWRT,<COMDIR,<COMPRC,<COMCAR,<COMUNP
          .BYTE <COMCPY,<COMREN,<COMDUP,<COMSAV,<COMERA
          .BYTE <COMLOA,<COMINI,<COMGOT,<COMVIE,<COMNEW
          .BYTE <COMANA,<COMCMP,<COMMEM,<COMQIT,<GOMENU
+         .BYTE <COMHLP
 CMDHI    .BYTE >COMWRT,>COMDIR,>COMPRC,>COMCAR,>COMUNP
          .BYTE >COMCPY,>COMREN,>COMDUP,>COMSAV,>COMERA
          .BYTE >COMLOA,>COMINI,>COMGOT,>COMVIE,>COMNEW
          .BYTE >COMANA,>COMCMP,>COMMEM,>COMQIT,>GOMENU
+         .BYTE >COMHLP
          .IF CMDLO-CMDKEY-NUMCMD
          JMP CMDKEY_NEEDS_NUMCMD_KEYS ; undefined: stops assembly
          .ENDIF

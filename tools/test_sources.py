@@ -50,6 +50,13 @@ class TestSources(unittest.TestCase):
         for name in SOURCES:
             atari_src.to_disk(text(name), name, 'EDOS', version)
 
+    def test_about_shows_the_version(self):
+        # the About lines repeat TTL2's version, as the headers do
+        import subprocess
+        version = subprocess.run([sys.executable, os.path.join(HERE, 'version.py'), '--source'],
+                                 capture_output=True, text=True, check=True).stdout.strip()
+        self.assertIn(f'ABOUT    .BYTE "EDOS {version}",EOL', text('EDOSVARS.M65'))
+
     def test_main_file_is_a_short_driver(self):
         # On the Atari EDOS.M65 is LOADed and assembled with ASM ,,#D:EDOS.COM.
         # ASM #D:EDOS.M65 fails on SpartaDOS: MAC/65 1.01 rewinds the file for

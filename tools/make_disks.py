@@ -47,7 +47,7 @@ def symbols():
 
 def plan(sym, nfiles):
     size = sym['END_PROG'] - sym['START_PROG'] + 12
-    text = f"""EDOS 3.2 TEST PLAN
+    text = f"""EDOS 3.3 TEST PLAN
 ==================
 D1: this disk (boot it, then EDOS).
 D2: a blank formatted disk.
@@ -56,7 +56,7 @@ Expect: what you should see.
 
 -- MENU / DIR --
 1 Boot, run EDOS. Expect title
-  EDOS 3.2, D:12 (or your drives),
+  EDOS 3.3, D:12 (or your drives),
   XMEM size, full menu.
 2 F: inverse title FILES ON DISK.
   RETURN: D1 listing,
@@ -157,6 +157,24 @@ Expect: what you should see.
 35 L P6.COM, Y. Expect Program
   loads over $0600-$06FF and the
   menu.
+
+-- NEW IN 3.3 --
+36 ? at the menu: the About lines,
+  EDOS 3.3 ... github.com/whomper
+  /EDOS. Title: (C) AERA 2026.
+37 F RETURN, then R: the prompt
+  is Old File: (was ld File:).
+38 F D:*.COM: D1's .COM files
+  (was DD:*.COM).
+39 B TEXT.TXT TEXTL.TXT: Files
+  are different (was the same).
+40 C K16.DAT 2 (16K: 1 bank). B
+  K16.DAT D2:K16.DAT: Files are
+  the same (was 1 byte longer).
+41 N 2, I 2 (Enhanced), Y. F D2::
+  1010 FREE SECTORS. A 1000:
+  Sector: 1000. N 1, C TEXT.TXT 2:
+  copies (banks were lost).
 """
     return text.replace('\n', '\x9b').encode('latin1')
 
@@ -199,6 +217,7 @@ def main():
             ('PROG.COM', PROG), ('PROG2.COM', PROG), ('NORUN.COM', NORUN),
             ('TEXT.TXT', TEXT), ('BIG.DAT', BIG), ('RUNME.COM', RUNME),
             ('OVER.COM', OVER), ('P6.COM', P6),
+            ('TEXTL.TXT', TEXT + b'MORE'), ('K16.DAT', bytes(range(256)) * 64),
             ('TESTPLAN.TXT', b'')]
     test[-1] = ('TESTPLAN.TXT', plan(symbols(), len(test)))
     make(os.path.join(BUILD, 'EDOSTEST.ATR'), 'EDOSTEST', test, DOS)
