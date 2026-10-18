@@ -11,13 +11,14 @@ running on top of MyDOS, SpartaDOS or DOS 2.5.
   binary load and save, compare. Each is one key from the menu, with no external utilities to find
 - **The same on any DOS:** EDOS works through CIO and SIO, not a DOS's own calls, so it looks and
   behaves alike on MyDOS, SpartaDOS and DOS 2.5
-- **Big copies in one pass:** Copy Files and Duplicate Disk use the extended memory of an XL or XE
+- **Big copies in one pass:** Copy Files and Duplicate Disk go through the extended memory of an
+  expanded XL or XE
 - **Fast disk copies:** when a drive has its own fast SIO code, Duplicate Disk reads it from the drive
   and uses it, whatever DOS you run
 - **Colour shows what's happening:** green while reading, red before anything is written or erased
 - **Sectors and memory too:** view any file, sector or memory address 128 bytes at a time; jump to
   an address or into the cartridge
-- **Small:** `EDOS.COM` is 7,305 bytes
+- **Small:** `EDOS.COM` is about 7.3K
 - **Assembles on the Atari:** the MAC/65 sources are on the disk; a PC cross assembler and tests are
   here too
 
@@ -26,35 +27,41 @@ running on top of MyDOS, SpartaDOS or DOS 2.5.
 ## The commands
 
 Press the key in inverse on the menu; **RETURN** shows the menu again, and **HELP** (or **?**) shows
-the About lines: the version, the copyright and licence, and where EDOS lives. The status line at the top shows
-the drives connected (the current one in inverse), **HIGH** when that drive runs at high speed, and the
-extended memory (**XMEM**).
+the About lines: the version, the copyright and licence, and where EDOS lives. The status line at
+the top shows the drives connected (the current one in inverse), **HIGH** when that drive runs at
+high speed (**NORM** when not), and the extended memory (**XMEM**).
 
 - **Dir D1-D8** (1 to 8) and **Files on Disk** (F): a two-column directory with the number of files
   and the free space. 1 to 8 list that drive whichever is current.
 - **Copy Files** (C): copies one or more files from one disk to another. Name the files, then the
   target drive, or Y for the same drive and swap disks when asked. The copy goes through extended
-  memory, so large files go in one pass.
-- **Duplicate Disk** (D): copies a whole disk, sector by sector, through extended memory. Pick the
-  source drive; once it is read, give the target drive or Y for the same one. EDOS checks whether the
-  target disk is formatted and has the source's density, and formats it if it needs to.
+  memory, so large files go in one pass. Without extended memory, or for a file longer than it
+  (EDOS uses up to 256K), EDOS says **Not enough memory!**
+- **Duplicate Disk** (D): copies a whole disk, sector by sector, through extended memory. It reads
+  the current drive (**N** picks it): press Y to start. Once it is read, give the target drive, or
+  put the target disk in the same drive and press Y. EDOS checks whether the target disk is
+  formatted and has the source's density, and formats it if it needs to. The whole disk must fit in
+  extended memory: 96K for single density, 144K for enhanced, 192K for double, so a 130XE's own 64K
+  is not enough.
 - **Erase Files** (E), **Protect Files** (P), **Unprotect Files** (U), **Rename Files** (R): one or
   more files at a time, with wildcards.
 - **Initialize Disk** (I): formats a disk in single, enhanced or double density.
 - **View File** (V), **Analyze Sector** (A), **Memory Status** (M): one viewer, 128 bytes a screen.
   View File starts at a position you give in hex, Analyze Sector at a sector number in decimal, and
-  Memory Status shows `MEMLO` and `MEMTOP`, then starts at a hex address. Sectors and memory go
-  forwards (+) and backwards (-).
-- **Load Binary** (L): asks whether to run the program, then loads it and runs it if you said so.
-  A small loader in page 6 ($0600-$06FF) does the reading, so a program may load over EDOS
-  itself. If it does, EDOS hands RESET back to DOS and you end up in DOS; otherwise you come
-  back to the menu. Loading stops before anything is written to page 6.
+  Memory Status at a hex address, under `MEMLO` and `MEMTOP` (**LOW** and **HIGH**). Sectors and
+  memory go forwards (+) and backwards (-).
+- **Load Binary** (L): asks whether to run the program, then loads it and runs it if you said so. A
+  small loader in page 6 ($0600-$06FF) does the reading, so a program may load over EDOS itself, its
+  screen or its font. If it does, EDOS hands RESET back to DOS and you end up in DOS; otherwise you
+  come back to the menu. Loading stops before anything is written to page 6.
 - **Save Binary** (S): saves a memory range, with a run address.
-- **Byte Compare** (B): tells you whether two files are the same: the same length and the same bytes.
+- **Byte Compare** (B): tells you whether two files are the same: the same length and the same
+  bytes.
 - **Go To Address** (G): jumps to an address of one to four hex digits. **To Cartridge** (T): starts
   the cartridge, when there is one.
 - **New Drive** (N): sets the current drive. Every command uses it unless you name another.
-- **Write EDOS** (W): saves EDOS itself as `EDOS.COM` on the current drive.
+- **Write EDOS** (W): saves EDOS itself as `EDOS.COM` on the current drive: the program as it is in
+  memory, without the check of `MEMLO` and `MEMTOP` that the release's file starts with.
 - **Quit to DOS** (Q).
 
 **ESC** (or **BREAK**) at any question or prompt is a "no": nothing is written, erased or changed,
@@ -62,9 +69,9 @@ what you typed is thrown away and you are back at the menu. During Duplicate Dis
 ESC stops the copy and EDOS says **Stopped**. Typed names and numbers take **DELETE BACK S**; the
 arrow keys do nothing there.
 
-File names follow the usual DOS rules: `D2:GAME.COM`, `2:GAME.COM`, `GAME.COM`, `D:GAME.COM`, `*.COM`,
-`G*.*` and other wildcards. A drive number in the name works on that drive without changing the
-current one; without one (`GAME.COM`, `D:GAME.COM`) the current drive is used.
+File names follow the usual DOS rules: `D2:GAME.COM`, `2:GAME.COM`, `GAME.COM`, `D:GAME.COM`,
+`*.COM`, `G*.*` and other wildcards. A drive number in the name works on that drive without changing
+the current one; without one (`GAME.COM`, `D:GAME.COM`) the current drive is used.
 
 ## Getting started
 
@@ -79,20 +86,26 @@ Download from **[Releases](../../releases/latest)**:
 
 1. Boot `EDOS.ATR` and type `EDOS` at the SpartaDOS prompt.
 2. Or copy `EDOS.COM` and `AERA.FNT` to your own DOS disk and load `EDOS.COM` (**L** in the DOS 2.5
-   or MyDOS menu, `EDOS` at the SpartaDOS prompt). On DOS 2.5 and MyDOS, EDOS can also take the place
-   of `DUP.SYS`.
+   or MyDOS menu, `EDOS` at the SpartaDOS prompt). On DOS 2.5 and MyDOS, EDOS can also take the
+   place of `DUP.SYS`: copy `EDOS.COM` to the DOS disk as `DUP.SYS`.
 3. Press **N** to pick your drive, then any command's key.
 
-EDOS loads `AERA.FNT`, the font every AERA program uses, from the current drive (and, on SpartaDOS,
-folder) when it starts. Without it, or without room for it above $8000, EDOS keeps the Atari's own
-font. Any 1,024-byte Atari character set saved as `AERA.FNT` works.
+**To update**, take the new release's `EDOS.COM` and `AERA.FNT` in place of the old ones, or its
+`EDOS.ATR`. EDOS has no settings to keep. A release's `EDOS.ATR` and `EDOSTEST.ATR` may be renewed
+after it is out, with newer sources; its `EDOS.COM` stays the same.
 
-**Needs:** an Atari 400, 800, XL or XE with 48K and a disk drive, and MyDOS, SpartaDOS 3.x or DOS 2.5.
-Copy Files and Duplicate Disk use 130XE-style extended memory when there is some. EDOS runs at
-$1E00-$3FFF. It also needs free memory up to $8000: during copies the extended memory banks appear
-at $4000-$7FFF, so the screen must be above them, and Byte Compare reads the files into $4000-$50FF.
-When DOS ends above $1E00 (`MEMLO`) or memory ends below $8000 (`MEMTOP`), EDOS says so as it loads
-and goes back to DOS before anything is overwritten. Any 48K Atari has room.
+EDOS loads `AERA.FNT`, the font every AERA program uses, as `D:AERA.FNT` when it starts: from D1 on
+DOS 2.5, from the current drive and folder on SpartaDOS. Without it, or without room for it above
+$8000, EDOS keeps the Atari's own font. Any 1,024-byte Atari character set saved as `AERA.FNT`
+works.
+
+**Needs:** an Atari 400, 800, XL or XE with 48K and a disk drive, and MyDOS, SpartaDOS 3.x or DOS
+2.5. Copy Files and Duplicate Disk need 130XE-style extended memory (above); the other commands
+don't. EDOS runs at $1E00-$3FFF. It also needs free memory up to $8000: during copies the extended
+memory banks appear at $4000-$7FFF, so the screen must be above them, and Byte Compare reads the
+files into $4000-$50FF. When DOS ends above $1E00 (`MEMLO`) or memory ends below $8000 (`MEMTOP`),
+EDOS says so as it loads and goes back to DOS before anything is overwritten. Any 48K Atari has
+room.
 
 ## Building
 
@@ -148,7 +161,8 @@ EDOS.M65       the main file, the one MAC/65 loads: options, origin and the incl
 EDOSMAIN.M65   start-up, the menu and Load Binary (with its page-6 loader)
 EDOSCMD.M65    View, Analyze, Compare, Memory, New, Quit, Dir, Cartridge, Copy Files
 EDOSDISK.M65   Duplicate, Erase, Initialize, Protect, Unprotect, Rename, Write EDOS, Save, Go To
-EDOSSCRN.M65   the directory, the drive and status lines, the title bar, the command table
+EDOSSCRN.M65   the directory, the drive and status lines, the title bar, the About lines, the
+               command table
 EDOSVARS.M65   variables, the menu and the messages
 UTILS.M65      general routines, usable in other programs (list below)
 KEYS.M65       keys and typed lines: ESC and BREAK cancel
