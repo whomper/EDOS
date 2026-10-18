@@ -15,3 +15,14 @@
   `main`, CI replaces the latest release's `EDOS.ATR` and `EDOSTEST.ATR` when
   the built `EDOS.COM` is byte for byte the release's, so the disk carries the
   current sources. A changed program waits for the next release.
+- **Talking with Erez** (his rule, 18 Oct 2026): no progress or in-between
+  messages. Write to him only when he has to decide something, with a short
+  context. For analysis: the information, your assessment, and what he should
+  do.
+- **Pushing** (Erez, 18 Oct 2026): work is committed and pushed to `main`
+  without asking first. Releases still need his yes.
+- **Text-only changes** (Erez, 18 Oct 2026): a change to the docs alone
+  (README, `docs/`, CLAUDE.md) is pushed to `main` once it reads right,
+  without the full test runs, and doesn't wait behind code still under test.
+  A docs-only release goes out the same way with Erez's yes; the Release
+  workflow's own checks still run.
