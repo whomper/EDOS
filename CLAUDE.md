@@ -26,3 +26,7 @@
   without the full test runs, and doesn't wait behind code still under test.
   A docs-only release goes out the same way with Erez's yes; the Release
   workflow's own checks still run.
+- **Disk access** (Erez, 18 Oct 2026): Copy Files and Duplicate Disk stay as
+  they are, an exception to XL guidelines 5.5. Copy reads into the extended
+  banks, 16K a GET and PUT, and needs extended memory; it doesn't use main
+  memory. Duplicate reads the whole disk by SIO, then writes it.
