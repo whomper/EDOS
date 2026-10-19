@@ -188,7 +188,7 @@ class TestSourceDisk(unittest.TestCase):
         src = os.path.join(self.tmp, 'MAIN.M65')
         with open(src, 'w') as f:
             f.write(SAMPLE)
-        prg = os.path.join(self.tmp, 'TEST.PRG')
+        prg = os.path.join(self.tmp, 'TEST.COM')
         with open(prg, 'wb') as f:
             f.write(b'\xff\xff\x00\x20\x00\x20\x60')
         atr = os.path.join(self.tmp, 'TEST.ATR')
@@ -198,8 +198,8 @@ class TestSourceDisk(unittest.TestCase):
         problems, lost = sparta.Disk(atr).fsck()
         self.assertFalse(problems or lost)
         files = atari_src.files_of(atr)
-        self.assertEqual(sorted(files), ['MAIN.M65', 'TEST.PRG', 'X32G.DOS'])
-        self.assertEqual(files['TEST.PRG'], open(prg, 'rb').read())
+        self.assertEqual(sorted(files), ['MAIN.M65', 'TEST.COM', 'X32G.DOS'])
+        self.assertEqual(files['TEST.COM'], open(prg, 'rb').read())
         back = os.path.join(self.tmp, 'back')
         os.mkdir(back)
         shutil.copy(src, back)
@@ -306,6 +306,17 @@ class TestFont(unittest.TestCase):
         with open(font.AERA, 'rb') as f:
             self.assertEqual(f.read(), font.aera_font())
         self.assertEqual(font.ICONS, tuple(font.internal(a) for a in (0x00, 0x06, 0x10, 0x7B)))
+
+
+class TestGetRelease(unittest.TestCase):
+    def test_same_as_common(self):
+        """xl/tools/getrelease.py is common/tools/getrelease.py, byte for
+        byte (in AERA-Atari, where both are)"""
+        common = os.path.join(os.path.dirname(XL), 'common', 'tools', 'getrelease.py')
+        if not os.path.exists(common):
+            self.skipTest('no common/ here')
+        with open(common, 'rb') as a, open(os.path.join(XL, 'tools', 'getrelease.py'), 'rb') as b:
+            self.assertEqual(a.read(), b.read())
 
 
 if __name__ == '__main__':
