@@ -47,7 +47,7 @@ def symbols():
 
 def plan(sym, nfiles):
     size = sym['END_PROG'] - sym['START_PROG'] + 12
-    text = f"""EDOS 3.6 TEST PLAN
+    text = f"""EDOS 3.7 TEST PLAN
 ==================
 D1: this disk (boot it, then EDOS).
 D2: a blank formatted disk.
@@ -56,7 +56,7 @@ Expect: what you should see.
 
 -- MENU / DIR --
 1 Boot, run EDOS. Expect title
-  EDOS 3.6, D:12 (or your drives),
+  EDOS 3.7, D:12 (or your drives),
   XMEM size, full menu.
 2 F: inverse title FILES ON DISK.
   RETURN: D1 listing,
@@ -160,7 +160,7 @@ Expect: what you should see.
 
 -- NEW IN 3.3 AND 3.4 --
 36 HELP at the menu: the About
-  lines, EDOS 3.6 ... github.com/
+  lines, EDOS 3.7 ... github.com/
   whomper/EDOS. ? does the same.
   Title: (C) AERA 2026.
 37 F RETURN, then R: the prompt
