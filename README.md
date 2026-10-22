@@ -22,7 +22,7 @@ running on top of MyDOS, SpartaDOS or DOS 2.5.
 - **Assembles on the Atari:** the MAC/65 sources are on the disk; a PC cross assembler and tests are
   here too
 
-![The EDOS 3.6 main menu: drives 1 and 2, HIGH speed and 512K of extended memory on the status line, and the twenty commands](EDOS.png)
+![The EDOS 3.7 main menu: drives 1 and 2, HIGH speed and 512K of extended memory on the status line, and the twenty commands](EDOS.png)
 
 ## The commands
 
@@ -67,7 +67,8 @@ high speed (**NORM** when not), and the extended memory (**XMEM**).
 **ESC** (or **BREAK**) at any question or prompt is a "no": nothing is written, erased or changed,
 what you typed is thrown away and you are back at the menu. During Duplicate Disk and Copy Files,
 ESC stops the copy and EDOS says **Stopped**. Typed names and numbers take **DELETE BACK S**; the
-arrow keys do nothing there.
+arrow keys do nothing there. EDOS turns caps lock on before every key it reads, so names and hex
+digits come in capitals.
 
 File names follow the usual DOS rules: `D2:GAME.COM`, `2:GAME.COM`, `GAME.COM`, `D:GAME.COM`,
 `*.COM`, `G*.*` and other wildcards. A drive number in the name works on that drive without changing
