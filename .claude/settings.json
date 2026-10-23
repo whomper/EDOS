@@ -1,14 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git push *)"
-    ]
-  }
-}
-
-{
-  "permissions": {
-    "allow": [
       "Bash(git push *)",
       "Bash(git commit *)"
     ]
