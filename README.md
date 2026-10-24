@@ -1,6 +1,6 @@
 # EDOS
 
-<img src="https://raw.githubusercontent.com/whomper/AERA-Atari/main/brand/aera-star.jpg" width="96" align="right" alt="The AERA star, a four-point star in brushed metal, standing in for an icon">
+<img src="docs/icon.png" width="96" align="right" alt="EDOS icon: a screen with EDOS's menu and a 5.25-inch disk">
 
 A menu-driven Disk Utility Package for Atari 8-bit computers, written in 6502 assembly with MAC/65,
 running on top of MyDOS, SpartaDOS or DOS 2.5.
