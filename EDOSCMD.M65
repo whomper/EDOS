@@ -1,5 +1,5 @@
 ;
-; EDOSCMD.M65 - EDOS 3.7
+; EDOSCMD.M65 - EDOS 3.8
 ; Nine commands, View to Copy Files
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
@@ -144,17 +144,15 @@ COMANA_5
          JMP COMANA_0
 ;
 ; COMCMP - Byte Compare: ask for two
-; files, read both $FF bytes at a
-; time (to M4000, M5000), compare.
-; They are the same when each read
-; gets as many bytes, the bytes match
-; and both end in the same read
-; Exit: JMP GETCOM; ABORT, D0, D1,
-; BUF, FILE changed
+; files, read both 4K at a time (to
+; M4000, M6000), compare. They are
+; the same when each read gets as
+; many bytes and the bytes match,
+; until both reads get none
+; Exit: JMP GETCOM; D0, D1, INDPTR,
+; FILPOS, BUF, FILE changed
 ;
 COMCMP
-         LDA #$00
-         STA ABORT          ; CHKEOF counts EOFs
 ; the first file spec into BUF
          @PRNTLN BCMF,DEL
          JSR GETSPEC
@@ -165,52 +163,54 @@ COMCMP
 ; open both
          @DOCIO DSKID1,AXOPEN,BUF,AXOPNIN
          @DOCIO DSKID2,AXOPEN,FILE,AXOPNIN
-; read $FF bytes of each
+; read 4K of each
 COMCMP_1
          LDA #$00
-         STA D1
-         LDA #$FF
          STA D0
+         LDA #$10
+         STA D1
          @DOCIO DSKID1,AXGETCHR,M4000,AXOPNIN,D0,D1
-         JSR CHKEOF
-         @DOCIO DSKID2,AXGETCHR,M5000,AXOPNIN,D0,D1
-         JSR CHKEOF
-; as many bytes from each?
-         LDA ICBLL+DSKID1
-         CMP ICBLL+DSKID2
+         @DOCIO DSKID2,AXGETCHR,M6000,AXOPNIN,D0,D1
+; as many bytes from each? Into D0/D1
+         LDX #$01
+COMCMP_4
+         LDA ICBLL+DSKID1,X
+         CMP ICBLL+DSKID2,X
          BNE COMCMP_3       ; no: different
-         TAY                ; the bytes to compare
-         BEQ COMCMP_5       ; none
-         LDX #$00
+         STA D0,X
+         DEX
+         BPL COMCMP_4
+         ORA D1             ; A = D0
+         BEQ COMCMP_5       ; none: the end
+; compare from the end: the pointers
+; at the last page, Y its bytes
+         INX                ; 0
+         STX INDPTR
+         STX FILPOS
+         LDA D1             ; the pages, to 16
+         ORA # >M4000
+         STA INDPTR+1
+         ORA # >M6000       ; $60 + the pages
+         STA FILPOS+1
+         LDY D0
 COMCMP_2
-         LDA M4000,X
-         CMP M5000,X
-         BNE COMCMP_3
-         INX
+         TYA
+         BNE COMCMP_6       ; bytes left here
+         DEC D1             ; a page before?
+         BMI COMCMP_1       ; no: the next block
+         DEC INDPTR+1
+         DEC FILPOS+1
+COMCMP_6
          DEY
-         BNE COMCMP_2
-COMCMP_5
-         LDA ABORT
-         BEQ COMCMP_1       ; no EOF: the next block
-         CMP #$02
-         BNE COMCMP_3       ; one ended first
-         @PRNTLN BSAM       ; the same
-         JMP GETCOM
+         LDA (INDPTR),Y
+         CMP (FILPOS),Y
+         BEQ COMCMP_2
 COMCMP_3
          @PRNTLN BDIF       ; different
          JMP GETCOM
-;
-; CHKEOF - after a Byte Compare read:
-; ABORT + 1 at EOF
-; Y: the CIO status
-; Exit: RTS; ABORT changed
-;
-CHKEOF
-         CPY #AXEOF
-         BNE CHKEOF_1
-         INC ABORT
-CHKEOF_1
-         RTS
+COMCMP_5
+         @PRNTLN BSAM       ; the same
+         JMP GETCOM
 ;
 ; COMMEM - Memory Status: show MEMLO
 ; and MEMTOP, ask for an address, then

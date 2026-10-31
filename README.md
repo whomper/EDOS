@@ -22,7 +22,7 @@ running on top of MyDOS, SpartaDOS or DOS 2.5.
 - **Assembles on the Atari:** the MAC/65 sources are on the disk; a PC cross assembler and tests are
   here too
 
-![The EDOS 3.7 main menu: drives 1 and 2, HIGH speed and 512K of extended memory on the status line, and the twenty commands](EDOS.png)
+![The EDOS 3.8 main menu: drives 1 and 2, HIGH speed and 512K of extended memory on the status line, and the twenty commands](EDOS.png)
 
 ## The commands
 
@@ -56,7 +56,7 @@ high speed (**NORM** when not), and the extended memory (**XMEM**).
   come back to the menu. Loading stops before anything is written to page 6.
 - **Save Binary** (S): saves a memory range, with a run address.
 - **Byte Compare** (B): tells you whether two files are the same: the same length and the same
-  bytes.
+  bytes. It reads 4K of each file at a time, so one drive moves between them less.
 - **Go To Address** (G): jumps to an address of one to four hex digits. **To Cartridge** (T): starts
   the cartridge, when there is one.
 - **New Drive** (N): sets the current drive. Every command uses it unless you name another.
@@ -83,7 +83,7 @@ Download from **[Releases](../../releases/latest)**:
 | `EDOS.ATR` | a bootable SpartaDOS 3.2 disk with EDOS, its font and the current MAC/65 sources |
 | `EDOS.COM` | the program: a binary load file for any DOS |
 | `AERA.FNT` | the AERA family's character set; keep it next to `EDOS.COM` |
-| `EDOSTEST.ATR` | a bootable test disk with the test files and `TESTPLAN.TXT`, 46 checks for a real Atari |
+| `EDOSTEST.ATR` | a bootable test disk with the test files and `TESTPLAN.TXT`, 52 checks for a real Atari |
 
 1. Boot `EDOS.ATR` and type `EDOS` at the SpartaDOS prompt.
 2. Or copy `EDOS.COM` and `AERA.FNT` to your own DOS disk and load `EDOS.COM` (**L** in the DOS 2.5
@@ -104,7 +104,7 @@ works.
 2.5. Copy Files and Duplicate Disk need 130XE-style extended memory (above); the other commands
 don't. EDOS runs at $1E00-$3FFF. It also needs free memory up to $8000: during copies the extended
 memory banks appear at $4000-$7FFF, so the screen must be above them, and Byte Compare reads the
-files into $4000-$50FF. When DOS ends above $1E00 (`MEMLO`) or memory ends below $8000 (`MEMTOP`),
+files into $4000-$4FFF and $6000-$6FFF. When DOS ends above $1E00 (`MEMLO`) or memory ends below $8000 (`MEMTOP`),
 EDOS says so as it loads and goes back to DOS before anything is overwritten. Any 48K Atari has
 room.
 

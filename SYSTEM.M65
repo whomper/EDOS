@@ -1,5 +1,5 @@
 ;
-; SYSTEM.M65 - EDOS 3.7
+; SYSTEM.M65 - EDOS 3.8
 ; EDOS's constants and zero page
 ; Copyright (C) 2026 AERA | Erez Yaary
 ;
@@ -62,7 +62,7 @@ FASC     = $D8E6
 IFP      = $D9AA
 FPI      = $D9D2
 M4000    = $4000            ; the bank window
-M5000    = $5000
+M6000    = $6000
 ;
 ; DOSIO's flags in DUNUSE
 ;

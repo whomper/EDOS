@@ -166,7 +166,7 @@ class TestMenu(unittest.TestCase):
     def test_menu_screen(self):
         m = Machine()
         m.run('GOMENU')
-        for text in ('EDOS 3.7', 'Dir D1-D8', 'Write EDOS', 'Copy Files', 'Duplicate Disk',
+        for text in ('EDOS 3.8', 'Dir D1-D8', 'Write EDOS', 'Copy Files', 'Duplicate Disk',
                      'Quit to DOS', 'XMEM:'):
             self.assertIn(text, m.screen)
         self.assertIn('(C) AERA 2026', m.screen)
@@ -198,7 +198,7 @@ class TestMenu(unittest.TestCase):
         m = Machine(keys='?')
         m.run('GETCOM', stop=['NLMENU'])
         self.assertIn('Select Item (RETURN menu, ? About): ?', m.screen)
-        self.assertIn('EDOS 3.7\nDisk utility for Atari 8-bit DOS\n'
+        self.assertIn('EDOS 3.8\nDisk utility for Atari 8-bit DOS\n'
                       'Copyright (C) 2026 AERA | Erez Yaary\nGPL-2.0-or-later\n'
                       'github.com/whomper/EDOS\n', m.screen)
 
@@ -424,6 +424,41 @@ class TestCompare(unittest.TestCase):
 
     def test_last_byte_differs(self):
         self.check('BIG.DAT', 'B.DAT', 'Files are different', {'B.DAT': BIG[:-1] + bytes([BIG[-1] ^ 1])})
+
+    def test_4k_blocks(self):
+        # 3.8 reads 4K of each file at a time: the 4K edges, a byte
+        # differing in any page of a block, and the bytes the buffers
+        # held before (different in each) not compared
+        k4 = BIG[:4096]
+        for a, b, expect in (
+                (k4, k4, 'the same'), (k4 + b'X', k4 + b'X', 'the same'), (BIG[:8192], BIG[:8192], 'the same'),
+                (k4, k4 + b'X', 'different'), (k4 + b'X', k4, 'different'),
+                (k4, k4[:-1], 'different'), (b'A', b'B', 'different'),
+                (BIG[:4096 + 300], BIG[:4096 + 299] + b'?', 'different')):
+            self.check('A.DAT', 'B.DAT', f'Files are {expect}', {'A.DAT': a, 'B.DAT': b})
+        for at in (0, 255, 256, 1000, 4095, 4096, 8191, 12345):
+            b = bytearray(BIG)
+            b[at] ^= 0x40
+            self.check('BIG.DAT', 'B.DAT', 'Files are different', {'B.DAT': bytes(b)})
+
+    def test_old_buffer_bytes_not_compared(self):
+        f = files()
+        f[1].update({'A.DAT': b'SAME', 'B.DAT': b'SAME'})
+        m = Machine(f, lines=['A.DAT', 'B.DAT'])
+        for i in range(0x1000):
+            m.sim.poke(0x4000 + i, 0x11)
+            m.sim.poke(0x6000 + i, 0x22)
+        m.run('COMCMP', max_steps=60_000_000)
+        self.assertIn('Files are the same', m.screen)
+
+    def test_reads_4k_at_a_time(self):
+        f = files()
+        m = Machine(f, lines=['BIG.DAT', 'BIG.DAT'])
+        m.run('COMCMP', max_steps=60_000_000)
+        gets = [c['len'] for c in (dict(t[1]) for t in m.w.trace if t[0] == 'CIO')
+                if c['cmd'] == 7 and c['iocb'] in (0x20, 0x30)]
+        # 20000 bytes: four full blocks, a short one, then none: 6 of each
+        self.assertEqual(gets, [4096] * 12)
 
 
 class TestFileCommands(unittest.TestCase):
@@ -822,7 +857,7 @@ class TestStartAndReset(unittest.TestCase):
         self.assertIsNone(m.hits.get(0x9000))        # DOS has set up already
         m.run('AXINIT', watch=[0x9000])               # RESET: OS calls DOSINI
         self.assertEqual(m.hits.get(0x9000), 1, "DOS reset handler not chained")
-        self.assertIn('EDOS 3.7', m.screen)
+        self.assertIn('EDOS 3.8', m.screen)
 
     def test_rerun_keeps_original_dosini(self):
         m = Machine()
@@ -872,7 +907,7 @@ class TestFont(unittest.TestCase):
         self.assertEqual(m.sim.peek(0x2F4), 0xE0)                 # the ROM's
         self.assertEqual(m.sim.peek(m['AXFPG']), 0xE0)
         self.assertNotIn('Error', m.screen)
-        self.assertIn('EDOS 3.7', m.screen)
+        self.assertIn('EDOS 3.8', m.screen)
 
     def test_short_file_is_not_used(self):
         m = self.start({1: {'AERA.FNT': self.font[:500]}})

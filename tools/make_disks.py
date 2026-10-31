@@ -47,7 +47,7 @@ def symbols():
 
 def plan(sym, nfiles):
     size = sym['END_PROG'] - sym['START_PROG'] + 12
-    text = f"""EDOS 3.7 TEST PLAN
+    text = f"""EDOS 3.8 TEST PLAN
 ==================
 D1: this disk (boot it, then EDOS).
 D2: a blank formatted disk.
@@ -56,7 +56,7 @@ Expect: what you should see.
 
 -- MENU / DIR --
 1 Boot, run EDOS. Expect title
-  EDOS 3.7, D:12 (or your drives),
+  EDOS 3.8, D:12 (or your drives),
   XMEM size, full menu.
 2 F: inverse title FILES ON DISK.
   RETURN: D1 listing,
@@ -160,7 +160,7 @@ Expect: what you should see.
 
 -- NEW IN 3.3 AND 3.4 --
 36 HELP at the menu: the About
-  lines, EDOS 3.7 ... github.com/
+  lines, EDOS 3.8 ... github.com/
   whomper/EDOS. ? does the same.
   Title: (C) AERA 2026.
 37 F RETURN, then R: the prompt
@@ -190,6 +190,30 @@ Expect: what you should see.
   Stopped, and the menu.
 46 C *.* 2, ESC: Stopped after
   the file it is on.
+
+-- NEW IN 3.8: THE REAL 1050S --
+47 B BIG.DAT BIG.DAT on one
+  drive: the same. The drive
+  reads long runs, not a sector
+  for each file in turn.
+48 The look: colours, font, title
+  and status lines as in the
+  README's picture. Note any
+  difference.
+49 At File: press CAPS, type ab:
+  note whether AB or ab shows.
+50 The status line: HIGH only on
+  a drive with a fast mode
+  (Happy, US Doubler...). A stock
+  1050 shows NORM. Note each.
+51 On each 1050: N 2, I 1, I 2
+  and I 3 (if it does double),
+  Y. Note which format and which
+  give an error. F D2:: empty.
+52 After I 3: A 4 shows Sector:
+  4 without an error. D Y from
+  a double disk to it:
+  F D2:: same as the source.
 """
     return text.replace('\n', '\x9b').encode('latin1')
 
