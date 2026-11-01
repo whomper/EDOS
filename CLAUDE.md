@@ -56,3 +56,18 @@
   they are, an exception to XL guidelines 5.5. Copy reads into the extended
   banks, 16K a GET and PUT, and needs extended memory; it doesn't use main
   memory. Duplicate reads the whole disk by SIO, then writes it.
+
+## Maintenance mode (Erez, 1 Nov 2026)
+
+EDOS is in maintenance mode while EWeb, EPDF and EPlay go to 1.0 (AERA-Atari, ATARI-XL-GUIDELINES.md, section 10). Until Erez ends it:
+- No new features, speed rounds, clean-ups, or catching up with new or changed guidelines.
+- No sync of the shared code (`xl/`). Shared code moving is no reason to rebuild or release.
+- A release only for:
+  - a security or data-loss fault;
+  - a crash or breakage Erez reports;
+  - something outside that stops it working.
+
+  Such a release takes only that fix (one change from AERA-Atari, not a sync), and its notes say why.
+- Work on `main` that isn't released stays unreleased.
+- Nothing runs in the background; the session waits for Erez or the hub.
+- Only Erez's explicit word ends this mode, for instance that every program is to take the latest shared code and release. The hub passes it on quoting him.
